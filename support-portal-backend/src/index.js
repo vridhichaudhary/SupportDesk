@@ -13,7 +13,14 @@ const PORT = process.env.PORT || 8080;
 
 app.use(bodyParser.json());
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: [
+      "http://localhost:3000",                      
+      "https://support-desk-teal-nine.vercel.app"   
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
+  }));
 
 createAdminAccount();
 
