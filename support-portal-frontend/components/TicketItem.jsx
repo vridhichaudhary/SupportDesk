@@ -1,4 +1,4 @@
-import format from "date-fns/format";
+import { format } from "date-fns";
 
 function Tag({ text, colorClass }) {
   return <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${colorClass}`}>{text}</span>;
