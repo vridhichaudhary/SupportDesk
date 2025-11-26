@@ -1,93 +1,69 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import axiosInstance from "@/utils/axiosInstance";
+import Sidebar from "@/components/Sidebar";
+import StatCard from "@/components/StatCard";
+import TicketList from "@/components/TicketList";
+import NewTicketModal from "@/components/NewTicketModal";
 
-export default function Dashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState(null);
+export default function DashboardPage() {
+  const [tickets, setTickets] = useState([]);
+  const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0, chats: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userJSON = localStorage.getItem("user");
-    
-    if (!token || !userJSON) {
-      router.push("/login");
-      return;
-    }
-    
+  async function fetchTickets() {
     try {
-      const parsedUser = JSON.parse(userJSON);
-      setUser(parsedUser);
-    } catch {
-      router.push("/login");
+      const token = localStorage.getItem("token");
+      const res = await axiosInstance.get("/api/tickets", {
+        headers: { Authorization: token ? `Bearer ${token}` : "" }
+      });
+      setTickets(res.data || []);
+      // compute stats
+      const open = (res.data || []).filter(t => t.status === "open").length;
+      const inProgress = (res.data || []).filter(t => t.status === "in-progress").length;
+      const resolved = (res.data || []).filter(t => t.status === "resolved").length;
+      setStats({ open, inProgress, resolved, chats: 0 });
+    } catch (err) {
+      console.error("Fetch tickets error:", err);
+      setTickets([]);
     } finally {
       setLoading(false);
     }
-  }, [router]);
-
-  function handleLogout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-2">Welcome back, {user?.name || "User"}</p>
-            </div>
-            <button 
-              onClick={handleLogout} 
-              className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition font-medium"
-            >
-              Logout
-            </button>
+    <div className="flex min-h-screen bg-[#070707] text-gray-200">
+      <Sidebar />
+
+      <main className="flex-1 p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-4xl font-bold">Dashboard</h1>
+            <div className="text-gray-400">Welcome to your support portal</div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-              <h3 className="text-sm font-semibold text-blue-600 uppercase mb-2">Email</h3>
-              <p className="text-gray-900 font-medium">{user?.email}</p>
-            </div>
-            <div className="bg-green-50 p-6 rounded-xl border border-green-100">
-              <h3 className="text-sm font-semibold text-green-600 uppercase mb-2">Role</h3>
-              <p className="text-gray-900 font-medium capitalize">{user?.role}</p>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-6 rounded-xl">
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Quick Actions</h2>
-            <p className="text-gray-600 mb-4">
-              {user?.role === "admin" 
-                ? "As an admin, you have access to all system features and user management."
-                : "Welcome to your personal dashboard. You can manage your support tickets here."}
-            </p>
-            <div className="flex gap-3">
-              {user?.role === "admin" && (
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
-                  Manage Users
-                </button>
-              )}
-              <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
-                View Tickets
-              </button>
-            </div>
+          <div className="flex items-center gap-4">
+            <NewTicketModal onCreated={() => fetchTickets()} />
           </div>
         </div>
-      </div>
+
+        <div className="flex gap-4 mb-6">
+          <StatCard title="Open Tickets" value={stats.open} />
+          <StatCard title="In Progress" value={stats.inProgress} />
+          <StatCard title="Resolved" value={stats.resolved} />
+          <StatCard title="Chat Sessions" value={stats.chats} />
+        </div>
+
+        <section className="mt-6">
+          <div className="bg-[#050505] border border-[#1f1f1f] rounded-lg p-6">
+            <TicketList tickets={tickets} />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

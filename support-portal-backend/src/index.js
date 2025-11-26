@@ -7,6 +7,7 @@ const userRoute = require("./routes/user");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const createAdminAccount = require("./scripts/admin");
+const ticketsRoute = require("./routes/tickets");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -48,6 +49,8 @@ app.get("/", (req, res) => {
 app.use("/user", signupRoute);
 app.use("/auth", loginRoute);
 app.use("/api", userRoute);
+
+app.use("/api/tickets", ticketsRoute);
 
 // Error handler
 app.use((err, req, res, next) => {
