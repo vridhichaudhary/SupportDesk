@@ -1,18 +1,16 @@
 const mongoose = require("../configuration/dbConfig");
 
 const ticketSchema = new mongoose.Schema({
+  ticketId: { type: String, required: true, unique: true }, // TK-xxxxx
   title: { type: String, required: true },
-  description: String,
-  priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
+  description: { type: String, default: "" },
+  category: { type: String, enum: ["Technical", "Billing", "General"], default: "General" },
+  priority: { type: String, enum: ["Low", "Medium", "High"], default: "Low" },
   status: { type: String, enum: ["open", "in-progress", "resolved"], default: "open" },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  createdAt: { type: Date, default: Date.now }
 });
 
-ticketSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
-  next();
-});
+ticketSchema.index({ title: "text", description: "text" });
 
 module.exports = mongoose.model("Ticket", ticketSchema);

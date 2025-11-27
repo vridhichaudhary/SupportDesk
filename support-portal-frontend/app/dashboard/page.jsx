@@ -59,35 +59,20 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-            <div className="p-6 rounded-xl border shadow-sm bg-[#F3E8FF]">
-              <h3 className="text-sm text-purple-700 font-semibold mb-1">
-                Open Tickets
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="p-6 rounded-xl border bg-indigo-50">
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase mb-2">Open Tickets</h3>
+                <p className="text-3xl font-bold text-gray-900">0</p>
+              </div>
+              <div className="p-6 rounded-xl border bg-yellow-50">
+                <h3 className="text-sm font-semibold text-yellow-700 uppercase mb-2">In Progress</h3>
+                <p className="text-3xl font-bold text-gray-900">0</p>
+              </div>
+              <div className="p-6 rounded-xl border bg-green-50">
+                <h3 className="text-sm font-semibold text-green-700 uppercase mb-2">Resolved</h3>
+                <p className="text-3xl font-bold text-gray-900">0</p>
+              </div>
             </div>
-
-            <div className="p-6 rounded-xl border shadow-sm bg-[#E0F2FE]">
-              <h3 className="text-sm text-sky-700 font-semibold mb-1">
-                In Progress
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-
-            <div className="p-6 rounded-xl border shadow-sm bg-[#DCFCE7]">
-              <h3 className="text-sm text-green-700 font-semibold mb-1">
-                Resolved
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-
-            <div className="p-6 rounded-xl border shadow-sm bg-[#FCE7F3]">
-              <h3 className="text-sm text-pink-700 font-semibold mb-1">
-                Chat Sessions
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-          </div>
 
           <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 mb-2">
