@@ -1,12 +1,12 @@
-"use client";
 import AdminSidebar from "@/components/AdminSidebar";
+import "../globals.css";
 
 export default function AdminLayout({ children }) {
   return (
     <html lang="en">
       <body className="flex bg-gray-50">
         <AdminSidebar />
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-6">{children}</main>
       </body>
     </html>
   );
