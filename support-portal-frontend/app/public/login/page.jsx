@@ -42,7 +42,11 @@ export default function LoginPage() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      router.push(user.role === "admin" ? "/admin" : "/dashboard");
+      if (user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/user/dashboard");
+      }
 
     } catch (err) {
       console.error("Login error:", err);
