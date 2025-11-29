@@ -1,12 +1,7 @@
-export const metadata = {
-    title: "SupportDesk",
-  };
-  
-  export default function PublicLayout({ children }) {
-    return (
-      <html lang="en">
-        <body className="bg-gray-100">{children}</body>
-      </html>
-    );
-  }
-  
+export default function PublicLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      {children}
+    </div>
+  );
+}

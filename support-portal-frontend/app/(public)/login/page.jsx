@@ -10,60 +10,111 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const change = (e) =>
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
+    if (!form.email || !form.password) {
+      setMessage("⚠️ Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const res = await axiosInstance.post("/auth/login", form);
+      const res = await axiosInstance.post("/auth/login", {
+        email: form.email.trim().toLowerCase(),
+        password: form.password
+      });
+
       const { token, user } = res.data;
 
+      if (!token || !user) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Store in localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      router.push(user.role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+      setMessage("✅ Login successful!");
+
+      // Redirect based on role
+      setTimeout(() => {
+        if (user.role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/user/dashboard");
+        }
+      }, 500);
+
     } catch (err) {
-      setMessage("Invalid email or password");
+      console.error("Login error:", err);
+      const errorMsg = err?.response?.data?.message || "Invalid credentials";
+      setMessage("⚠️ " + errorMsg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <form onSubmit={submit} className="bg-white p-8 rounded-lg shadow w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-4">Welcome Back</h1>
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md"
+    >
+      <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
+      <p className="text-gray-500 text-center mb-6">Sign in to your account</p>
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="w-full border p-3 rounded mb-3"
-          onChange={change}
-        />
+      <input
+        name="email"
+        type="email"
+        placeholder="Email"
+        value={form.email}
+        onChange={handleChange}
+        className="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
+        disabled={loading}
+      />
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="w-full border p-3 rounded mb-6"
-          onChange={change}
-        />
+      <input
+        name="password"
+        type="password"
+        placeholder="Password"
+        value={form.password}
+        onChange={handleChange}
+        className="w-full border border-gray-300 p-3 rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
+        disabled={loading}
+      />
 
-        <button className="w-full bg-blue-600 text-white py-3 rounded">
-          {loading ? "Signing in..." : "Sign In"}
-        </button>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? "Signing in..." : "Sign In"}
+      </button>
 
-        {message && <p className="text-red-600 mt-4 text-center">{message}</p>}
+      {message && (
+        <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
+          message.includes('✅') 
+            ? 'bg-green-50 text-green-700 border border-green-200' 
+            : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {message}
+        </div>
+      )}
 
-        <p className="text-center mt-4">
-          Don’t have an account?{" "}
-          <Link href="/signup" className="text-blue-600">Sign up</Link>
-        </p>
-      </form>
-    </div>
+      <p className="text-center text-sm text-gray-600 mt-6">
+        Don't have an account?{" "}
+        <Link href="/signup" className="text-blue-600 hover:underline font-medium">
+          Sign up
+        </Link>
+      </p>
+    </form>
   );
 }

@@ -1,13 +1,10 @@
 import AdminSidebar from "@/components/AdminSidebar";
-import "../globals.css";
 
 export default function AdminLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="flex bg-gray-50">
-        <AdminSidebar />
-        <main className="flex-1 p-6">{children}</main>
-      </body>
-    </html>
+    <div className="flex min-h-screen bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 overflow-auto">{children}</main>
+    </div>
   );
 }

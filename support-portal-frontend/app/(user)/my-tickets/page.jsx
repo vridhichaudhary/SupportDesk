@@ -1,70 +1,36 @@
 "use client";
 import { useEffect, useState } from "react";
-import axiosInstance from "@/utils/axiosInstance";
-import CreateTicketModal from "@/components/CreateTicketModal";
-import TicketList from "@/components/TicketList";
+import { useRouter } from "next/navigation";
 
-export default function MyTicketsPage(){
+export default function MyTicketsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [ticketsData, setTicketsData] = useState({ items: [], total: 0 });
-  const [query, setQuery] = useState({ q: "", status: "", priority: "", category: "", sort: "-createdAt", page: 1, limit: 10 });
-  const [showModal, setShowModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    let didCancel = false;
-    async function fetchTickets(){
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          ...query,
-          mine: "true" 
-        });
-        const res = await axiosInstance.get(`/tickets?${params.toString()}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` }
-        });
-        if (!didCancel) setTicketsData(res.data);
-      } catch (err) {
-        console.error("fetchTickets error", err);
-      } finally {
-        if (!didCancel) setLoading(false);
-      }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
     }
-    fetchTickets();
-    return ()=> { didCancel = true; }
-  }, [query, refreshKey]);
+    setLoading(false);
+  }, [router]);
 
-  function handleSearch(q) {
-    setQuery(prev => ({ ...prev, q, page: 1 }));
-  }
-  function handleFilter(partial) {
-    setQuery(prev => ({ ...prev, ...partial, page: 1 }));
-  }
-  function onTicketCreated() {
-    setShowModal(false);
-    setRefreshKey(k => k + 1); // refresh list
+  if (loading) {
+    return <div className="p-8">Loading...</div>;
   }
 
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Tickets</h1>
-        <button onClick={()=>setShowModal(true)} className="bg-green-600 text-white px-4 py-2 rounded">+ Create Ticket</button>
+        <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          + Create Ticket
+        </button>
       </div>
 
-      <div className="mb-4">
-        <input placeholder="Search tickets..." className="w-full p-3 border rounded" onChange={(e)=>handleSearch(e.target.value)} />
+      <div className="bg-white p-6 rounded-lg border">
+        <p className="text-gray-500">No tickets found. Create your first ticket!</p>
       </div>
-
-      <TicketList
-        loading={loading}
-        data={ticketsData}
-        onFilterChange={handleFilter}
-        onPage={(p)=> setQuery(prev => ({ ...prev, page: p }))}
-        query={query}
-      />
-
-      {showModal && <CreateTicketModal onClose={()=>setShowModal(false)} onCreated={onTicketCreated} />}
     </div>
   );
 }
