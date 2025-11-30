@@ -2,56 +2,103 @@
 import { useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 
-export default function CreateTicketModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ title: "", description: "", category: "Technical", priority: "Low" });
-  const [isLoading, setIsLoading] = useState(false);
+export default function CreateTicketWhiteModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    priority: "",
+  });
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    if (!form.title.trim()) { setError("Title required"); return; }
-    setIsLoading(true);
+
+    if (!form.title.trim() || !form.category || !form.priority) {
+      setError("All fields are required");
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token") || "";
-      const res = await axiosInstance.post("/tickets", form, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      onCreated && onCreated(res.data.ticket);
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+      const res = await axiosInstance.post(
+        "/tickets",
+        {
+          title: form.title,
+          description: form.description,
+          category: form.category,
+          priority: form.priority,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      onCreated(res.data.ticket);  
+      onClose();                  
     } catch (err) {
-      console.error("create ticket error", err);
+      console.log("ERR CREATING:", err);
       setError(err.response?.data?.message || "Failed to create ticket");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">Create New Ticket</h3>
-          <button onClick={onClose} className="text-gray-500">✕</button>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-lg">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-2xl font-semibold">Create New Ticket</h2>
+          <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <label className="block mb-2">Subject</label>
-          <input name="title" value={form.title} onChange={handleChange} className="w-full p-3 border rounded mb-3" placeholder="Short description" />
 
-          <div className="flex gap-3 mb-3">
+          <label className="block text-gray-700 mb-1">Subject</label>
+          <input
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="Brief description of your issue"
+            className="w-full border p-3 rounded mb-4"
+          />
+
+          <div className="flex gap-4 mb-4">
             <div className="flex-1">
-              <label className="block mb-2">Category</label>
-              <select name="category" value={form.category} onChange={handleChange} className="w-full p-3 border rounded">
+              <label className="block text-gray-700 mb-1">Category</label>
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+              >
+                <option value="">Select category</option>
                 <option>Technical</option>
                 <option>Billing</option>
                 <option>General</option>
               </select>
             </div>
-            <div className="w-40">
-              <label className="block mb-2">Priority</label>
-              <select name="priority" value={form.priority} onChange={handleChange} className="w-full p-3 border rounded">
+
+            <div className="flex-1">
+              <label className="block text-gray-700 mb-1">Priority</label>
+              <select
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+              >
+                <option value="">Select priority</option>
                 <option>Low</option>
                 <option>Medium</option>
                 <option>High</option>
@@ -59,15 +106,29 @@ export default function CreateTicketModal({ onClose, onCreated }) {
             </div>
           </div>
 
-          <label className="block mb-2">Description</label>
-          <textarea name="description" value={form.description} onChange={handleChange} rows={5} className="w-full p-3 border rounded mb-3" placeholder="Provide details"></textarea>
+          <label className="block text-gray-700 mb-1">Description</label>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            rows={5}
+            placeholder="Provide detailed information about your issue"
+            className="w-full border p-3 rounded mb-4"
+          />
 
-          {error && <div className="text-red-700 bg-red-100 p-2 rounded mb-3">{error}</div>}
+          {error && (
+            <div className="p-2 mb-4 text-red-700 bg-red-100 border border-red-200 rounded">
+              {error}
+            </div>
+          )}
 
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-green-600 text-white rounded">{isLoading ? "Creating..." : "Create Ticket"}</button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 text-white p-3 rounded-lg font-medium hover:bg-green-700 transition"
+          >
+            {loading ? "Creating..." : "Create Ticket"}
+          </button>
         </form>
       </div>
     </div>

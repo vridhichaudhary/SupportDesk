@@ -6,8 +6,8 @@ export default function UserSidebar() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/user/dashboard", label: "Dashboard", icon: "📊" },
-    { href: "/user/my-tickets", label: "My Tickets", icon: "🎫" },
+    { href: "/user/dashboard", label: "Dashboard"},
+    { href: "/user/my-tickets", label: "My Tickets"},
   ];
 
   return (
