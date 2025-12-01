@@ -3,11 +3,7 @@ const { verifyToken } = require("../utils/authMiddleware");
 
 async function createTicketHandler(req, res) {
   try {
-    const authHeader = req.header("Authorization") || "";
-    const token = authHeader.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Unauthorized" });
-
-    const decoded = verifyToken(token);
+    const user = req.user; 
 
     const { title, description, category, priority } = req.body;
     if (!title) return res.status(400).json({ message: "Title is required" });
@@ -17,10 +13,8 @@ async function createTicketHandler(req, res) {
       description,
       category,
       priority,
-      userId: decoded.id
+      userId: user.id
     });
-
-    await created.populate("user", "name email").execPopulate?.() || null;
 
     return res.status(201).json({ ticket: created });
   } catch (err) {
@@ -31,15 +25,11 @@ async function createTicketHandler(req, res) {
 
 async function listTicketsHandler(req, res) {
   try {
-    const { q, status, priority, category, sort, page = 1, limit = 20, mine } = req.query;
+    const { q, status, priority, category, sort, page, limit, mine } = req.query;
 
     let userId = undefined;
     if (mine === "true") {
-      const authHeader = req.header("Authorization") || "";
-      const token = authHeader.split(" ")[1];
-      if (!token) return res.status(401).json({ message: "Unauthorized" });
-      const decoded = verifyToken(token);
-      userId = decoded.id;
+      userId = req.user.id;
     }
 
     const result = await ticketsService.listTickets({
@@ -47,9 +37,9 @@ async function listTicketsHandler(req, res) {
       status,
       priority,
       category,
-      sort: sort || "-createdAt",
-      page: Number(page),
-      limit: Number(limit),
+      sort,
+      page,
+      limit,
       userId
     });
 
@@ -60,4 +50,32 @@ async function listTicketsHandler(req, res) {
   }
 }
 
-module.exports = { createTicketHandler, listTicketsHandler };
+async function updateTicketHandler(req, res) {
+  try {
+    const user = req.user;
+
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin only" });
+    }
+
+    const ticketId = req.params.id;
+    const updateData = req.body;
+
+    const updatedTicket = await ticketsService.updateTicket(ticketId, updateData);
+
+    if (!updatedTicket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    return res.json({ message: "Ticket updated", ticket: updatedTicket });
+  } catch (err) {
+    console.error("updateTicket error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+module.exports = {
+  createTicketHandler,
+  listTicketsHandler,
+  updateTicketHandler
+};

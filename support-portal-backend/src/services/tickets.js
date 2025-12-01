@@ -1,12 +1,23 @@
 const Ticket = require("../models/Ticket");
+const Counter = require("../models/Counter");
 
-function generateTicketId() {
-  return "TK-" + String(Date.now()).slice(-6);
+async function generateSequentialTicketId() {
+  const name = "ticket";
+
+  const updated = await Counter.findOneAndUpdate(
+    { name },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const seq = updated.seq;
+  return "TK-" + String(seq).padStart(3, "0");
 }
+
 
 async function createTicket({ title, description, category, priority, userId }) {
   const ticket = new Ticket({
-    ticketId: generateTicketId(),
+    ticketId: await generateSequentialTicketId(),  
     title,
     description,
     category,
@@ -18,29 +29,39 @@ async function createTicket({ title, description, category, priority, userId }) 
   return saved;
 }
 
-
 async function listTickets(options = {}) {
   const {
-    q, status, priority, category, sort = "-createdAt",
-    page = 1, limit = 20, userId
+    q,
+    status,
+    priority,
+    category,
+    sort = "-createdAt",
+    page = 1,
+    limit = 20,
+    userId
   } = options;
 
   const filter = {};
+
   if (userId) filter.user = userId;
   if (status) filter.status = status;
   if (priority) filter.priority = priority;
   if (category) filter.category = category;
 
-  const query = Ticket.find(filter);
+  let query = Ticket.find(filter).populate("user", "name email");
 
   if (q) {
-    query.find({ $text: { $search: q } });
+    query = query.find({
+      title: new RegExp(q, "i")
+    });
   }
 
-  query.sort(sort);
+  // Sorting
+  query = query.sort(sort);
 
+  // Pagination
   const skip = (Math.max(1, page) - 1) * limit;
-  query.skip(skip).limit(parseInt(limit, 10));
+  query = query.skip(skip).limit(parseInt(limit, 10));
 
   const [items, total] = await Promise.all([
     query.exec(),
@@ -51,8 +72,23 @@ async function listTickets(options = {}) {
     items,
     total,
     page: Number(page),
-    limit: Number(limit)
+    limit: Number(limit),
   };
 }
 
-module.exports = { createTicket, listTickets };
+async function updateTicket(ticketId, data) {
+  const updated = await Ticket.findByIdAndUpdate(
+    ticketId,
+    data,
+    { new: true }
+  );
+
+  return updated;
+}
+
+module.exports = {
+  createTicket,
+  listTickets,
+  generateSequentialTicketId,
+  updateTicket
+};
