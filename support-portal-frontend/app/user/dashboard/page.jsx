@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
-import CreateTicketModal from "@/components/CreateTicketModal"; 
+import CreateTicketModal from "@/components/CreateTicketModal";   // ensure imported
 
 export default function UserDashboard() {
   const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
@@ -23,11 +23,9 @@ export default function UserDashboard() {
       const inProgress = items.filter((t) => t.status === "in-progress").length;
       const resolved = items.filter((t) => t.status === "resolved").length;
 
-      const sorted = items.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-
+      const sorted = items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setRecent(sorted.slice(0, 3));
+
       setStats({ open, inProgress, resolved });
     } catch (err) {
       console.error("dashboard fetch error", err);
@@ -36,29 +34,49 @@ export default function UserDashboard() {
     }
   }
 
+  // ✅ LOGOUT FUNCTION
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+  }
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
 
+      {/* HEADER WITH LOGOUT BUTTON */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-4xl font-bold">Dashboard</h1>
           <p className="text-gray-600">Welcome to your support portal</p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          + New Ticket
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
+            + New Ticket
+          </button>
+
+          {/* LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
+      {/* MODAL */}
       <CreateTicketModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreated={fetchDashboard}
       />
 
+      {/* STATS CARDS */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="p-6 rounded-lg border bg-blue-50">
           <div className="text-sm text-blue-700 font-medium">Open Tickets</div>
@@ -76,6 +94,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
+      {/* RECENT TICKETS */}
       <div className="bg-white rounded-lg border p-6">
         <h2 className="text-2xl font-bold mb-2">Recent Tickets</h2>
         <p className="text-gray-500 mb-4">Your latest support requests</p>
@@ -89,9 +108,7 @@ export default function UserDashboard() {
             <div key={t._id} className="border rounded p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-sm font-semibold text-gray-700">
-                    {t.ticketId}
-                  </div>
+                  <div className="text-sm font-semibold text-gray-700">{t.ticketId}</div>
                   <div className="font-medium">{t.title}</div>
                   <div className="text-sm text-gray-500 mt-1">
                     Category: {t.category} • Created:{" "}
@@ -128,8 +145,8 @@ export default function UserDashboard() {
             </div>
           ))}
         </div>
-
       </div>
+
     </div>
   );
 }
