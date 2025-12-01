@@ -1,18 +1,18 @@
 const express = require("express");
 const router = express.Router();
-
 const {
   createTicketHandler,
   listTicketsHandler,
-  updateTicketHandler
+  updateTicketHandler,
+  dashboardStatsHandler,
 } = require("../controllers/tickets");
 
-const { authenticateToken } = require("../utils/authMiddleware");
+router.post("/", createTicketHandler);
 
-router.post("/", authenticateToken, createTicketHandler);
+router.get("/", listTicketsHandler);
 
-router.get("/", authenticateToken, listTicketsHandler);
+router.get("/stats", dashboardStatsHandler);
 
-router.put("/:id", authenticateToken, updateTicketHandler);
+router.put("/:id", updateTicketHandler);
 
 module.exports = router;

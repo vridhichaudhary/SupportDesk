@@ -3,17 +3,14 @@ const Counter = require("../models/Counter");
 
 async function generateSequentialTicketId() {
   const name = "ticket_sequence";
-
   const updated = await Counter.findOneAndUpdate(
     { name },
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
-
   const seq = updated.seq;
-  return "TK-" + String(seq).padStart(3, "0");  
+  return "TK-" + String(seq).padStart(3, "0");
 }
-
 
 async function createTicket({ title, description, category, priority, userId }) {
   const ticketId = await generateSequentialTicketId();
@@ -24,14 +21,13 @@ async function createTicket({ title, description, category, priority, userId }) 
     description,
     category,
     priority,
-    status: "open",         
-    assignedTo: null,
+    status: "open",
     user: userId,
+    createdAt: new Date(),
   });
 
   return await ticket.save();
 }
-
 
 async function listTickets(options = {}) {
   const {
@@ -39,22 +35,17 @@ async function listTickets(options = {}) {
     status,
     priority,
     category,
-    sort = "-createdAt",
+    sort = "newest",
     page = 1,
     limit = 20,
     userId,
   } = options;
 
   const filter = {};
-
   if (userId) filter.user = userId;
-
-  // Filtering
   if (status && status !== "all") filter.status = status;
   if (priority && priority !== "all") filter.priority = priority;
   if (category && category !== "all") filter.category = category;
-
-  // Text search
   if (q) {
     filter.$or = [
       { title: { $regex: q, $options: "i" } },
@@ -62,24 +53,20 @@ async function listTickets(options = {}) {
     ];
   }
 
-  // Sorting
-  let sortOption = {};
-  if (sort === "newest") sortOption.createdAt = -1;
-  else if (sort === "oldest") sortOption.createdAt = 1;
-  else if (sort === "priority-high") sortOption.priority = -1;
-  else if (sort === "priority-low") sortOption.priority = 1;
-  else if (sort === "status") sortOption.status = 1;
-  else sortOption.createdAt = -1; 
+  // sort mapping
+  let sortOption = { createdAt: -1 };
+  if (sort === "oldest") sortOption = { createdAt: 1 };
+  else if (sort === "priority-high") sortOption = { priority: -1 };
+  else if (sort === "priority-low") sortOption = { priority: 1 };
 
-
-  // Pagination
-  const skip = (page - 1) * limit;
+  const skip = (Math.max(1, page) - 1) * limit;
 
   const [items, total] = await Promise.all([
     Ticket.find(filter)
       .sort(sortOption)
       .skip(skip)
-      .limit(limit)
+      .limit(parseInt(limit, 10))
+      .populate("user", "name email")
       .lean(),
     Ticket.countDocuments(filter),
   ]);
@@ -92,8 +79,7 @@ async function listTickets(options = {}) {
   };
 }
 
-
-async function getDashboardStats(userId) {
+async function getDashboardStatsForUser(userId) {
   const open = await Ticket.countDocuments({ user: userId, status: "open" });
   const inProgress = await Ticket.countDocuments({
     user: userId,
@@ -112,10 +98,13 @@ async function getDashboardStats(userId) {
   return { open, inProgress, resolved, recent };
 }
 
-
+async function updateTicket(ticketId, updates = {}) {
+  return await Ticket.findByIdAndUpdate(ticketId, updates, { new: true }).lean();
+}
 
 module.exports = {
   createTicket,
   listTickets,
-  getDashboardStats,
+  getDashboardStatsForUser,
+  updateTicket,
 };

@@ -4,7 +4,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(p => {
+  failedQueue.forEach((p) => {
     if (error) p.reject(error);
     else p.resolve(token);
   });
@@ -18,26 +18,32 @@ const axiosInstance = axios.create({
   },
 });
 
+
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
+
 axiosInstance.interceptors.response.use(
-  res => res,
-  async err => {
+  (res) => res,
+
+  async (err) => {
     const originalRequest = err.config;
+    const message = err.response?.data?.message;
+    const status = err.response?.status;
 
-    // If expired
-    if (err.response?.data?.message === "jwt expired") {
 
+    if (message === "jwt expired") {
       if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
+        }).then((token) => {
           originalRequest.headers.Authorization = "Bearer " + token;
           return axiosInstance(originalRequest);
         });
@@ -56,26 +62,48 @@ axiosInstance.interceptors.response.use(
         const newToken = refreshRes.data.newToken;
 
         localStorage.setItem("token", newToken);
+
         axiosInstance.defaults.headers.Authorization = "Bearer " + newToken;
 
         processQueue(null, newToken);
 
-        // Retry request
+        originalRequest.headers.Authorization = "Bearer " + newToken;
         return axiosInstance(originalRequest);
-
       } catch (e) {
         processQueue(e, null);
+
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/login";
+
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+
         return Promise.reject(e);
       } finally {
         isRefreshing = false;
       }
     }
 
+
+    if (status === 401 || status === 403) {
+      if (message === "jwt expired" || isRefreshing) {
+        return Promise.reject(err);
+      }
+
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      } catch {}
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    }
+
     return Promise.reject(err);
   }
 );
+
 
 export default axiosInstance;

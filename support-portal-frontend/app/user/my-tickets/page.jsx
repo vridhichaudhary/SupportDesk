@@ -1,107 +1,119 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import CreateTicketModal from "@/components/CreateTicketModal";
-
-function StatusBadge({ status }) {
-  const map = {
-    open: "bg-blue-100 text-blue-800",
-    "in-progress": "bg-yellow-100 text-yellow-800",
-    resolved: "bg-green-100 text-green-800"
-  };
-  return <span className={`px-3 py-1 rounded-full text-xs ${map[status] || "bg-gray-100 text-gray-800"}`}>{status}</span>;
-}
-
-function PriorityBadge({ priority }) {
-  const map = {
-    Low: "bg-green-100 text-green-800",
-    Medium: "bg-yellow-100 text-yellow-800",
-    High: "bg-red-100 text-red-800"
-  };
-  return <span className={`px-3 py-1 rounded-full text-xs ${map[priority] || "bg-gray-100 text-gray-800"}`}>{priority}</span>;
-}
+import TicketList from "@/components/TicketList";
 
 export default function MyTicketsPage() {
-  const [loading, setLoading] = useState(true);
-  const [tickets, setTickets] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
+  const [query, setQuery] = useState({
+    q: "",
+    status: "all",
+    priority: "all",
+    category: "all",
+    sort: "newest",
+    page: 1,
+    limit: 10,
+  });
+
+  const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 10 });
+  const [loading, setLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState("");
 
-  async function loadTickets() {
+  const fetchTickets = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
-      const res = await axiosInstance.get(`/tickets?mine=true`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" }
+      const token = localStorage.getItem("token") || "";
+      const params = new URLSearchParams({
+        ...query,
+        mine: "true",
+        page: query.page,
       });
-      // your backend returns { items, total } or an array; handle both
-      const data = res.data;
-      setTickets(Array.isArray(data) ? data : data.items || []);
+
+      const res = await axiosInstance.get(`/tickets?${params.toString()}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setData(res.data);
     } catch (err) {
       console.error("fetch tickets error", err);
-      if (err?.response?.status === 401) {
-        setError("Session expired. Please login again.");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setTimeout(() => (window.location.href = "/login"), 900);
-      } else {
-        setError("Failed to load tickets");
-      }
+      setError("Failed to load tickets");
     } finally {
       setLoading(false);
     }
-  }
+  }, [query]);
 
   useEffect(() => {
-    loadTickets();
-  }, []);
+    fetchTickets();
+  }, [fetchTickets]);
+
+  function onFilterChange(updates) {
+    setQuery((q) => ({ ...q, ...updates, page: 1 }));
+  }
+
+  function onPage(p) {
+    setQuery((q) => ({ ...q, page: p }));
+  }
 
   function handleCreated(newTicket) {
-    // prepend the new ticket to list so user sees it immediately
-    setTickets(prev => [newTicket, ...prev]);
+    // simplest approach: refresh list (will include new ticket)
+    setQuery((q) => ({ ...q })); // trigger fetch via same query
+    fetchTickets();
   }
 
   return (
-    <div className="flex-1 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
           <h1 className="text-3xl font-bold">My Tickets</h1>
-          <button onClick={() => setOpenModal(true)} className="bg-green-600 text-white px-4 py-2 rounded">+ Create Ticket</button>
+          <p className="text-gray-500">Manage your support requests</p>
         </div>
 
-        {error && <div className="mb-4 text-red-700 bg-red-100 p-3 rounded">{error}</div>}
+        <div className="flex items-center gap-3">
+          <input
+            placeholder="Search tickets..."
+            value={query.q}
+            onChange={(e)=>onFilterChange({ q: e.target.value })}
+            className="px-4 py-2 border rounded w-96"
+          />
 
-        {loading ? (
-          <div>Loading...</div>
-        ) : tickets.length === 0 ? (
-          <div className="p-6 bg-white border rounded text-gray-500">No tickets found. Create your first ticket!</div>
-        ) : (
-          <div className="space-y-4">
-            {tickets.map(t => (
-              <div key={t._id || t.ticketId} className="bg-white p-6 rounded shadow border flex justify-between items-center">
-                <div>
-                  <div className="flex gap-3 items-center mb-1">
-                    <div className="font-semibold text-sm">{t.ticketId}</div>
-                    <StatusBadge status={t.status} />
-                    <PriorityBadge priority={t.priority} />
-                  </div>
-                  <div className="text-lg font-semibold">{t.title}</div>
-                  <div className="text-sm text-gray-500 mt-2">
-                    Category: {t.category} &nbsp; • &nbsp; Created: {new Date(t.createdAt).toLocaleString()}
-                  </div>
-                </div>
+          {/* Filters: simple select controls */}
+          <select value={query.status} onChange={(e)=>onFilterChange({ status: e.target.value })} className="px-3 py-2 border rounded">
+            <option value="all">All status</option>
+            <option value="open">Open</option>
+            <option value="in-progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
 
-                <div>
-                  <button className="px-4 py-2 border rounded">View</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          <select value={query.priority} onChange={(e)=>onFilterChange({ priority: e.target.value })} className="px-3 py-2 border rounded">
+            <option value="all">All priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+
+          <select value={query.sort} onChange={(e)=>onFilterChange({ sort: e.target.value })} className="px-3 py-2 border rounded">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="priority-high">Priority: High to Low</option>
+            <option value="priority-low">Priority: Low to High</option>
+          </select>
+
+          <button onClick={()=>setShowCreate(true)} className="px-4 py-2 bg-green-600 text-white rounded">+ Create Ticket</button>
+        </div>
       </div>
 
-      <CreateTicketModal open={openModal} onClose={() => setOpenModal(false)} onCreated={handleCreated} />
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+
+      <TicketList data={data} loading={loading} onFilterChange={onFilterChange} onPage={onPage} query={query} />
+
+      {showCreate && (
+        <CreateTicketModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(t) => handleCreated(t)}
+        />
+      )}
     </div>
   );
 }
