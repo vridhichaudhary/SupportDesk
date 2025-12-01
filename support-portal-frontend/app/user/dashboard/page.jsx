@@ -5,6 +5,7 @@ import TicketItem from "@/components/TicketItem";
 
 export default function UserDashboard() {
   const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,18 @@ export default function UserDashboard() {
           <h1 className="text-4xl font-bold">Dashboard</h1>
           <p className="text-gray-600">Welcome to your support portal</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ New Ticket</button>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          + New Ticket
+        </button>
+
+    <CreateTicketModal
+      open={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      onCreated={fetchDashboard}
+    />
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-8">

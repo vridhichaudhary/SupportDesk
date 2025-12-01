@@ -129,11 +129,11 @@ export default function MyTicketsPage() {
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
+          <option value="status">Status</option>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
           <option value="priority-high">Priority: High → Low</option>
           <option value="priority-low">Priority: Low → High</option>
-          <option value="status">Status</option>
         </select>
       </div>
 
