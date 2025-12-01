@@ -59,25 +59,20 @@ export default function UserDashboard() {
         onCreated={fetchDashboard}
       />
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="p-6 bg-white rounded-lg border">
-          <div className="text-sm text-gray-500">Open Tickets</div>
-          <div className="text-3xl font-bold">{stats.open}</div>
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="p-6 rounded-lg border bg-blue-50">
+          <div className="text-sm text-blue-700 font-medium">Open Tickets</div>
+          <div className="text-3xl font-bold text-blue-900">{stats.open}</div>
         </div>
 
-        <div className="p-6 bg-white rounded-lg border">
-          <div className="text-sm text-gray-500">In Progress</div>
-          <div className="text-3xl font-bold">{stats.inProgress}</div>
+        <div className="p-6 rounded-lg border bg-yellow-50">
+          <div className="text-sm text-yellow-700 font-medium">In Progress</div>
+          <div className="text-3xl font-bold text-yellow-900">{stats.inProgress}</div>
         </div>
 
-        <div className="p-6 bg-white rounded-lg border">
-          <div className="text-sm text-gray-500">Resolved</div>
-          <div className="text-3xl font-bold">{stats.resolved}</div>
-        </div>
-
-        <div className="p-6 bg-white rounded-lg border">
-          <div className="text-sm text-gray-500">Chat Sessions</div>
-          <div className="text-3xl font-bold">0</div>
+        <div className="p-6 rounded-lg border bg-green-50">
+          <div className="text-sm text-green-700 font-medium">Resolved</div>
+          <div className="text-3xl font-bold text-green-900">{stats.resolved}</div>
         </div>
       </div>
 
