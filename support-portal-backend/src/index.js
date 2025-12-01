@@ -6,6 +6,9 @@ const signupRoute = require("./routes/signup");
 const loginRoute = require("./routes/login");
 const userRoute = require("./routes/user");
 const ticketsRoute = require("./routes/tickets");
+const adminAuthRoutes = require("./routes/adminAuth");
+const adminRoutes = require("./routes/admin");
+
 
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -54,6 +57,9 @@ app.use("/auth", loginRoute);
 app.use("/api", userRoute);
 
 app.use("/tickets", ticketsRoute);
+
+app.use("/admin", adminAuthRoutes);
+app.use("/admin", adminRoutes);
 
 app.use((err, req, res, next) => {
     console.error("Server Error:", err);

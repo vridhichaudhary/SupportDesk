@@ -1,110 +1,105 @@
+// app/admin/dashboard/page.jsx
 "use client";
 import { useEffect, useState } from "react";
+import axiosInstance from "@/utils/axiosInstance";
+import StatCard from "@/components/StatCard";
+import RecentTicketItem from "@/components/RecentTicketItem";
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userJSON = localStorage.getItem("user");
+    fetchTickets();
+  }, []);
 
-    if (!token || !userJSON) {
-      router.push("/login");
-      return;
-    }
-
+  async function fetchTickets() {
+    setLoading(true);
     try {
-      const parsedUser = JSON.parse(userJSON);
-
-      if (parsedUser.role !== "admin") {
-        router.push("/user/dashboard");
-        return;
-      }
-
-      setUser(parsedUser);
-    } catch (error) {
-      console.error("Error parsing user:", error);
-      router.push("/login");
+      const res = await axiosInstance.get("/tickets", {
+        params: { limit: 1000, page: 1 }
+      });
+      const items = res.data.items || [];
+      setTickets(items);
+    } catch (err) {
+      console.error("Failed to load tickets", err);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  // compute counts
+  const total = tickets.length;
+  const open = tickets.filter(t => t.status === "open").length;
+  const inProgress = tickets.filter(t => t.status === "in-progress").length;
+  const resolved = tickets.filter(t => t.status === "resolved").length;
+
+  // most recent 3
+  const recentSorted = [...tickets].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0,3);
+
+  function handleLogout() {
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch {}
     router.push("/login");
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
   }
 
   return (
     <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-2">Welcome, {user?.name}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition"
-            >
-              Logout
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">Monitor support operations and team performance</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-md bg-gray-100 border text-gray-700 hover:bg-gray-200"
+            title="Logout"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <StatCard title="Total Tickets" value={total} note="+12% from last month" />
+        <StatCard title="Open Tickets" value={open} note="+5% from last month" />
+        <StatCard title="Resolved" value={resolved} note="+8% from last month" />
+        <StatCard title="In Progress" value={inProgress} note="-15% from last month" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Tickets */}
+        <div className="bg-white rounded-lg border p-6">
+          <h2 className="text-2xl font-bold mb-2">Recent Tickets</h2>
+          <p className="text-gray-500 mb-4">Latest support requests requiring attention</p>
+
+          <div className="space-y-4">
+            {loading && <div className="text-gray-500">Loading...</div>}
+            {!loading && recentSorted.length === 0 && <div className="text-gray-500">No recent tickets</div>}
+            {!loading && recentSorted.map(t => <RecentTicketItem key={t._id} ticket={t} />)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border p-6">
+          <h2 className="text-2xl font-bold mb-2">Quick Actions</h2>
+          <p className="text-gray-500 mb-4">Common admin tasks</p>
+
+          <div className="space-y-3">
+            <button onClick={()=>router.push("/admin/tickets")} className="w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50">
+              View all tickets
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-purple-50 p-6 rounded-xl border">
-              <h3 className="text-sm font-semibold text-purple-600 uppercase mb-2">
-                Total Users
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-            <div className="bg-blue-50 p-6 rounded-xl border">
-              <h3 className="text-sm font-semibold text-blue-600 uppercase mb-2">
-                Active Tickets
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-            <div className="bg-green-50 p-6 rounded-xl border">
-              <h3 className="text-sm font-semibold text-green-600 uppercase mb-2">
-                Resolved Today
-              </h3>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-6 rounded-xl">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Admin Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition text-left">
-                <div className="font-semibold">Manage Users</div>
-                <div className="text-sm text-blue-100">View and manage all users</div>
-              </button>
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg transition text-left">
-                <div className="font-semibold">System Settings</div>
-                <div className="text-sm text-indigo-100">Configure preferences</div>
-              </button>
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition text-left">
-                <div className="font-semibold">View Reports</div>
-                <div className="text-sm text-green-100">Analytics and insights</div>
-              </button>
-              <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg transition text-left">
-                <div className="font-semibold">Ticket Management</div>
-                <div className="text-sm text-orange-100">Oversee support tickets</div>
-              </button>
-            </div>
+            <button onClick={()=>router.push("/admin/agents")} className="w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50">
+              Manage agents
+            </button>
+            <button onClick={()=>router.push("/admin/settings")} className="w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50">
+              Settings
+            </button>
           </div>
         </div>
       </div>
