@@ -2,7 +2,7 @@ const Ticket = require("../models/Ticket");
 const Counter = require("../models/Counter");
 
 async function generateSequentialTicketId() {
-  const name = "ticket";
+  const name = "ticket_sequence";
 
   const updated = await Counter.findOneAndUpdate(
     { name },
@@ -11,23 +11,27 @@ async function generateSequentialTicketId() {
   );
 
   const seq = updated.seq;
-  return "TK-" + String(seq).padStart(3, "0");
+  return "TK-" + String(seq).padStart(3, "0");  
 }
 
 
 async function createTicket({ title, description, category, priority, userId }) {
+  const ticketId = await generateSequentialTicketId();
+
   const ticket = new Ticket({
-    ticketId: await generateSequentialTicketId(),  
+    ticketId,
     title,
     description,
     category,
     priority,
+    status: "open",         
+    assignedTo: null,
     user: userId,
   });
 
-  const saved = await ticket.save();
-  return saved;
+  return await ticket.save();
 }
+
 
 async function listTickets(options = {}) {
   const {
@@ -38,34 +42,46 @@ async function listTickets(options = {}) {
     sort = "-createdAt",
     page = 1,
     limit = 20,
-    userId
+    userId,
   } = options;
 
   const filter = {};
 
   if (userId) filter.user = userId;
-  if (status) filter.status = status;
-  if (priority) filter.priority = priority;
-  if (category) filter.category = category;
 
-  let query = Ticket.find(filter).populate("user", "name email");
+  // Filtering
+  if (status && status !== "all") filter.status = status;
+  if (priority && priority !== "all") filter.priority = priority;
+  if (category && category !== "all") filter.category = category;
 
+  // Text search
   if (q) {
-    query = query.find({
-      title: new RegExp(q, "i")
-    });
+    filter.$or = [
+      { title: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+    ];
   }
 
   // Sorting
-  query = query.sort(sort);
+  let sortOption = {};
+  if (sort === "newest") sortOption.createdAt = -1;
+  else if (sort === "oldest") sortOption.createdAt = 1;
+  else if (sort === "priority-high") sortOption.priority = -1;
+  else if (sort === "priority-low") sortOption.priority = 1;
+  else if (sort === "status") sortOption.status = 1;
+  else sortOption.createdAt = -1; 
+
 
   // Pagination
-  const skip = (Math.max(1, page) - 1) * limit;
-  query = query.skip(skip).limit(parseInt(limit, 10));
+  const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
-    query.exec(),
-    Ticket.countDocuments(filter).exec()
+    Ticket.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Ticket.countDocuments(filter),
   ]);
 
   return {
@@ -76,19 +92,30 @@ async function listTickets(options = {}) {
   };
 }
 
-async function updateTicket(ticketId, data) {
-  const updated = await Ticket.findByIdAndUpdate(
-    ticketId,
-    data,
-    { new: true }
-  );
 
-  return updated;
+async function getDashboardStats(userId) {
+  const open = await Ticket.countDocuments({ user: userId, status: "open" });
+  const inProgress = await Ticket.countDocuments({
+    user: userId,
+    status: "in-progress",
+  });
+  const resolved = await Ticket.countDocuments({
+    user: userId,
+    status: "resolved",
+  });
+
+  const recent = await Ticket.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .lean();
+
+  return { open, inProgress, resolved, recent };
 }
+
+
 
 module.exports = {
   createTicket,
   listTickets,
-  generateSequentialTicketId,
-  updateTicket
+  getDashboardStats,
 };
