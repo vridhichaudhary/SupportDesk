@@ -1,4 +1,3 @@
-// app/admin/dashboard/page.jsx
 "use client";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
@@ -30,13 +29,11 @@ export default function AdminDashboard() {
     }
   }
 
-  // compute counts
   const total = tickets.length;
   const open = tickets.filter(t => t.status === "open").length;
   const inProgress = tickets.filter(t => t.status === "in-progress").length;
   const resolved = tickets.filter(t => t.status === "resolved").length;
 
-  // most recent 3
   const recentSorted = [...tickets].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0,3);
 
   function handleLogout() {
@@ -66,15 +63,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <StatCard title="Total Tickets" value={total} note="+12% from last month" />
-        <StatCard title="Open Tickets" value={open} note="+5% from last month" />
-        <StatCard title="Resolved" value={resolved} note="+8% from last month" />
-        <StatCard title="In Progress" value={inProgress} note="-15% from last month" />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Tickets */}
         <div className="bg-white rounded-lg border p-6">
           <h2 className="text-2xl font-bold mb-2">Recent Tickets</h2>
           <p className="text-gray-500 mb-4">Latest support requests requiring attention</p>
@@ -96,9 +85,6 @@ export default function AdminDashboard() {
             </button>
             <button onClick={()=>router.push("/admin/agents")} className="w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50">
               Manage agents
-            </button>
-            <button onClick={()=>router.push("/admin/settings")} className="w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50">
-              Settings
             </button>
           </div>
         </div>

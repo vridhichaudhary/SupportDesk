@@ -1,4 +1,3 @@
-// components/RecentTicketItem.jsx
 export default function RecentTicketItem({ ticket }) {
     const priorityLower = (ticket.priority || "").toLowerCase();
     const status = ticket.status || "open";

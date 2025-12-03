@@ -1,13 +1,16 @@
 const mongoose = require("../configuration/dbConfig");
 
 const ticketSchema = new mongoose.Schema({
-  ticketId: { type: String, required: true, unique: true }, 
+  ticketId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  description: { type: String, default: "" },
+  description: String,
   category: { type: String, enum: ["Technical", "Billing", "General"], default: "General" },
   priority: { type: String, enum: ["Low", "Medium", "High"], default: "Low" },
   status: { type: String, enum: ["open", "in-progress", "resolved", "closed"], default: "open" },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "Agent", default: null },
+
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -1,4 +1,3 @@
-// components/AdminSidebar.jsx
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -7,10 +6,9 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: "/admin/dashboard", label: "Admin Dashboard", icon: "📊" },
-    { href: "/admin/tickets", label: "All Tickets", icon: "🎫" },
-    { href: "/admin/agents", label: "Support Agents", icon: "👥" },
-    { href: "/admin/settings", label: "Settings", icon: "⚙️" },
+    { href: "/admin/dashboard", label: "Admin Dashboard"},
+    { href: "/admin/tickets", label: "All Tickets"},
+    { href: "/admin/agents", label: "Support Agents"},
   ];
 
   return (

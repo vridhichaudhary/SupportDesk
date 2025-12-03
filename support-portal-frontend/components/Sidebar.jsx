@@ -20,7 +20,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-white border-r min-h-screen p-6">
       <div className="mb-10">
-        <div className="text-xl font-bold text-gray-900 mb-1">SupportHub</div>
+        <div className="text-xl font-bold text-gray-900 mb-1">SupportDesk</div>
         <div className="text-sm text-gray-500">User Portal</div>
       </div>
 
