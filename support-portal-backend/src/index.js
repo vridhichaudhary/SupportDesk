@@ -8,11 +8,12 @@ const userRoute = require("./routes/user");
 const ticketsRoute = require("./routes/tickets");
 const adminAuthRoutes = require("./routes/adminAuth");
 const adminRoutes = require("./routes/admin");
-
+const seedAgents = require("./scripts/seedAgents");
 
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const createAdminAccount = require("./scripts/admin");
+const adminRoute = require("./routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -58,6 +59,9 @@ app.use("/api", userRoute);
 
 app.use("/tickets", ticketsRoute);
 
+const adminAgentsRoute = require("./routes/adminAgents");
+app.use("/admin/agents", adminAgentsRoute);
+
 app.use("/admin", adminAuthRoutes);
 app.use("/admin", adminRoutes);
 
@@ -65,6 +69,10 @@ app.use((err, req, res, next) => {
     console.error("Server Error:", err);
     res.status(500).json({ message: err.message || "Internal Server Error" });
 });
+
+seedAgents();
+
+app.use("/admin", adminRoute);
 
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);

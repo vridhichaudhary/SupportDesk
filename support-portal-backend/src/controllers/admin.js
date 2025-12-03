@@ -1,8 +1,8 @@
-const { getAdminStats } = require("../services/adminStats");
+const { getAdminDashboardStats } = require("../services/adminStats");
 
 async function adminStatsHandler(req, res) {
   try {
-    const stats = await getAdminStats();
+    const stats = await getAdminDashboardStats();
     return res.json(stats);
   } catch (err) {
     console.error("admin stats error:", err);

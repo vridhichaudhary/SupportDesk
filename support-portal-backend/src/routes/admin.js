@@ -5,7 +5,7 @@ const requireAdmin = require("../utils/requireAdmin");
 const { adminStatsHandler } = require("../controllers/admin");
 const { listTicketsHandler, updateTicketHandler } = require("../controllers/tickets");
 
-router.get("/stats", requireAdmin, adminStatsHandler);
+router.get("/dashboard", requireAdmin, adminStatsHandler);
 
 router.get("/tickets", requireAdmin, listTicketsHandler);
 
