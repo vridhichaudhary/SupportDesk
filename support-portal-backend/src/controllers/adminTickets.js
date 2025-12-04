@@ -1,6 +1,3 @@
-const Ticket = require("../models/Ticket");
-const Agent = require("../models/Agent");
-
 exports.assignAgent = async function (req, res) {
   try {
     const { ticketId, agentId } = req.body;
@@ -24,9 +21,9 @@ exports.assignAgent = async function (req, res) {
       $inc: { ticketsAssigned: 1 }
     });
 
-    res.json({ message: "Agent assigned successfully", ticket });
+    res.json({ success: true, message: "Agent assigned successfully" });
   } catch (err) {
-    console.log("assignAgent error:", err);
+    console.error("assignAgent error:", err);
     res.status(500).json({ message: "Assignment failed" });
   }
 };

@@ -78,7 +78,7 @@ function CategorySection({ categories }) {
 
               <div className="w-full bg-gray-200 rounded-full h-3 mb-1">
                 <div
-                  className="bg-green-400 h-3 rounded-full"
+                  className="bg-blue-200 h-3 rounded-full"
                   style={{ width: `${percent}%` }}
                 />
               </div>

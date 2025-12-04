@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
-import ReassignModal from "@/components/admin/ReassignModal";
+import ReassignDropdown from "@/components/admin/ReassignDropdown";
 
 export default function AdminAllTickets() {
   const [tickets, setTickets] = useState([]);
@@ -10,9 +10,6 @@ export default function AdminAllTickets() {
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [category, setCategory] = useState("all");
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState(null);
 
   async function fetchTickets() {
     try {
@@ -33,11 +30,6 @@ export default function AdminAllTickets() {
     fetchTickets();
   }, [search, status, priority, category]);
 
-  const openReassign = (ticket) => {
-    setSelectedTicket(ticket);
-    setModalOpen(true);
-  };
-
   const badge = {
     open: "bg-blue-100 text-blue-700",
     "in-progress": "bg-yellow-100 text-yellow-700",
@@ -46,7 +38,7 @@ export default function AdminAllTickets() {
 
     high: "bg-red-100 text-red-700",
     medium: "bg-yellow-100 text-yellow-700",
-    low: "bg-green-100 text-green-700"
+    low: "bg-green-100 text-green-700",
   };
 
   return (
@@ -105,20 +97,22 @@ export default function AdminAllTickets() {
             className="bg-white border rounded-xl p-6 shadow-sm"
           >
             <div className="flex justify-between">
-              {/* Left */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold">{t.ticketId}</span>
+
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${badge[t.status]}`}
                   >
                     {t.status}
                   </span>
+
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${badge[t.priority?.toLowerCase()]}`}
                   >
                     {t.priority}
                   </span>
+
                   <span className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
                     {t.category}
                   </span>
@@ -139,24 +133,12 @@ export default function AdminAllTickets() {
               </div>
 
               <div className="flex flex-col items-end gap-2">
-                <button
-                  onClick={() => openReassign(t)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
-                >
-                  Reassign
-                </button>
+                <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      <ReassignModal
-        open={modalOpen}
-        ticket={selectedTicket}
-        onClose={() => setModalOpen(false)}
-        onSuccess={fetchTickets}
-      />
     </div>
   );
 }
