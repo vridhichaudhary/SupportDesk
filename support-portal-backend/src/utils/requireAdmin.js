@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { secretKey } = require("../configuration/jwtConfig");
 
 function requireAdmin(req, res, next) {
   try {
@@ -7,7 +8,7 @@ function requireAdmin(req, res, next) {
 
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, secretKey);
 
     if (decoded.role !== "admin") {
       return res.status(403).json({ message: "Forbidden - Admin only" });
@@ -15,8 +16,8 @@ function requireAdmin(req, res, next) {
 
     req.admin = decoded;
     next();
-
   } catch (err) {
+    console.error("requireAdmin error:", err);
     return res.status(401).json({ message: "Unauthorized" });
   }
 }

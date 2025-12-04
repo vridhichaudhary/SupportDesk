@@ -13,7 +13,6 @@ const seedAgents = require("./scripts/seedAgents");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const createAdminAccount = require("./scripts/admin");
-const adminRoute = require("./routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -59,11 +58,11 @@ app.use("/api", userRoute);
 
 app.use("/tickets", ticketsRoute);
 
-const adminAgentsRoute = require("./routes/adminAgents");
-app.use("/admin/agents", adminAgentsRoute);
-
 app.use("/admin", adminAuthRoutes);
 app.use("/admin", adminRoutes);
+
+const adminAgentsRoute = require("./routes/adminAgents");
+app.use("/admin/agents", adminAgentsRoute);
 
 app.use((err, req, res, next) => {
     console.error("Server Error:", err);
@@ -71,8 +70,6 @@ app.use((err, req, res, next) => {
 });
 
 seedAgents();
-
-app.use("/admin", adminRoute);
 
 app.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);

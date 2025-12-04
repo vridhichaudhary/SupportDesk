@@ -17,7 +17,12 @@ export default function AdminDashboard() {
   async function loadStats() {
     try {
       const res = await axiosInstance.get("/admin/dashboard");
-      setStats(res.data.stats);
+      setStats({
+        total: res.data.total,
+        open: res.data.open,
+        inProgress: res.data.inProgress,
+        resolved: res.data.resolved
+      });
       setRecent(res.data.recent);
     } catch (err) {
       console.error("Dashboard error:", err);

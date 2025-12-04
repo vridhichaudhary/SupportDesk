@@ -67,6 +67,7 @@ async function listTickets(options = {}) {
       .skip(skip)
       .limit(parseInt(limit, 10))
       .populate("user", "name email")
+      .populate("assignedTo", "name email role")
       .lean(),
     Ticket.countDocuments(filter),
   ]);

@@ -25,8 +25,8 @@ export default function Sidebar() {
       </div>
 
       <nav className="space-y-2">
-        {navItem("/dashboard", "Dashboard")}
-        {navItem("/my-tickets", "My Tickets")}
+        {navItem("/user/dashboard", "Dashboard")}
+        {navItem("/user/my-tickets", "My Tickets")}
       </nav>
     </aside>
   );
