@@ -4,116 +4,116 @@ import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    total: 0,
-    open: 0,
-    inProgress: 0,
-    resolved: 0,
-  });
-
+  const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  async function loadStats() {
-    try {
-      const res = await axiosInstance.get("/admin/dashboard");
-      setStats({
-        total: res.data.total,
-        open: res.data.open,
-        inProgress: res.data.inProgress,
-        resolved: res.data.resolved
-      });
-      setRecent(res.data.recent);
-    } catch (err) {
-      console.error("Dashboard error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     loadStats();
   }, []);
 
-  const badge = {
-    open: "bg-blue-100 text-blue-700",
-    "in-progress": "bg-yellow-100 text-yellow-700",
-    resolved: "bg-green-100 text-green-700",
-    closed: "bg-gray-200 text-gray-600",
+  async function loadStats() {
+    try {
+      const res = await axiosInstance.get("/admin/dashboard");
+      setStats(res.data.stats);
+      setRecent(res.data.recent);
+    } catch (err) {
+      console.error("Failed to load dashboard", err);
+    }
+  }
 
-    high: "bg-red-100 text-red-700",
-    medium: "bg-yellow-100 text-yellow-700",
-    low: "bg-green-100 text-green-700"
-  };
+  if (!stats) return <div className="p-8">Loading...</div>;
+
+  const total = stats.total;
+  const open = stats.open;
+  const resolved = stats.resolved;
+  const inProgress = stats.inProgress;
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      {/* HEADER */}
-      <h1 className="text-4xl font-bold mb-1">Admin Dashboard</h1>
+
+      <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
       <p className="text-gray-600 mb-8">Monitor support operations and ticket flow</p>
 
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-4 gap-4 mb-10">
-        <div className="bg-white border rounded-xl p-6 shadow-sm">
-          <div className="text-sm text-gray-500">Total Tickets</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-        </div>
-
-        <div className="bg-white border rounded-xl p-6 shadow-sm">
-          <div className="text-sm text-gray-500">Open Tickets</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.open}</div>
-        </div>
-
-        <div className="bg-white border rounded-xl p-6 shadow-sm">
-          <div className="text-sm text-gray-500">Resolved</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.resolved}</div>
-        </div>
-
-        <div className="bg-white border rounded-xl p-6 shadow-sm">
-          <div className="text-sm text-gray-500">In Progress</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.inProgress}</div>
-        </div>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <StatCard label="Total Tickets" value={total} />
+        <StatCard label="Open Tickets" value={open} />
+        <StatCard label="Resolved" value={resolved} />
+        <StatCard label="In Progress" value={inProgress} />
       </div>
 
-      {/* RECENT TICKETS */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border">
-        <h2 className="text-2xl font-bold mb-2">Recent Tickets</h2>
-        <p className="text-gray-500 mb-4">Latest support requests requiring attention</p>
+      <CategorySection categories={stats.categories} />
 
-        <div className="space-y-4">
-          {recent.map((t) => (
-            <div key={t._id} className="border rounded-lg p-5 bg-white shadow-sm">
-              <div className="flex justify-between">
-                <div>
-                  <div className="flex gap-2 mb-1">
-                    <span className="font-semibold">{t.ticketId}</span>
-                    <span className={`px-3 py-1 rounded-full text-xs ${badge[t.status]}`}>
-                      {t.status}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-xs ${badge[t.priority.toLowerCase()]}`}>
-                      {t.priority}
-                    </span>
-                  </div>
+      <RecentTickets recent={recent} />
 
-                  <h4 className="text-lg font-semibold">{t.title}</h4>
+    </div>
+  );
+}
 
-                  <p className="text-sm text-gray-500 mt-1">
-                    Category: {t.category} • Created: {new Date(t.createdAt).toLocaleDateString()}
-                  </p>
+function StatCard({ label, value }) {
+  return (
+    <div className="p-6 bg-white rounded-lg border shadow-sm">
+      <div className="text-sm text-gray-500">{label}</div>
+      <div className="text-3xl font-bold">{value}</div>
+    </div>
+  );
+}
 
-                  <p className="text-sm text-gray-600">
-                    Assigned to:{" "}
-                    <span className="font-medium">{t.assignedTo ? t.assignedTo.name : "Admin"}</span>
-                  </p>
-                </div>
+function CategorySection({ categories }) {
+  if (!categories || categories.length === 0) return null;
+
+  const total = categories.reduce((sum, c) => sum + c.count, 0);
+
+  return (
+    <div className="bg-white rounded-lg border p-6 mb-8">
+      <h2 className="text-2xl font-bold mb-1">Ticket Categories</h2>
+      <p className="text-gray-500 mb-6">Distribution of support requests by category</p>
+
+      <div className="grid grid-cols-3 gap-8">
+        {categories.map(cat => {
+          const percent = ((cat.count / total) * 100).toFixed(0);
+          return (
+            <div key={cat._id} className="text-center">
+              <div className="text-4xl font-bold">{cat.count}</div>
+              <div className="text-gray-600 mb-2">{cat._id}</div>
+
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-1">
+                <div
+                  className="bg-green-400 h-3 rounded-full"
+                  style={{ width: `${percent}%` }}
+                />
               </div>
-            </div>
-          ))}
 
-          {recent.length === 0 && (
-            <div className="text-gray-500">No recent tickets found</div>
-          )}
-        </div>
+              <div className="text-sm text-gray-500">{percent}%</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RecentTickets({ recent }) {
+  return (
+    <div className="bg-white rounded-lg border p-6">
+      <h2 className="text-2xl font-bold mb-1">Recent Tickets</h2>
+      <p className="text-gray-500 mb-4">Latest support requests requiring attention</p>
+
+      <div className="space-y-4">
+        {recent.map(t => (
+          <div key={t._id} className="border rounded-lg p-4 bg-gray-50">
+            <div className="font-semibold">{t.ticketId}</div>
+
+            <div className="font-medium">{t.title}</div>
+
+            <div className="text-sm text-gray-500">
+              Category: {t.category} • Created: {new Date(t.createdAt).toLocaleDateString()}
+            </div>
+
+            <div className="text-sm text-gray-500">
+              Assigned to: {t.assignedTo?.name || "Unassigned"}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

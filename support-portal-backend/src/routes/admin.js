@@ -8,7 +8,6 @@ const { listTicketsHandler, updateTicketHandler } = require("../controllers/tick
 router.get("/dashboard", requireAdmin, adminStatsHandler);
 
 router.get("/tickets", requireAdmin, listTicketsHandler);
-
 router.put("/tickets/:id", requireAdmin, updateTicketHandler);
 
 module.exports = router;
