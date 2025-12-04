@@ -1,15 +1,17 @@
 const ticketsService = require("../services/tickets");
 const { verifyToken } = require("../utils/authMiddleware");
+const Ticket = require("../models/Ticket");
+const Agent = require("../models/Agent");
+
 
 async function createTicketHandler(req, res) {
   try {
-    const authHeader = req.header("Authorization") || "";
-    const token = authHeader.split(" ")[1];
+    const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
     const decoded = verifyToken(token);
-
     const { title, description, category = "General", priority = "Low" } = req.body;
+
     if (!title) return res.status(400).json({ message: "Title is required" });
 
     const created = await ticketsService.createTicket({
@@ -20,20 +22,21 @@ async function createTicketHandler(req, res) {
       userId: decoded.id,
     });
 
-    return res.status(201).json({ ticket: created });
+    res.status(201).json({ ticket: created });
   } catch (err) {
     console.error("createTicket error:", err);
-    return res.status(500).json({ message: err.message || "Failed to create ticket" });
+    res.status(500).json({ message: "Failed to create ticket" });
   }
 }
+
 
 async function listTicketsHandler(req, res) {
   try {
     const { q, status, priority, category, sort, page = 1, limit = 20, mine } = req.query;
-    let userId;
+
+    let userId = null;
     if (mine === "true") {
-      const authHeader = req.header("Authorization") || "";
-      const token = authHeader.split(" ")[1];
+      const token = req.headers.authorization?.split(" ")[1];
       if (!token) return res.status(401).json({ message: "Unauthorized" });
       userId = verifyToken(token).id;
     }
@@ -52,37 +55,73 @@ async function listTicketsHandler(req, res) {
     res.json(result);
   } catch (err) {
     console.error("listTickets error:", err);
-    res.status(500).json({ message: err.message || "Failed to list tickets" });
+    res.status(500).json({ message: "Failed to list tickets" });
   }
 }
+
 
 async function updateTicketHandler(req, res) {
   try {
-    const { id } = req.params;
-    const updates = req.body;
-    const updated = await ticketsService.updateTicket(id, updates);
+    const updated = await ticketsService.updateTicket(req.params.id, req.body);
 
     if (!updated) return res.status(404).json({ message: "Ticket not found" });
 
-    return res.json({ ticket: updated });
+    res.json({ ticket: updated });
   } catch (err) {
     console.error("updateTicket error:", err);
-    return res.status(500).json({ message: err.message || "Failed to update ticket" });
+    res.status(500).json({ message: "Failed to update ticket" });
   }
 }
 
+
 async function dashboardStatsHandler(req, res) {
   try {
-    const authHeader = req.header("Authorization") || "";
-    const token = authHeader.split(" ")[1];
+    const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
     const decoded = verifyToken(token);
     const stats = await ticketsService.getDashboardStatsForUser(decoded.id);
+
     res.json(stats);
   } catch (err) {
     console.error("dashboardStats error:", err);
-    res.status(500).json({ message: err.message || "Failed to get dashboard stats" });
+    res.status(500).json({ message: "Failed to get dashboard stats" });
+  }
+}
+
+
+async function assignTicketHandler(req, res) {
+  try {
+    const ticketId = req.params.id;
+    const { agentId } = req.body;
+
+    if (!agentId) {
+      return res.status(400).json({ message: "AgentId is required" });
+    }
+
+    const agent = await Agent.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    const ticket = await Ticket.findByIdAndUpdate(
+      ticketId,
+      { assignedTo: agentId },
+      { new: true }
+    ).populate("assignedTo", "name");
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Ticket assigned successfully",
+      ticket,
+    });
+  } catch (err) {
+    console.error("Assign ticket error:", err);
+    res.status(500).json({ message: "Failed to assign" });
   }
 }
 
@@ -91,4 +130,5 @@ module.exports = {
   listTicketsHandler,
   updateTicketHandler,
   dashboardStatsHandler,
+  assignTicketHandler,
 };
