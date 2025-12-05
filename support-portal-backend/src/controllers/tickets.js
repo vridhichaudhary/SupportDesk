@@ -62,16 +62,25 @@ async function listTicketsHandler(req, res) {
 
 async function updateTicketHandler(req, res) {
   try {
-    const updated = await ticketsService.updateTicket(req.params.id, req.body);
+    const { id } = req.params;
 
-    if (!updated) return res.status(404).json({ message: "Ticket not found" });
+    const ticket = await Ticket.findByIdAndUpdate(
+      id,
+      { assignedTo: req.body.assignedTo },
+      { new: true }
+    ).populate("assignedTo", "name");
 
-    res.json({ ticket: updated });
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    return res.json({ ticket });
   } catch (err) {
-    console.error("updateTicket error:", err);
-    res.status(500).json({ message: "Failed to update ticket" });
+    console.error("update ticket error:", err);
+    return res.status(500).json({ message: "Failed to update ticket" });
   }
 }
+
 
 
 async function dashboardStatsHandler(req, res) {

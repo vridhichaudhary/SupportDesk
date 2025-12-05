@@ -1,11 +1,13 @@
 const Agent = require("../models/Agent");
 
-exports.getAgents = async function (req, res) {
+async function listAgentsHandler(req, res) {
   try {
-    const agents = await Agent.find().sort({ ticketsAssigned: -1 });
-    res.json(agents);
+    const agents = await Agent.find().select("name");
+    return res.json({ agents });
   } catch (err) {
-    console.error("getAgents error:", err);
-    res.status(500).json({ message: "Failed to fetch agents" });
+    console.error("List agents error:", err);
+    return res.status(500).json({ message: "Failed to load agents" });
   }
-};
+}
+
+module.exports = { listAgentsHandler };
