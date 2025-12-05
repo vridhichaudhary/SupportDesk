@@ -1,29 +1,37 @@
-exports.assignAgent = async function (req, res) {
+const Ticket = require("../models/Ticket");
+const Agent = require("../models/Agent");
+
+async function assignAgent(req, res) {
   try {
     const { ticketId, agentId } = req.body;
 
-    const ticket = await Ticket.findById(ticketId);
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+    if (!ticketId || !agentId)
+      return res.status(400).json({ success: false, message: "ticketId and agentId required" });
 
-    const newAgent = await Agent.findById(agentId);
-    if (!newAgent) return res.status(404).json({ message: "Agent not found" });
+    const agent = await Agent.findById(agentId);
+    if (!agent) return res.status(404).json({ success: false, message: "Agent not found" });
 
-    if (ticket.assignedTo) {
-      await Agent.findByIdAndUpdate(ticket.assignedTo, {
-        $inc: { ticketsAssigned: -1 }
-      });
-    }
+    const ticket = await Ticket.findByIdAndUpdate(
+      ticketId,
+      { assignedTo: agentId },
+      { new: true }
+    ).populate("assignedTo", "name");
 
-    ticket.assignedTo = agentId;
-    await ticket.save();
+    if (!ticket) return res.status(404).json({ success: false, message: "Ticket not found" });
 
-    await Agent.findByIdAndUpdate(agentId, {
-      $inc: { ticketsAssigned: 1 }
+    agent.ticketsAssigned = await Ticket.countDocuments({ assignedTo: agentId });
+    await agent.save();
+
+    return res.json({
+      success: true,
+      message: "Ticket assigned",
+      ticket,
     });
 
-    res.json({ success: true, message: "Agent assigned successfully" });
   } catch (err) {
     console.error("assignAgent error:", err);
-    res.status(500).json({ message: "Assignment failed" });
+    res.status(500).json({ success: false, message: "Failed to assign" });
   }
-};
+}
+
+module.exports = { assignAgent };
