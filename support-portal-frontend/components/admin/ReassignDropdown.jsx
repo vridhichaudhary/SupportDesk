@@ -9,64 +9,65 @@ export default function ReassignDropdown({ ticket, onAssigned }) {
 
   async function fetchAgents() {
     try {
-      const res = await axiosInstance.get("/agents");
-      setAgents(res.data || []);
+      const res = await axiosInstance.get("/admin/agents");
+      setAgents(res.data.agents || []);
     } catch (err) {
-      console.error("Failed to load agents", err);
+      console.error("Failed to fetch agents:", err);
     }
   }
 
-  async function assign(agentId) {
+  const toggleDropdown = () => {
+    setOpen(!open);
+
+    if (!open) fetchAgents(); // fetch only when opening
+  };
+
+  async function handleAssign(agentId) {
     try {
-      await axiosInstance.put(`/admin/tickets/${ticket._id}/assign`, {
+      const res = await axiosInstance.put(`/admin/tickets/${ticket._id}/assign`, {
         agentId,
       });
 
       alert("Assigned successfully!");
-      onAssigned();
+
       setOpen(false);
+      onAssigned(); // refresh ticket list
     } catch (err) {
-      alert("Failed to assign");
       console.error(err);
+      alert("Failed to assign");
     }
   }
 
-  useEffect(() => {
-    fetchAgents();
-  }, []);
-
   return (
     <div className="relative">
+      {/* Assign Button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="px-3 py-2 border rounded-lg bg-white text-gray-800 hover:bg-gray-100 shadow-sm"
+        onClick={toggleDropdown}
+        className="px-4 py-2 rounded-lg bg-white border shadow-sm hover:bg-gray-50 transition"
       >
         Assign
       </button>
 
+      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-xl p-2 z-50">
-          <p className="text-sm font-semibold text-gray-700 px-2 mb-2">
-            Assign to Agent
-          </p>
+        <div className="absolute right-0 mt-2 w-60 bg-white shadow-lg border rounded-xl z-10 p-3">
+          <p className="text-gray-600 text-sm mb-2">Assign to Agent</p>
 
-          {agents.map((a) => (
-            <button
-              key={a._id}
-              onClick={() => assign(a._id)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 w-full text-left"
-            >
-              <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-700">
-                {a.name
-                  .split(" ")
-                  .map((x) => x[0])
-                  .join("")
-                  .toUpperCase()}
-              </div>
+          {agents.length === 0 && (
+            <p className="text-gray-400 text-sm">No agents found</p>
+          )}
 
-              <span className="font-medium text-gray-800">{a.name}</span>
-            </button>
-          ))}
+          <div className="space-y-2">
+            {agents.map((agent) => (
+              <button
+                key={agent._id}
+                onClick={() => handleAssign(agent._id)}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+              >
+                {agent.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
