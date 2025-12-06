@@ -6,21 +6,32 @@ import ReassignDropdown from "@/components/admin/ReassignDropdown";
 
 export default function AdminAllTickets() {
   const [tickets, setTickets] = useState([]);
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [category, setCategory] = useState("all");
 
+  // pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   async function fetchTickets() {
     try {
-      const params = {};
+      const params = {
+        page,
+        limit: 10,
+      };
+
       if (search.trim()) params.q = search;
       if (status !== "all") params.status = status;
       if (priority !== "all") params.priority = priority;
       if (category !== "all") params.category = category;
 
       const res = await axiosInstance.get("/tickets", { params });
+
       setTickets(res.data.items || []);
+      setTotalPages(res.data.totalPages || 1);
     } catch (err) {
       console.error("Error fetching tickets:", err);
     }
@@ -28,7 +39,7 @@ export default function AdminAllTickets() {
 
   useEffect(() => {
     fetchTickets();
-  }, [search, status, priority, category]);
+  }, [search, status, priority, category, page]);
 
   const badge = {
     open: "bg-blue-100 text-blue-700",
@@ -52,13 +63,19 @@ export default function AdminAllTickets() {
           placeholder="Search tickets by ID or subject"
           className="border rounded-lg px-4 py-2 bg-white w-80"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
         />
 
         <select
           className="border rounded-lg px-4 py-2 bg-white"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">All Status</option>
           <option value="open">Open</option>
@@ -70,7 +87,10 @@ export default function AdminAllTickets() {
         <select
           className="border rounded-lg px-4 py-2 bg-white"
           value={priority}
-          onChange={(e) => setPriority(e.target.value)}
+          onChange={(e) => {
+            setPriority(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">All Priority</option>
           <option value="high">High</option>
@@ -81,7 +101,10 @@ export default function AdminAllTickets() {
         <select
           className="border rounded-lg px-4 py-2 bg-white"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">All Categories</option>
           <option value="Technical">Technical</option>
@@ -138,6 +161,29 @@ export default function AdminAllTickets() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex justify-center gap-3 mt-6">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-4 py-2 border rounded-md bg-white disabled:opacity-40"
+        >
+          Prev
+        </button>
+
+        <div className="px-4 py-2 font-medium">
+          Page {page} of {totalPages}
+        </div>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-4 py-2 border rounded-md bg-white disabled:opacity-40"
+        >
+          Next
+        </button>
       </div>
     </div>
   );

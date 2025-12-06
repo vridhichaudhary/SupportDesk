@@ -32,56 +32,5 @@ router.get("/agents", requireAdmin, async (req, res) => {
 
 router.put("/tickets/:id", requireAdmin, assignTicket);
 
-// NEW: Get single ticket by ID (for Ticket Details page)
-router.get("/tickets/:id", requireAdmin, async (req, res) => {
-  try {
-    const ticket = await Ticket.findById(req.params.id)
-      .populate("user", "name email")
-      .populate("assignedTo", "name role ticketsAssigned")
-      .lean();
-
-    if (!ticket)
-      return res.status(404).json({ success: false, message: "Ticket not found" });
-
-    // load comments
-    const Comment = require("../models/Comment");
-    const comments = await Comment.find({ ticket: ticket._id })
-      .populate("user", "name")
-      .sort({ createdAt: 1 })
-      .lean();
-
-    res.json({ success: true, ticket, comments });
-  } catch (err) {
-    console.error("Admin fetch ticket by ID error:", err);
-    res.status(500).json({ success: false, message: "Failed to fetch ticket" });
-  }
-});
-
-// NEW: Add a comment to ticket
-router.post("/tickets/:id/comments", requireAdmin, async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message || !message.trim()) {
-      return res.status(400).json({ success: false, message: "Message is required" });
-    }
-
-    const Comment = require("../models/Comment");
-
-    const comment = await Comment.create({
-      ticket: req.params.id,
-      user: req.user.id,  // from requireAdmin → req.user
-      message: message.trim(),
-    });
-
-    const populated = await Comment.findById(comment._id)
-      .populate("user", "name")
-      .lean();
-
-    res.status(201).json({ success: true, comment: populated });
-  } catch (err) {
-    console.error("Add comment error:", err);
-    res.status(500).json({ success: false, message: "Failed to add comment" });
-  }
-});
 
 module.exports = router;

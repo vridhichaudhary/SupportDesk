@@ -5,17 +5,11 @@ const {
   listTicketsHandler,
   updateTicketHandler,
   dashboardStatsHandler,
-  getTicketByIdHandler,
-  addCommentHandler
 } = require("../controllers/tickets");
 
 router.post("/", createTicketHandler);
 
 router.get("/", listTicketsHandler);
-
-router.get("/:id", getTicketByIdHandler);
-
-router.post("/:id/comments", addCommentHandler);
 
 router.get("/stats", dashboardStatsHandler);
 

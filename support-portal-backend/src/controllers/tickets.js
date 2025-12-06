@@ -2,7 +2,6 @@ const ticketsService = require("../services/tickets");
 const { verifyToken } = require("../utils/authMiddleware");
 const Ticket = require("../models/Ticket");
 const Agent = require("../models/Agent");
-const Comment = require("../models/Comment");
 
 async function createTicketHandler(req, res) {
   try {
@@ -32,33 +31,68 @@ async function createTicketHandler(req, res) {
 
 async function listTicketsHandler(req, res) {
   try {
-    const { q, status, priority, category, sort, page = 1, limit = 20, mine } = req.query;
+    const {
+      q,
+      status,
+      priority,
+      category,
+      sort = "-createdAt",
+      page = 1,
+      limit = 10,
+      mine
+    } = req.query;
 
     let userId = null;
+
     if (mine === "true") {
       const token = req.headers.authorization?.split(" ")[1];
       if (!token) return res.status(401).json({ message: "Unauthorized" });
       userId = verifyToken(token).id;
     }
 
-    const result = await ticketsService.listTickets({
-      q,
-      status,
-      priority,
-      category,
-      sort,
-      page: Number(page),
-      limit: Number(limit),
-      userId,
+    const query = {};
+
+    if (q) {
+      query.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { ticketId: { $regex: q, $options: "i" } }
+      ];
+    }
+
+    if (status && status !== "all") query.status = status;
+    if (priority && priority !== "all") query.priority = priority;
+    if (category && category !== "all") query.category = category;
+
+    if (userId) query.userId = userId;
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total] = await Promise.all([
+      Ticket.find(query)
+        .populate("assignedTo", "name")
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Ticket.countDocuments(query),
+    ]);
+
+    res.json({
+      success: true,
+      items,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      limit: limitNum,
     });
 
-    res.json(result);
   } catch (err) {
     console.error("listTickets error:", err);
     res.status(500).json({ message: "Failed to list tickets" });
   }
 }
-
 
 
 async function updateTicketHandler(req, res) {
@@ -141,63 +175,6 @@ async function assignTicketHandler(req, res) {
   }
 }
 
-async function getTicketByIdHandler(req, res) {
-  try {
-    const { id } = req.params;
-    const ticket = await Ticket.findById(id)
-      .populate("user", "name email")
-      .populate("assignedTo", "name role ticketsAssigned")
-      .lean();
-
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
-
-    const comments = await Comment.find({ ticket: id })
-      .populate("user", "name")
-      .sort({ createdAt: 1 })
-      .lean();
-
-    return res.json({ ticket, comments });
-  } catch (err) {
-    console.error("getTicketById error:", err);
-    return res.status(500).json({ message: "Failed to fetch ticket" });
-  }
-}
-
-async function addCommentHandler(req, res) {
-  try {
-    const { id } = req.params; 
-    const { message } = req.body;
-    const token = req.headers.authorization?.split(" ")[1];
-    let userId = req.body.userId || null;
-    if (!userId && token) {
-      try {
-        const decoded = verifyToken(token);
-        userId = decoded.id;
-      } catch (e) { /* ignore */ }
-    }
-
-    if (!message || !message.trim()) {
-      return res.status(400).json({ message: "Message is required" });
-    }
-    if (!userId) return res.status(401).json({ message: "User not authenticated" });
-
-    const ticket = await Ticket.findById(id);
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
-
-    const comment = await Comment.create({
-      ticket: id,
-      user: userId,
-      message: message.trim()
-    });
-
-    const populated = await Comment.findById(comment._id).populate("user", "name").lean();
-
-    return res.status(201).json({ comment: populated });
-  } catch (err) {
-    console.error("addComment error:", err);
-    return res.status(500).json({ message: "Failed to add comment" });
-  }
-}
 
 module.exports = {
   createTicketHandler,
@@ -205,6 +182,4 @@ module.exports = {
   updateTicketHandler,
   dashboardStatsHandler,
   assignTicketHandler,
-  getTicketByIdHandler,
-  addCommentHandler
 };

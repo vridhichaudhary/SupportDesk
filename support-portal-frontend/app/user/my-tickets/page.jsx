@@ -4,22 +4,25 @@ import axiosInstance from "@/utils/axiosInstance";
 
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState([]);
+
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Filter States
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [category, setCategory] = useState("all");
 
-  // Dropdown control
   const [dropdown, setDropdown] = useState({
     status: false,
     priority: false,
     category: false,
   });
+
+  // PAGINATION STATES
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const toggleDropdown = (key) => {
     setDropdown({
@@ -35,6 +38,9 @@ export default function MyTicketsPage() {
       const params = {
         q: search,
         sort,
+        page,
+        limit: 10,
+        mine: true,
       };
 
       if (status !== "all") params.status = status;
@@ -42,7 +48,9 @@ export default function MyTicketsPage() {
       if (category !== "all") params.category = category;
 
       const res = await axiosInstance.get("/tickets", { params });
+
       setTickets(res.data.items || []);
+      setTotalPages(res.data.totalPages || 1);
     } catch (err) {
       console.error(err);
     }
@@ -50,15 +58,13 @@ export default function MyTicketsPage() {
 
   useEffect(() => {
     fetchTickets();
-  }, [search, sort, status, priority, category]);
+  }, [search, sort, status, priority, category, page]);
 
-  // Badge colors same as your black UI
   const badgeColors = {
     open: "bg-blue-100 text-blue-700",
     "in-progress": "bg-yellow-100 text-yellow-700",
     resolved: "bg-green-100 text-green-700",
     closed: "bg-gray-200 text-gray-600",
-
     high: "bg-red-100 text-red-700",
     medium: "bg-yellow-100 text-yellow-700",
     low: "bg-green-100 text-green-700",
@@ -66,7 +72,7 @@ export default function MyTicketsPage() {
 
   return (
     <div className="p-6 bg-white min-h-screen">
-      {/* HEADER */}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">My Tickets</h1>
 
@@ -80,11 +86,9 @@ export default function MyTicketsPage() {
 
       <p className="text-gray-500 mb-4">Manage your support requests</p>
 
-      {/* SEARCH + FILTERS */}
       <div className="flex gap-3 items-center mb-6">
-        {/* Search */}
+
         <div className="relative w-80">
-          {/* search icon svg */}
           <svg
             className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
             fill="none"
@@ -101,16 +105,17 @@ export default function MyTicketsPage() {
             placeholder="Search tickets..."
             className="w-full border rounded-md pl-10 pr-3 py-2 bg-white"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
 
-        {/* Filter button */}
         <button
           className="flex items-center gap-2 px-4 py-2 border rounded-md bg-white hover:bg-gray-50"
           onClick={() => setIsFilterOpen(true)}
         >
-          {/* filter svg */}
           <svg
             className="w-5 h-5"
             fill="none"
@@ -123,11 +128,13 @@ export default function MyTicketsPage() {
           Filters
         </button>
 
-        {/* Sort dropdown */}
         <select
           className="px-3 py-2 border rounded-md bg-white"
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => {
+            setSort(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="status">Status</option>
           <option value="newest">Newest First</option>
@@ -137,26 +144,20 @@ export default function MyTicketsPage() {
         </select>
       </div>
 
-      {/* TICKETS */}
       <div className="space-y-4">
         {tickets.map((ticket) => (
-          <div
-            key={ticket._id}
-            className="border rounded-lg shadow-sm p-5 bg-white"
-          >
+          <div key={ticket._id} className="border rounded-lg shadow-sm p-5 bg-white">
             <div className="flex items-center gap-2 mb-2">
               <span className="font-semibold text-gray-900">
                 {ticket.ticketId}
               </span>
 
-              {/* status */}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColors[ticket.status]}`}
               >
                 {ticket.status}
               </span>
 
-              {/* priority */}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColors[ticket.priority]}`}
               >
@@ -176,6 +177,29 @@ export default function MyTicketsPage() {
         ))}
       </div>
 
+      {/* PAGINATION */}
+      <div className="flex justify-center gap-3 mt-6">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-4 py-2 border rounded-md bg-white disabled:opacity-40"
+        >
+          Prev
+        </button>
+
+        <div className="px-4 py-2 font-medium">
+          Page {page} of {totalPages}
+        </div>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-4 py-2 border rounded-md bg-white disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+
       {/* FILTER POPUP */}
       {isFilterOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20">
@@ -193,32 +217,26 @@ export default function MyTicketsPage() {
                   {status === "all" ? "All Statuses" : status}
                 </span>
 
-                {/* dropdown arrow */}
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5 7l5 5 5-5H5z" />
                 </svg>
               </div>
 
               {dropdown.status && (
                 <div className="border rounded-md mt-1 bg-white shadow">
-                  {["all", "open", "in-progress", "resolved", "closed"].map(
-                    (val) => (
-                      <div
-                        key={val}
-                        className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
-                        onClick={() => {
-                          setStatus(val);
-                          toggleDropdown("status");
-                        }}
-                      >
-                        {val === "all" ? "All Statuses" : val}
-                      </div>
-                    )
-                  )}
+                  {["all", "open", "in-progress", "resolved", "closed"].map((val) => (
+                    <div
+                      key={val}
+                      className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
+                      onClick={() => {
+                        setStatus(val);
+                        toggleDropdown("status");
+                        setPage(1);
+                      }}
+                    >
+                      {val === "all" ? "All Statuses" : val}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -234,11 +252,7 @@ export default function MyTicketsPage() {
                   {priority === "all" ? "All Priorities" : priority}
                 </span>
 
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5 7l5 5 5-5H5z" />
                 </svg>
               </div>
@@ -252,6 +266,7 @@ export default function MyTicketsPage() {
                       onClick={() => {
                         setPriority(val);
                         toggleDropdown("priority");
+                        setPage(1);
                       }}
                     >
                       {val === "all" ? "All Priorities" : val}
@@ -272,11 +287,7 @@ export default function MyTicketsPage() {
                   {category === "all" ? "All Categories" : category}
                 </span>
 
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
+                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5 7l5 5 5-5H5z" />
                 </svg>
               </div>
@@ -290,6 +301,7 @@ export default function MyTicketsPage() {
                       onClick={() => {
                         setCategory(val);
                         toggleDropdown("category");
+                        setPage(1);
                       }}
                     >
                       {val === "all" ? "All Categories" : val}
@@ -299,7 +311,6 @@ export default function MyTicketsPage() {
               )}
             </div>
 
-            {/* BUTTONS */}
             <div className="flex justify-end gap-3 mt-6">
               <button
                 className="px-4 py-2 rounded-md border bg-gray-100 hover:bg-gray-200"
@@ -307,6 +318,7 @@ export default function MyTicketsPage() {
                   setStatus("all");
                   setPriority("all");
                   setCategory("all");
+                  setPage(1);
                 }}
               >
                 Clear
@@ -319,6 +331,7 @@ export default function MyTicketsPage() {
                 Apply Filters
               </button>
             </div>
+
           </div>
         </div>
       )}
