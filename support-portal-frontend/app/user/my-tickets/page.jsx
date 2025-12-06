@@ -60,6 +60,12 @@ export default function MyTicketsPage() {
     fetchTickets();
   }, [search, sort, status, priority, category, page]);
 
+  const handleDelete = async (id) => {
+  if (!confirm("Delete this ticket?")) return;
+  await axiosInstance.delete(`/tickets/${id}`);
+  fetchTickets();
+  };
+
   const badgeColors = {
     open: "bg-blue-100 text-blue-700",
     "in-progress": "bg-yellow-100 text-yellow-700",
@@ -87,7 +93,7 @@ export default function MyTicketsPage() {
 
       <p className="text-gray-500 mb-4">Manage your support requests</p>
 
-=      <div className="flex gap-3 items-center mb-6">
+     <div className="flex gap-3 items-center mb-6">
 
         <div className="relative w-80">
           <svg
@@ -159,7 +165,14 @@ export default function MyTicketsPage() {
               Category: {ticket.category} • Created:{" "}
               {new Date(ticket.createdAt).toLocaleDateString()}
             </p>
-
+            <div className="mt-3 flex gap-3">
+            <button
+                onClick={() => handleDelete(ticket._id)}
+                className="px-3 py-1 border rounded text-sm text-red-700 hover:bg-red-50"
+              >
+                Delete
+              </button>
+              </div>
           </div>
         ))}
 

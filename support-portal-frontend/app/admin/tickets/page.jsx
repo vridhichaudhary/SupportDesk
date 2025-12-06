@@ -41,6 +41,12 @@ export default function AdminAllTickets() {
     fetchTickets();
   }, [search, status, priority, category, page]);
 
+  const handleDelete = async (id) => {
+  if (!confirm("Delete this ticket?")) return;
+  await axiosInstance.delete(`/admin/tickets/${id}`);
+  fetchTickets();
+};
+
   const badge = {
     open: "bg-blue-100 text-blue-700",
     "in-progress": "bg-yellow-100 text-yellow-700",
@@ -159,6 +165,13 @@ export default function AdminAllTickets() {
                 <div className="flex gap-2">
                     <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
                     <StatusDropdown ticket={t} onUpdated={fetchTickets} />
+                    <button
+                      onClick={() => handleDelete(t._id)}
+                      className="px-4 py-2 border rounded text-red-600 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+
                 </div>
               </div>
             </div>

@@ -103,9 +103,20 @@ async function updateTicket(ticketId, updates = {}) {
   return await Ticket.findByIdAndUpdate(ticketId, updates, { new: true }).lean();
 }
 
+async function deleteTicket(ticketId) {
+  const ticket = await Ticket.findById(ticketId).lean();
+  if (!ticket) return null;
+
+  await Ticket.findByIdAndDelete(ticketId);
+
+  return ticket;
+}
+
+
 module.exports = {
   createTicket,
   listTickets,
   getDashboardStatsForUser,
   updateTicket,
+  deleteTicket
 };

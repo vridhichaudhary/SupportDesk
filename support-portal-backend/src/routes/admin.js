@@ -3,7 +3,7 @@ const router = express.Router();
 const requireAdmin = require("../utils/requireAdmin");
 
 const { adminStatsHandler } = require("../controllers/admin");
-const { listTicketsHandler } = require("../controllers/tickets");
+const { listTicketsHandler,deleteTicketHandler } = require("../controllers/tickets");
 const { listAgents, assignTicket } = require("../controllers/agent");
 const Agent = require("../models/Agent");
 const Ticket = require("../models/Ticket");
@@ -31,6 +31,8 @@ router.get("/agents", requireAdmin, async (req, res) => {
 });
 
 router.put("/tickets/:id", requireAdmin, assignTicket);
+
+router.delete("/tickets/:id", requireAdmin, deleteTicketHandler); 
 
 
 module.exports = router;

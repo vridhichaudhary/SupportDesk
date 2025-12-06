@@ -184,6 +184,33 @@ async function assignTicketHandler(req, res) {
   }
 }
 
+async function deleteTicketHandler(req, res) {
+  try {
+    const id = req.params.id;
+
+    const isAdmin = !!req.admin;
+    const user = req.user || null;
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: "Ticket not found" });
+    }
+
+    // user can delete only own ticket
+    if (!isAdmin) {
+      if (!user || String(ticket.user) !== String(user.id)) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+    }
+
+    const deleted = await ticketsService.deleteTicket(id);
+    return res.json({ success: true, ticket: deleted });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Failed to delete ticket" });
+  }
+}
+
+
 
 module.exports = {
   createTicketHandler,
@@ -191,4 +218,5 @@ module.exports = {
   updateTicketHandler,
   dashboardStatsHandler,
   assignTicketHandler,
+  deleteTicketHandler,
 };
