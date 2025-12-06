@@ -63,7 +63,7 @@ async function listTicketsHandler(req, res) {
     if (priority && priority !== "all") query.priority = priority;
     if (category && category !== "all") query.category = category;
 
-    if (userId) query.userId = userId;
+    if (userId) query.user = userId;
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
