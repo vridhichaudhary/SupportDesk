@@ -29,4 +29,6 @@ router.get("/agents", requireAdmin, async (req, res) => {
   }
 });
 
+router.put("/tickets/:id", requireAdmin, assignTicket);
+
 module.exports = router;
