@@ -12,7 +12,8 @@ export default function ReassignDropdown({ ticket, onAssigned }) {
     try {
       setLoading(true);
       const res = await axiosInstance.get("/admin/agents");
-      setAgents(res.data.agents || []);
+      setAgents(Array.isArray(res.data) ? res.data : []);
+
     } catch (err) {
       console.error("Failed to load agents:", err);
       setAgents([]);

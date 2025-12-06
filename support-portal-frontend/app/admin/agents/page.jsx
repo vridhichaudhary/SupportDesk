@@ -9,7 +9,7 @@ export default function AdminAgentsPage() {
   async function loadAgents() {
     try {
       const res = await axiosInstance.get("/admin/agents");
-      setAgents(res.data || []);
+      setAgents(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed loading agents:", err);
       setAgents([]);
