@@ -4,6 +4,7 @@ const requireAdmin = require("../utils/requireAdmin");
 
 const { adminStatsHandler } = require("../controllers/admin");
 const { listTicketsHandler } = require("../controllers/tickets");
+const { listAgents, assignTicket } = require("../controllers/agent");
 const Agent = require("../models/Agent");
 const Ticket = require("../models/Ticket");
 
