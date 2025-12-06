@@ -60,13 +60,15 @@ async function listTicketsHandler(req, res) {
 }
 
 
+
 async function updateTicketHandler(req, res) {
   try {
     const { id } = req.params;
+    const { assignedTo } = req.body;
 
     const ticket = await Ticket.findByIdAndUpdate(
       id,
-      { assignedTo: req.body.assignedTo },
+      { assignedTo },
       { new: true }
     ).populate("assignedTo", "name");
 
@@ -74,10 +76,15 @@ async function updateTicketHandler(req, res) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    return res.json({ ticket });
+    if (assignedTo) {
+      const count = await Ticket.countDocuments({ assignedTo });
+      await Agent.findByIdAndUpdate(assignedTo, { ticketsAssigned: count });
+    }
+
+    res.json({ ticket });
   } catch (err) {
-    console.error("update ticket error:", err);
-    return res.status(500).json({ message: "Failed to update ticket" });
+    console.error("Update ticket error:", err);
+    res.status(500).json({ message: "Failed to update ticket" });
   }
 }
 
