@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import ReassignDropdown from "@/components/admin/ReassignDropdown";
-import StatusDropdown from "@/components/admin/StatusDropdown";
 
 export default function AdminAllTickets() {
   const [tickets, setTickets] = useState([]);
@@ -41,6 +40,18 @@ export default function AdminAllTickets() {
   useEffect(() => {
     fetchTickets();
   }, [search, status, priority, category, page]);
+
+  const handleDelete = async (id) => {
+    if (!confirm("Delete this ticket? This action cannot be undone.")) return;
+    try {
+      await axiosInstance.delete(`/admin/tickets/${id}`);
+      alert("Ticket deleted");
+      fetchTickets();
+    } catch (err) {
+      console.error("Admin delete failed", err);
+      alert(err?.response?.data?.message || "Failed to delete ticket");
+    }
+  };
 
   const badge = {
     open: "bg-blue-100 text-blue-700",
@@ -158,8 +169,13 @@ export default function AdminAllTickets() {
 
               <div className="flex flex-col items-end gap-2">
                 <div className="flex gap-2">
-                    <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
-                    <StatusDropdown ticket={t} onUpdated={fetchTickets} />
+                  <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
+                  <button
+                    onClick={() => handleDelete(t._id)}
+                    className="px-4 py-2 border rounded-lg text-red-700 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -167,7 +183,6 @@ export default function AdminAllTickets() {
         ))}
       </div>
 
-      {/* PAGINATION */}
       <div className="flex justify-center gap-3 mt-6">
         <button
           disabled={page === 1}
