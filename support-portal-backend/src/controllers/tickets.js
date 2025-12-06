@@ -98,13 +98,20 @@ async function listTicketsHandler(req, res) {
 async function updateTicketHandler(req, res) {
   try {
     const { id } = req.params;
-    const { assignedTo } = req.body;
+    const { assignedTo, status } = req.body;
 
-    const ticket = await Ticket.findByIdAndUpdate(
-      id,
-      { assignedTo },
-      { new: true }
-    ).populate("assignedTo", "name");
+    const updatePayload = {};
+
+    if (assignedTo !== undefined) updatePayload.assignedTo = assignedTo;
+    if (status !== undefined) {
+      if (!["open", "in-progress", "resolved", "closed"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      updatePayload.status = status;
+    }
+
+    const ticket = await Ticket.findByIdAndUpdate(id, updatePayload, { new: true })
+      .populate("assignedTo", "name");
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
@@ -115,12 +122,14 @@ async function updateTicketHandler(req, res) {
       await Agent.findByIdAndUpdate(assignedTo, { ticketsAssigned: count });
     }
 
-    res.json({ ticket });
+    return res.json({ success: true, ticket });
+
   } catch (err) {
     console.error("Update ticket error:", err);
     res.status(500).json({ message: "Failed to update ticket" });
   }
 }
+
 
 
 

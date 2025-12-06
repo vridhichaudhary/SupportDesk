@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import ReassignDropdown from "@/components/admin/ReassignDropdown";
+import StatusDropdown from "@/components/admin/StatusDropdown";
 
 export default function AdminAllTickets() {
   const [tickets, setTickets] = useState([]);
@@ -156,7 +157,10 @@ export default function AdminAllTickets() {
               </div>
 
               <div className="flex flex-col items-end gap-2">
-                <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
+                <div className="flex gap-2">
+                    <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
+                    <StatusDropdown ticket={t} onUpdated={fetchTickets} />
+                </div>
               </div>
             </div>
           </div>
