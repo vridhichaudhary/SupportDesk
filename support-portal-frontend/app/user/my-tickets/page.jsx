@@ -9,6 +9,11 @@ export default function MyTicketsPage() {
   const [sort, setSort] = useState("newest");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dropdown, setDropdown] = useState({
+    status: false,
+    priority: false,
+    category: false,
+  });
 
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
@@ -17,8 +22,16 @@ export default function MyTicketsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // CREATE TICKET MODAL
   const [openModal, setOpenModal] = useState(false);
+
+  const toggleDropdown = (key) => {
+    setDropdown({
+      status: false,
+      priority: false,
+      category: false,
+      [key]: !dropdown[key],
+    });
+  };
 
   const fetchTickets = async () => {
     try {
@@ -61,7 +74,6 @@ export default function MyTicketsPage() {
   return (
     <div className="p-6 bg-white min-h-screen">
 
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">My Tickets</h1>
 
@@ -75,8 +87,7 @@ export default function MyTicketsPage() {
 
       <p className="text-gray-500 mb-4">Manage your support requests</p>
 
-      {/* SEARCH + FILTERS */}
-      <div className="flex gap-3 items-center mb-6">
+=      <div className="flex gap-3 items-center mb-6">
 
         <div className="relative w-80">
           <svg
@@ -106,14 +117,8 @@ export default function MyTicketsPage() {
           className="flex items-center gap-2 px-4 py-2 border rounded-md bg-white hover:bg-gray-50"
           onClick={() => setIsFilterOpen(true)}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            strokeWidth="2"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M3 4h18l-7 9v6l-4 2v-8z" />
+          <svg className="w-5 h-5" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M3 4h18l-7 9v6l-4 2v-8z"></path>
           </svg>
           Filters
         </button>
@@ -121,7 +126,10 @@ export default function MyTicketsPage() {
         <select
           className="px-3 py-2 border rounded-md bg-white"
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => {
+            setSort(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -130,7 +138,6 @@ export default function MyTicketsPage() {
         </select>
       </div>
 
-      {/* TICKET LIST */}
       <div className="space-y-4">
         {tickets.map((ticket) => (
           <div key={ticket._id} className="border rounded-lg p-5 bg-white shadow-sm">
@@ -149,7 +156,8 @@ export default function MyTicketsPage() {
 
             <h2 className="text-lg font-semibold text-gray-800">{ticket.title}</h2>
             <p className="text-gray-500 text-sm mt-1">
-              Category: {ticket.category} • Created: {new Date(ticket.createdAt).toLocaleDateString()}
+              Category: {ticket.category} • Created:{" "}
+              {new Date(ticket.createdAt).toLocaleDateString()}
             </p>
 
           </div>
@@ -158,7 +166,6 @@ export default function MyTicketsPage() {
         {tickets.length === 0 && <p className="text-gray-500">No tickets found</p>}
       </div>
 
-      {/* PAGINATION */}
       <div className="flex justify-center gap-3 mt-6">
         <button
           disabled={page === 1}
@@ -181,7 +188,132 @@ export default function MyTicketsPage() {
         </button>
       </div>
 
-      {/* CREATE TICKET MODAL */}
+      {isFilterOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20">
+          <div className="bg-white w-[420px] rounded-xl shadow-lg p-6 relative">
+
+            <h2 className="text-xl font-semibold mb-4">Filters</h2>
+
+            <div className="mb-5">
+              <label className="font-medium">Status</label>
+              <div
+                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
+                onClick={() => toggleDropdown("status")}
+              >
+                <span className="capitalize">{status === "all" ? "All" : status}</span>
+
+                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 7l5 5 5-5H5z" />
+                </svg>
+              </div>
+
+              {dropdown.status && (
+                <div className="border rounded-md mt-1 bg-white shadow">
+                  {["all", "open", "in-progress", "resolved", "closed"].map((s) => (
+                    <div
+                      key={s}
+                      className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
+                      onClick={() => {
+                        setStatus(s);
+                        toggleDropdown("status");
+                        setPage(1);
+                      }}
+                    >
+                      {s === "all" ? "All" : s}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <label className="font-medium">Priority</label>
+              <div
+                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
+                onClick={() => toggleDropdown("priority")}
+              >
+                <span className="capitalize">{priority === "all" ? "All" : priority}</span>
+
+                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 7l5 5 5-5H5z" />
+                </svg>
+              </div>
+
+              {dropdown.priority && (
+                <div className="border rounded-md mt-1 bg-white shadow">
+                  {["all", "high", "medium", "low"].map((p) => (
+                    <div
+                      key={p}
+                      className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
+                      onClick={() => {
+                        setPriority(p);
+                        toggleDropdown("priority");
+                        setPage(1);
+                      }}
+                    >
+                      {p === "all" ? "All" : p}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <label className="font-medium">Category</label>
+              <div
+                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
+                onClick={() => toggleDropdown("category")}
+              >
+                <span className="capitalize">{category === "all" ? "All" : category}</span>
+
+                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 7l5 5 5-5H5z" />
+                </svg>
+              </div>
+
+              {dropdown.category && (
+                <div className="border rounded-md mt-1 bg-white shadow">
+                  {["all", "Technical", "Billing", "General"].map((c) => (
+                    <div
+                      key={c}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setCategory(c);
+                        toggleDropdown("category");
+                        setPage(1);
+                      }}
+                    >
+                      {c === "all" ? "All" : c}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                className="px-4 py-2 rounded-md border bg-gray-100 hover:bg-gray-200"
+                onClick={() => {
+                  setStatus("all");
+                  setPriority("all");
+                  setCategory("all");
+                  setPage(1);
+                }}
+              >
+                Clear
+              </button>
+
+              <button
+                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => setIsFilterOpen(false)}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CreateTicketModal
         open={openModal}
         onClose={() => setOpenModal(false)}
@@ -190,7 +322,6 @@ export default function MyTicketsPage() {
           fetchTickets();
         }}
       />
-
     </div>
   );
 }
