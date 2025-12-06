@@ -1,6 +1,8 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
+import CreateTicketModal from "@/components/CreateTicketModal";
 
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState([]);
@@ -8,18 +10,23 @@ export default function MyTicketsPage() {
   const [sort, setSort] = useState("newest");
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Filter States
+  // Filters
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [category, setCategory] = useState("all");
 
-  // Dropdown control
+  // Dropdown states
   const [dropdown, setDropdown] = useState({
     status: false,
     priority: false,
     category: false,
   });
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const toggleDropdown = (key) => {
     setDropdown({
@@ -35,6 +42,9 @@ export default function MyTicketsPage() {
       const params = {
         q: search,
         sort,
+        page,
+        limit: 5,
+        mine: true,
       };
 
       if (status !== "all") params.status = status;
@@ -42,17 +52,18 @@ export default function MyTicketsPage() {
       if (category !== "all") params.category = category;
 
       const res = await axiosInstance.get("/tickets", { params });
+
       setTickets(res.data.items || []);
+      setTotalPages(res.data.totalPages || 1);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch tickets error:", err);
     }
   };
 
   useEffect(() => {
     fetchTickets();
-  }, [search, sort, status, priority, category]);
+  }, [search, sort, status, priority, category, page]);
 
-  // Badge colors same as your black UI
   const badgeColors = {
     open: "bg-blue-100 text-blue-700",
     "in-progress": "bg-yellow-100 text-yellow-700",
@@ -71,7 +82,7 @@ export default function MyTicketsPage() {
         <h1 className="text-3xl font-bold text-gray-900">My Tickets</h1>
 
         <button
-          onClick={() => (window.location.href = "/user/new-ticket")}
+          onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium shadow hover:bg-blue-700"
         >
           + Create Ticket
@@ -82,9 +93,7 @@ export default function MyTicketsPage() {
 
       {/* SEARCH + FILTERS */}
       <div className="flex gap-3 items-center mb-6">
-        {/* Search */}
         <div className="relative w-80">
-          {/* search icon svg */}
           <svg
             className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
             fill="none"
@@ -101,16 +110,17 @@ export default function MyTicketsPage() {
             placeholder="Search tickets..."
             className="w-full border rounded-md pl-10 pr-3 py-2 bg-white"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setSearch(e.target.value);
+            }}
           />
         </div>
 
-        {/* Filter button */}
         <button
           className="flex items-center gap-2 px-4 py-2 border rounded-md bg-white hover:bg-gray-50"
           onClick={() => setIsFilterOpen(true)}
         >
-          {/* filter svg */}
           <svg
             className="w-5 h-5"
             fill="none"
@@ -123,13 +133,14 @@ export default function MyTicketsPage() {
           Filters
         </button>
 
-        {/* Sort dropdown */}
         <select
           className="px-3 py-2 border rounded-md bg-white"
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => {
+            setPage(1);
+            setSort(e.target.value);
+          }}
         >
-          <option value="status">Status</option>
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
           <option value="priority-high">Priority: High → Low</option>
@@ -137,7 +148,7 @@ export default function MyTicketsPage() {
         </select>
       </div>
 
-      {/* TICKETS */}
+      {/* LIST */}
       <div className="space-y-4">
         {tickets.map((ticket) => (
           <div
@@ -149,14 +160,12 @@ export default function MyTicketsPage() {
                 {ticket.ticketId}
               </span>
 
-              {/* status */}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColors[ticket.status]}`}
               >
                 {ticket.status}
               </span>
 
-              {/* priority */}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColors[ticket.priority]}`}
               >
@@ -174,153 +183,50 @@ export default function MyTicketsPage() {
             </p>
           </div>
         ))}
+
+        {tickets.length === 0 && (
+          <p className="text-gray-500 text-center mt-10">No tickets found</p>
+        )}
       </div>
 
-      {/* FILTER POPUP */}
-      {isFilterOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20">
-          <div className="bg-white w-[420px] rounded-xl shadow-lg p-6 relative">
-            <h2 className="text-xl font-semibold mb-4">Filters</h2>
+      {/* PAGINATION */}
+      <div className="flex items-center gap-4 mt-8">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage(page - 1)}
+          className={`px-4 py-2 rounded-md border ${
+            page === 1 ? "bg-gray-100 text-gray-400" : "bg-white hover:bg-gray-50"
+          }`}
+        >
+          Prev
+        </button>
 
-            {/* STATUS */}
-            <div className="mb-5">
-              <label className="font-medium">Status</label>
-              <div
-                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
-                onClick={() => toggleDropdown("status")}
-              >
-                <span className="capitalize">
-                  {status === "all" ? "All Statuses" : status}
-                </span>
+        <span className="text-gray-600">
+          Page {page} of {totalPages}
+        </span>
 
-                {/* dropdown arrow */}
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M5 7l5 5 5-5H5z" />
-                </svg>
-              </div>
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage(page + 1)}
+          className={`px-4 py-2 rounded-md border ${
+            page === totalPages
+              ? "bg-gray-100 text-gray-400"
+              : "bg-white hover:bg-gray-50"
+          }`}
+        >
+          Next
+        </button>
+      </div>
 
-              {dropdown.status && (
-                <div className="border rounded-md mt-1 bg-white shadow">
-                  {["all", "open", "in-progress", "resolved", "closed"].map(
-                    (val) => (
-                      <div
-                        key={val}
-                        className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
-                        onClick={() => {
-                          setStatus(val);
-                          toggleDropdown("status");
-                        }}
-                      >
-                        {val === "all" ? "All Statuses" : val}
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* PRIORITY */}
-            <div className="mb-5">
-              <label className="font-medium">Priority</label>
-              <div
-                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
-                onClick={() => toggleDropdown("priority")}
-              >
-                <span className="capitalize">
-                  {priority === "all" ? "All Priorities" : priority}
-                </span>
-
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M5 7l5 5 5-5H5z" />
-                </svg>
-              </div>
-
-              {dropdown.priority && (
-                <div className="border rounded-md mt-1 bg-white shadow">
-                  {["all", "high", "medium", "low"].map((val) => (
-                    <div
-                      key={val}
-                      className="p-2 hover:bg-gray-100 cursor-pointer capitalize"
-                      onClick={() => {
-                        setPriority(val);
-                        toggleDropdown("priority");
-                      }}
-                    >
-                      {val === "all" ? "All Priorities" : val}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* CATEGORY */}
-            <div className="mb-5">
-              <label className="font-medium">Category</label>
-              <div
-                className="mt-2 border p-2 rounded-md flex justify-between items-center cursor-pointer"
-                onClick={() => toggleDropdown("category")}
-              >
-                <span className="capitalize">
-                  {category === "all" ? "All Categories" : category}
-                </span>
-
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M5 7l5 5 5-5H5z" />
-                </svg>
-              </div>
-
-              {dropdown.category && (
-                <div className="border rounded-md mt-1 bg-white shadow">
-                  {["all", "Technical", "Billing", "General"].map((val) => (
-                    <div
-                      key={val}
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setCategory(val);
-                        toggleDropdown("category");
-                      }}
-                    >
-                      {val === "all" ? "All Categories" : val}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* BUTTONS */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                className="px-4 py-2 rounded-md border bg-gray-100 hover:bg-gray-200"
-                onClick={() => {
-                  setStatus("all");
-                  setPriority("all");
-                  setCategory("all");
-                }}
-              >
-                Clear
-              </button>
-
-              <button
-                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => setIsFilterOpen(false)}
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* CREATE TICKET MODAL */}
+      {isModalOpen && (
+        <CreateTicketModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            fetchTickets();
+          }}
+        />
       )}
     </div>
   );
