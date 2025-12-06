@@ -2,7 +2,7 @@ const ticketsService = require("../services/tickets");
 const { verifyToken } = require("../utils/authMiddleware");
 const Ticket = require("../models/Ticket");
 const Agent = require("../models/Agent");
-
+const Comment = require("../models/Comment");
 
 async function createTicketHandler(req, res) {
   try {
@@ -141,10 +141,70 @@ async function assignTicketHandler(req, res) {
   }
 }
 
+async function getTicketByIdHandler(req, res) {
+  try {
+    const { id } = req.params;
+    const ticket = await Ticket.findById(id)
+      .populate("user", "name email")
+      .populate("assignedTo", "name role ticketsAssigned")
+      .lean();
+
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+    const comments = await Comment.find({ ticket: id })
+      .populate("user", "name")
+      .sort({ createdAt: 1 })
+      .lean();
+
+    return res.json({ ticket, comments });
+  } catch (err) {
+    console.error("getTicketById error:", err);
+    return res.status(500).json({ message: "Failed to fetch ticket" });
+  }
+}
+
+async function addCommentHandler(req, res) {
+  try {
+    const { id } = req.params; 
+    const { message } = req.body;
+    const token = req.headers.authorization?.split(" ")[1];
+    let userId = req.body.userId || null;
+    if (!userId && token) {
+      try {
+        const decoded = verifyToken(token);
+        userId = decoded.id;
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+    if (!userId) return res.status(401).json({ message: "User not authenticated" });
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+    const comment = await Comment.create({
+      ticket: id,
+      user: userId,
+      message: message.trim()
+    });
+
+    const populated = await Comment.findById(comment._id).populate("user", "name").lean();
+
+    return res.status(201).json({ comment: populated });
+  } catch (err) {
+    console.error("addComment error:", err);
+    return res.status(500).json({ message: "Failed to add comment" });
+  }
+}
+
 module.exports = {
   createTicketHandler,
   listTicketsHandler,
   updateTicketHandler,
   dashboardStatsHandler,
   assignTicketHandler,
+  getTicketByIdHandler,
+  addCommentHandler
 };
