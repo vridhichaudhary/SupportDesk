@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
-import CreateTicketModal from "@/components/CreateTicketModal";   
+import CreateTicketModal from "@/components/CreateTicketModal";
+import UserLayoutClient from "../layoutClient";
 
 export default function UserDashboard() {
   const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
@@ -41,6 +42,7 @@ export default function UserDashboard() {
   }
 
   return (
+    <UserLayoutClient>
     <div className="p-8 bg-gray-50 min-h-screen">
 
       <div className="flex items-center justify-between mb-6">
@@ -142,5 +144,6 @@ export default function UserDashboard() {
       </div>
 
     </div>
+    </UserLayoutClient>
   );
 }

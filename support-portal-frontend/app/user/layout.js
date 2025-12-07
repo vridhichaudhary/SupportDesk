@@ -1,5 +1,13 @@
-import UserLayoutClient from "./layoutClient";
+import "../globals.css";
+
+export const metadata = {
+  title: "User - SupportDesk",
+};
 
 export default function UserLayout({ children }) {
-  return <UserLayoutClient>{children}</UserLayoutClient>;
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
 }

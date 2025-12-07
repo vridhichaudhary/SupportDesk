@@ -4,35 +4,43 @@ import { useState } from "react";
 import UserSidebar from "@/components/UserSidebar";
 
 export default function UserLayoutClient({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
 
-      <UserSidebar
-        isOpen={sidebarOpen}
-        closeSidebar={() => setSidebarOpen(false)}
-      />
+      <div className="md:hidden flex justify-between items-center p-4 border-b bg-white">
+        <h1 className="text-xl font-bold">SupportDesk</h1>
 
-      <div className="flex-1 flex flex-col">
-
-        <div className="w-full bg-white border-b flex items-center px-4 py-4 md:hidden">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-gray-700"
-          >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2"
-              viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-
-        <main className="flex-1 p-4 md:p-8 overflow-auto">
-          {children}
-        </main>
+        <button
+          onClick={() => setOpen(!open)}
+          className="px-3 py-2 border rounded-lg"
+        >
+          ☰
+        </button>
       </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-64 bg-white h-full p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <UserSidebar />
+          </div>
+        </div>
+      )}
+
+      <div className="hidden md:block w-64 border-r bg-white">
+        <UserSidebar />
+      </div>
+
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
+        {children}
+      </main>
     </div>
   );
 }

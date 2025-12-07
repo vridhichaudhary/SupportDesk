@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import CreateTicketModal from "@/components/CreateTicketModal";
+import UserLayoutClient from "../layoutClient";
 
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState([]);
@@ -78,6 +79,7 @@ export default function MyTicketsPage() {
   };
 
   return (
+    <UserLayoutClient>
     <div className="p-4 md:p-6 bg-white min-h-screen">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -340,5 +342,6 @@ export default function MyTicketsPage() {
         }}
       />
     </div>
+    </UserLayoutClient>
   );
 }
