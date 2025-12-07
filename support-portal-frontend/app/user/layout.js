@@ -1,17 +1,26 @@
+"use client";
+
+import { useState } from "react";
 import UserSidebar from "@/components/UserSidebar";
 
 export default function UserLayout({ children }) {
-  return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+  const [open, setOpen] = useState(false);
 
-      <div className="w-full md:w-64 border-r bg-white">
-        <UserSidebar />
-      </div>
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-lg border shadow"
+        onClick={() => setOpen(true)}
+      >
+        ☰
+      </button>
+
+      <UserSidebar isOpen={open} onClose={() => setOpen(false)} />
 
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         {children}
       </main>
-
     </div>
   );
 }
