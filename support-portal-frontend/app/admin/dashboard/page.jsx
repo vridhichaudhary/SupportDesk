@@ -34,7 +34,7 @@ export default function AdminDashboard() {
       <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
       <p className="text-gray-600 mb-8">Monitor support operations and ticket flow</p>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Tickets" value={total} />
         <StatCard label="Open Tickets" value={open} />
         <StatCard label="Resolved" value={resolved} />
@@ -68,7 +68,7 @@ function CategorySection({ categories }) {
       <h2 className="text-2xl font-bold mb-1">Ticket Categories</h2>
       <p className="text-gray-500 mb-6">Distribution of support requests by category</p>
 
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
         {categories.map(cat => {
           const percent = ((cat.count / total) * 100).toFixed(0);
           return (
@@ -100,7 +100,8 @@ function RecentTickets({ recent }) {
 
       <div className="space-y-4">
         {recent.map(t => (
-          <div key={t._id} className="border rounded-lg p-4 bg-gray-50">
+          <div className="border rounded-lg p-4 bg-gray-50 flex flex-col sm:flex-row sm:justify-between gap-2">
+
             <div className="font-semibold">{t.ticketId}</div>
 
             <div className="font-medium">{t.title}</div>

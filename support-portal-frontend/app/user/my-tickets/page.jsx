@@ -78,9 +78,10 @@ export default function MyTicketsPage() {
   };
 
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-4 md:p-6 bg-white min-h-screen">
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+
         <h1 className="text-3xl font-bold text-gray-900">My Tickets</h1>
 
         <button
@@ -93,9 +94,10 @@ export default function MyTicketsPage() {
 
       <p className="text-gray-500 mb-4">Manage your support requests</p>
 
-     <div className="flex gap-3 items-center mb-6">
+     <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center mb-6">
 
-        <div className="relative w-80">
+        <div className="relative w-full sm:w-80">
+
           <svg
             className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
             fill="none"
@@ -146,9 +148,10 @@ export default function MyTicketsPage() {
 
       <div className="space-y-4">
         {tickets.map((ticket) => (
-          <div key={ticket._id} className="border rounded-lg p-5 bg-white shadow-sm">
+          <div key={ticket._id} className="border rounded-lg p-4 md:p-5 bg-white shadow-sm">
 
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+
               <span className="font-semibold text-gray-900">{ticket.ticketId}</span>
 
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${badgeColors[ticket.status]}`}>
@@ -179,7 +182,8 @@ export default function MyTicketsPage() {
         {tickets.length === 0 && <p className="text-gray-500">No tickets found</p>}
       </div>
 
-      <div className="flex justify-center gap-3 mt-6">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-6">
+
         <button
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
@@ -203,7 +207,7 @@ export default function MyTicketsPage() {
 
       {isFilterOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-start pt-20">
-          <div className="bg-white w-[420px] rounded-xl shadow-lg p-6 relative">
+          <div className="bg-white w-[90%] sm:w-[420px] rounded-xl shadow-lg p-6 relative">
 
             <h2 className="text-xl font-semibold mb-4">Filters</h2>
 
