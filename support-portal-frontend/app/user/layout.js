@@ -11,6 +11,7 @@ export default function UserLayout({ children }) {
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         {children}
       </main>
+
     </div>
   );
 }

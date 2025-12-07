@@ -12,7 +12,7 @@ export default function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-6">
+    <aside className="w-full md:w-64 bg-white border-r min-h-screen p-6">
       <div className="mb-8">
         <div className="text-2xl font-bold text-gray-900">SupportDesk</div>
         <div className="text-sm text-gray-500 mt-1">Admin Portal</div>

@@ -72,7 +72,7 @@ export default function UserDashboard() {
         onCreated={fetchDashboard}
       />
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="p-6 rounded-lg border bg-blue-50">
           <div className="text-sm text-blue-700 font-medium">Open Tickets</div>
           <div className="text-3xl font-bold text-blue-900">{stats.open}</div>
@@ -100,7 +100,7 @@ export default function UserDashboard() {
 
           {recent.map((t) => (
             <div key={t._id} className="border rounded p-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="text-sm font-semibold text-gray-700">{t.ticketId}</div>
                   <div className="font-medium">{t.title}</div>

@@ -63,7 +63,7 @@ export default function AdminAllTickets() {
       <h1 className="text-4xl font-bold mb-1">All Tickets</h1>
       <p className="text-gray-600 mb-6">Manage and assign support tickets</p>
 
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row flex-wrap gap-4 mb-6">
         <input
           type="text"
           placeholder="Search tickets by ID or subject"
@@ -125,7 +125,7 @@ export default function AdminAllTickets() {
             key={t._id}
             className="bg-white border rounded-xl p-6 shadow-sm"
           >
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold">{t.ticketId}</span>
@@ -161,7 +161,7 @@ export default function AdminAllTickets() {
                 </p>
               </div>
 
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-col sm:items-end gap-2">
                 <div className="flex gap-2">
                     <ReassignDropdown ticket={t} onAssigned={fetchTickets} />
                     <StatusDropdown ticket={t} onUpdated={fetchTickets} />
