@@ -9,12 +9,13 @@ export default function UserLayoutClient({ children }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
 
-      <div className="md:hidden flex justify-between items-center p-4 border-b bg-white">
-        <h1 className="text-xl font-bold">SupportDesk</h1>
+      <div className="md:hidden flex justify-between items-center p-4 border-b bg-white w-full">
+        <h1 className="text-lg font-semibold">SupportDesk</h1>
 
         <button
           onClick={() => setOpen(!open)}
           className="px-3 py-2 border rounded-lg"
+          aria-label="Toggle menu"
         >
           ☰
         </button>
@@ -22,14 +23,14 @@ export default function UserLayoutClient({ children }) {
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
           onClick={() => setOpen(false)}
         >
           <div
             className="w-64 bg-white h-full p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <UserSidebar />
+            <UserSidebar onNavigate={() => setOpen(false)} />
           </div>
         </div>
       )}
@@ -38,9 +39,7 @@ export default function UserLayoutClient({ children }) {
         <UserSidebar />
       </div>
 
-      <main className="flex-1 p-4 md:p-8 overflow-auto">
-        {children}
-      </main>
+      <main className="flex-1 p-4 md:p-8 overflow-auto">{children}</main>
     </div>
   );
 }
