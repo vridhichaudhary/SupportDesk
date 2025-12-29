@@ -44,13 +44,9 @@ const agents = [
 export default function AgentsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight mb-2">Support Agent Directory</h1>
-          <p className="text-stone-500 font-medium max-w-2xl">
-            Monitor team performance, ticket distribution, and personnel availability in real-time.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -68,7 +64,6 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {agents.map((agent, i) => (
           <motion.div
@@ -85,7 +80,6 @@ export default function AgentsPage() {
             </div>
 
             <div className="flex flex-col items-center text-center">
-              {/* Avatar & Status Indicator */}
               <div className="relative mb-4">
                 <div className="w-20 h-20 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-center group-hover:bg-accent-50 group-hover:border-accent-100 transition-colors duration-300">
                   <span className="text-2xl font-bold text-stone-300 group-hover:text-accent-600 transition-colors">
@@ -110,7 +104,6 @@ export default function AgentsPage() {
                 </div>
               </div>
 
-              {/* Stats Grid */}
               <div className="grid grid-cols-2 w-full gap-3">
                 <div className="bg-stone-50/50 rounded-xl p-3 border border-stone-100">
                   <div className="flex items-center gap-1.5 text-stone-400 mb-1">

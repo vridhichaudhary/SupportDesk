@@ -57,7 +57,6 @@ export default function AdminDashboard() {
           <h1 className="text-4xl font-bold text-stone-900 tracking-tight mb-1">
             System <span className="text-accent-600">Executive</span>
           </h1>
-          <p className="text-stone-500 font-medium text-sm">Orchestrating platform operations and support flows.</p>
         </div>
       </div>
 

@@ -67,15 +67,10 @@ export default function AdminAllTickets() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-stone-900 tracking-tight mb-2">Global Ticket Registry</h1>
-        <p className="text-stone-500 font-medium max-w-2xl">
-          Override and manage all support interactions across the platform ecosystem.
-        </p>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
         <div className="relative flex-1 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-accent-600 transition-colors" />
@@ -124,7 +119,6 @@ export default function AdminAllTickets() {
         </div>
       </div>
 
-      {/* Tickets List */}
       <TicketList
         loading={loading}
         data={ticketsData}
@@ -133,7 +127,6 @@ export default function AdminAllTickets() {
         onDelete={handleDelete}
       />
 
-      {/* Detail Modal */}
       <TicketDetailModal
         isOpen={isDetailModalOpen}
         ticket={selectedTicket}

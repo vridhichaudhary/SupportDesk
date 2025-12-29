@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight, LogIn, UserPlus } from "lucide-react";
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,70 +21,72 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-screen bg-white font-sans selection:bg-accent-100 selection:text-accent-900 flex flex-col overflow-hidden">
-      {/* Ultra Minimal Navigation */}
-      <nav className="h-20 flex items-center justify-between px-10 lg:px-20 border-b border-stone-100 bg-white z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-stone-900 rounded-lg flex items-center justify-center">
+    <div className="h-screen bg-stone-50 font-sans selection:bg-accent-100 selection:text-accent-900 flex flex-col overflow-hidden">
+      {/* Simple Navigation */}
+      <nav className="h-20 shrink-0 flex items-center justify-between px-10 lg:px-20 bg-white border-b border-stone-100 z-50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-stone-900 rounded-xl flex items-center justify-center">
             <ShieldCheck className="text-white w-5 h-5" />
           </div>
           <span className="text-xl font-bold text-stone-900 tracking-tighter">SupportDesk</span>
         </div>
-
-        <div className="flex items-center gap-10">
-          {!isLoggedIn ? (
-            <Link href="/login" className="text-[10px] font-bold text-stone-400 hover:text-stone-900 transition-colors uppercase tracking-[0.2em]">Enter Portal</Link>
-          ) : null}
-          <Link
-            href={isLoggedIn ? (userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard') : '/signup'}
-            className="px-5 py-2.5 bg-stone-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-stone-800 transition-all shadow-sm"
-          >
-            {isLoggedIn ? "Access Dashboard" : "Initialize Session"}
-          </Link>
-        </div>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-10 text-center">
+      <main className="flex-1 flex flex-col items-center justify-center p-6">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-xl"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-sm"
         >
-          <div className="inline-block px-3 py-1 bg-stone-50 border border-stone-100 text-stone-400 rounded-full mb-8">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Operational Excellence</span>
-          </div>
+          <div className="bg-white rounded-[32px] border border-stone-200 p-10 shadow-sm text-center">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-stone-900 tracking-tight">Support Portal</h2>
+              <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mt-2 px-6">Precision resolution architecture</p>
+            </div>
 
-          <h1 className="text-4xl lg:text-5xl font-bold text-stone-900 leading-[1.1] tracking-tighter mb-6">
-            Intelligent Support <br />
-            <span className="text-accent-600">Architected for Clarity.</span>
-          </h1>
+            <div className="space-y-4">
+              {isLoggedIn ? (
+                <Link
+                  href={userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard'}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-[0.15em] hover:bg-stone-800 transition-all shadow-md active:scale-[0.98]"
+                >
+                  Return to Dashboard
+                  <ArrowRight className="w-4 h-4 text-stone-400" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-[0.15em] hover:bg-stone-800 transition-all shadow-md active:scale-[0.98]"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Link>
 
-          <p className="text-sm text-stone-400 font-medium mb-10 leading-relaxed max-w-md mx-auto">
-            Experience a streamlined interface designed for precision resolution. No noise. Just resolution.
-          </p>
+                  <div className="relative py-4 flex items-center">
+                    <div className="flex-grow border-t border-stone-100"></div>
+                    <span className="flex-shrink mx-4 text-[9px] font-black text-stone-200 uppercase tracking-widest">or</span>
+                    <div className="flex-grow border-t border-stone-100"></div>
+                  </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href={isLoggedIn ? (userRole === 'admin' ? '/admin/dashboard' : '/user/dashboard') : '/signup'}
-              className="w-full sm:w-auto px-8 py-3.5 bg-stone-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-stone-800 transition-all shadow-md active:scale-95"
-            >
-              {isLoggedIn ? "Go to Dashboard" : "Get Started"}
-            </Link>
-            <button className="w-full sm:w-auto px-8 py-3.5 bg-white text-stone-900 border border-stone-100 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-stone-50 transition-all">
-              Technical Docs
-            </button>
+                  <Link
+                    href="/signup"
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-stone-200 text-stone-900 rounded-2xl font-bold text-xs uppercase tracking-[0.15em] hover:bg-stone-50 transition-all active:scale-[0.98]"
+                  >
+                    <UserPlus className="w-4 h-4 text-stone-400" />
+                    New Account
+                  </Link>
+                </>
+              )}
+            </div>
+
+            <p className="mt-10 text-[9px] font-bold text-stone-300 uppercase tracking-[0.15em]">
+              © 2025 SupportDesk Systems
+            </p>
           </div>
         </motion.div>
       </main>
-
-      <footer className="h-20 border-t border-stone-100 px-10 lg:px-20 flex items-center justify-between bg-white z-50">
-        <p className="text-stone-300 font-bold text-[9px] uppercase tracking-[0.2em]">© 2025 SUPPORTDESK SYSTEMS.</p>
-        <div className="flex items-center gap-10 text-[9px] font-bold text-stone-300 uppercase tracking-widest">
-          <a href="#" className="hover:text-stone-900 transition-colors">Security</a>
-          <a href="#" className="hover:text-stone-900 transition-colors">Privacy</a>
-        </div>
-      </footer>
     </div>
   );
 }

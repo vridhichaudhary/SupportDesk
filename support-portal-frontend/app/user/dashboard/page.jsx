@@ -50,13 +50,11 @@ export default function UserDashboard() {
   return (
     <UserLayoutClient>
       <div className="max-w-6xl mx-auto space-y-10">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h1 className="text-4xl font-bold text-stone-900 tracking-tight mb-1">
               Terminal <span className="text-accent-600">Overview</span>
             </h1>
-            <p className="text-stone-500 font-medium text-sm">Managing your active support interactions.</p>
           </div>
 
           <button
@@ -74,7 +72,6 @@ export default function UserDashboard() {
           onCreated={fetchDashboard}
         />
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
             title="Active"
@@ -93,7 +90,6 @@ export default function UserDashboard() {
           />
         </div>
 
-        {/* Recent Activity */}
         <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-8">
           <div className="flex items-center justify-between mb-8">
             <div>

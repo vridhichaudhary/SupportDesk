@@ -99,18 +99,7 @@ export default function TicketDetailModal({ ticket, isOpen, onClose }) {
                                     </p>
                                 </div>
 
-                                <div className="pt-6 border-t border-stone-100 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {ticket.user && (
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center border border-accent-100">
-                                                <UserIcon className="w-5 h-5 text-accent-600" />
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Reported By</div>
-                                                <div className="text-sm font-bold text-stone-900">{ticket.user.name}</div>
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="pt-6 border-t border-stone-100">
                                     {ticket.assignedTo && (
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center">

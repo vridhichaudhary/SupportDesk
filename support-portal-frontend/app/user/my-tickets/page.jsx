@@ -72,13 +72,9 @@ export default function MyTicketsPage() {
   return (
     <UserLayoutClient>
       <div className="max-w-7xl mx-auto space-y-8 pb-20">
-        {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold text-stone-900 tracking-tight mb-2">My Support Requests</h1>
-            <p className="text-stone-500 font-medium max-w-2xl">
-              Track, manage, and monitor all your active and historical support interactions.
-            </p>
           </div>
 
           <button
@@ -90,7 +86,6 @@ export default function MyTicketsPage() {
           </button>
         </div>
 
-        {/* Toolbar */}
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
           <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-accent-600 transition-colors" />
@@ -138,7 +133,6 @@ export default function MyTicketsPage() {
           </div>
         </div>
 
-        {/* Tickets List */}
         <TicketList
           loading={loading}
           data={ticketsData}
@@ -147,7 +141,6 @@ export default function MyTicketsPage() {
           onDelete={handleDelete}
         />
 
-        {/* Modals */}
         <CreateTicketModal
           open={openCreateModal}
           onClose={() => setOpenCreateModal(false)}

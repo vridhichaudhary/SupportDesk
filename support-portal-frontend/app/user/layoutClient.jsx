@@ -9,12 +9,10 @@ export default function UserLayoutClient({ children }) {
 
   return (
     <div className="min-h-screen bg-stone-50 flex font-sans selection:bg-accent-100 selection:text-accent-900">
-      {/* Sidebar - Desktop */}
       <div className="hidden lg:block shrink-0 h-screen sticky top-0">
         <UserSidebar />
       </div>
 
-      {/* Sidebar - Mobile Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -38,9 +36,7 @@ export default function UserLayoutClient({ children }) {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
