@@ -80,10 +80,6 @@ export default function Home() {
                 </>
               )}
             </div>
-
-            <p className="mt-10 text-[9px] font-bold text-stone-300 uppercase tracking-[0.15em]">
-              © 2025 SupportDesk Systems
-            </p>
           </div>
         </motion.div>
       </main>

@@ -94,7 +94,7 @@ axiosInstance.interceptors.response.use(
       try {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-      } catch {}
+      } catch { }
 
       if (typeof window !== "undefined") {
         window.location.href = "/login";
