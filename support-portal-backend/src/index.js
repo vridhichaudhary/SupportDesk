@@ -16,8 +16,15 @@ const createAdminAccount = require("./scripts/admin");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
+const http = require("http");
+const { initSocket } = require("./socket");
+
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 8080;
+
+// Initialize Socket.io
+initSocket(server);
 
 app.use(cors({
     origin: ["http://localhost:3000", "https://support-desk-teal-nine.vercel.app"],
@@ -44,6 +51,6 @@ app.use("/admin/auth", adminAuthRoutes);
 app.use("/admin", adminRoutes);
 app.use("/admin/agents", adminAgentsRoute);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Backend running at http://localhost:${PORT}`);
 });

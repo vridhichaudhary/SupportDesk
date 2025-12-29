@@ -1,4 +1,5 @@
 import "./globals.css";
+import ChatWidget from "../components/ChatWidget";
 
 export const metadata = {
   title: "SupportDesk - Support Portal",
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <ChatWidget />
+      </body>
     </html>
   );
 }

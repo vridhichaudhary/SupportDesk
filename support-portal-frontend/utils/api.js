@@ -1,4 +1,4 @@
-const BASE_URL = "https://supportdesk-s54j.onrender.com";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export const api = {
   register: async (data) => {
