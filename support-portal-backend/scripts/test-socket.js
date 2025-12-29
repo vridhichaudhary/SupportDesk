@@ -8,7 +8,8 @@ socket.on("connect", () => {
     console.log("Connected to server:", socket.id);
 
     // Join chat
-    const userId = "test_user_gemini_" + Math.random().toString(36).substr(2, 9);
+    // Use a valid 24-char hex string to simulate a MongoDB ObjectId
+    const userId = "69288b60a3d215c4a8ba47e5";
     socket.emit("join_chat", { userId });
 });
 

@@ -13,9 +13,25 @@ export default function ChatWindow({ onClose }) {
 
     // Random user ID for demo purposes if not authenticated, 
     // or fetch from local storage/auth context
-    const [userId] = useState(() => "user_" + Math.random().toString(36).substr(2, 9));
+    const [userId, setUserId] = useState(null);
 
     useEffect(() => {
+        if (typeof window !== "undefined") {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                try {
+                    const u = JSON.parse(storedUser);
+                    setUserId(u.id || u._id || u.userId);
+                } catch (e) {
+                    console.error("Failed to parse user", e);
+                }
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!userId) return;
+
         const newSocket = io(SOCKET_URL, {
             withCredentials: true,
         });
@@ -111,8 +127,8 @@ export default function ChatWindow({ onClose }) {
                         <div key={idx} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                             <div
                                 className={`max-w-[80%] p-3 rounded-lg text-sm ${isUser
-                                        ? "bg-slate-900 text-white rounded-br-none"
-                                        : "bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm"
+                                    ? "bg-slate-900 text-white rounded-br-none"
+                                    : "bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm"
                                     }`}
                             >
                                 {msg.content}
