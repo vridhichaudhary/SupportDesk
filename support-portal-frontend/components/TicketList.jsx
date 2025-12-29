@@ -3,7 +3,7 @@ import TicketItem from "./TicketItem";
 import { Loader2, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function TicketList({ loading, data = { items: [], total: 0 }, onPage }) {
+export default function TicketList({ loading, data = { items: [], total: 0 }, onPage, onTicketClick, onDelete }) {
   const { items, total, page = 1, limit = 10 } = data;
   const totalPages = Math.ceil(total / (limit || 10));
 
@@ -32,7 +32,7 @@ export default function TicketList({ loading, data = { items: [], total: 0 }, on
         </div>
       ) : (
         <>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map((t, idx) => (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
@@ -40,7 +40,11 @@ export default function TicketList({ loading, data = { items: [], total: 0 }, on
                 transition={{ delay: idx * 0.05 }}
                 key={t._id}
               >
-                <TicketItem ticket={t} />
+                <TicketItem
+                  ticket={t}
+                  onClick={onTicketClick}
+                  onDelete={onDelete}
+                />
               </motion.div>
             ))}
           </div>

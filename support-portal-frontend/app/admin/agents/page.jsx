@@ -128,11 +128,6 @@ export default function AgentsPage() {
                 </div>
               </div>
 
-              <div className="w-full mt-6 pt-6 border-t border-stone-100">
-                <button className="w-full py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 active:scale-[0.98] transition-all shadow-sm">
-                  View Full Profile
-                </button>
-              </div>
             </div>
           </motion.div>
         ))}
