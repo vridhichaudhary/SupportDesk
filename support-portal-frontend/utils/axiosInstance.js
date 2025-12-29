@@ -11,8 +11,14 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+if (!baseURL && typeof window !== "undefined") {
+  console.warn("⚠️ NEXT_PUBLIC_API_BASE_URL is not defined. API requests will fail.");
+}
+
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: baseURL,
   headers: {
     "Content-Type": "application/json",
   },
