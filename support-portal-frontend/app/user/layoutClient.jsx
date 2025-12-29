@@ -1,16 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import UserSidebar from "@/components/UserSidebar";
-import { Menu, X, Bell, User as UserIcon, Search, Settings } from "lucide-react";
+import { Menu, Bell, User as UserIcon, Search, Settings, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function UserLayoutClient({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans">
+    <div className="min-h-screen bg-stone-50 flex font-sans selection:bg-accent-100 selection:text-accent-900">
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block shrink-0">
+      <div className="hidden lg:block shrink-0 h-screen sticky top-0">
         <UserSidebar />
       </div>
 
@@ -23,14 +23,14 @@ export default function UserLayoutClient({ children }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-stone-900/20 backdrop-blur-[2px] z-40 lg:hidden"
             />
             <motion.div
-              initial={{ x: -300 }}
+              initial={{ x: -260 }}
               animate={{ x: 0 }}
-              exit={{ x: -300 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-72 bg-white z-50 lg:hidden shadow-2xl"
+              exit={{ x: -260 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="fixed inset-y-0 left-0 w-64 bg-white z-50 lg:hidden shadow-sm"
             >
               <UserSidebar onNavigate={() => setIsSidebarOpen(false)} />
             </motion.div>
@@ -41,46 +41,46 @@ export default function UserLayoutClient({ children }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30">
+        <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors"
+              className="lg:hidden p-2 hover:bg-stone-50 rounded-lg transition-colors border border-stone-100"
             >
-              <Menu className="w-6 h-6 text-slate-600" />
+              <Menu className="w-5 h-5 text-stone-600" />
             </button>
-            <div className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-400">
-              <span>SupportDesk</span>
-              <span className="text-slate-200">/</span>
-              <span className="text-slate-900 uppercase tracking-widest text-[10px]">Portal</span>
+            <div className="hidden md:flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-accent-600" />
+              <div className="flex items-center gap-2 text-xs font-bold text-stone-400">
+                <span className="tracking-tight">SupportDesk</span>
+                <span className="text-stone-200">/</span>
+                <span className="text-stone-900 uppercase tracking-widest text-[10px]">Portal</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl group focus-within:ring-2 focus-within:ring-accent-600 focus-within:bg-white transition-all">
-              <Search className="w-4 h-4 text-slate-400 group-focus-within:text-accent-600" />
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg group focus-within:ring-1 focus-within:ring-accent-600 focus-within:bg-white transition-all">
+              <Search className="w-3.5 h-3.5 text-stone-400 group-focus-within:text-accent-600" />
               <input
                 type="text"
-                placeholder="Universal Search..."
-                className="bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder:text-slate-300 w-40"
+                placeholder="Search..."
+                className="bg-transparent border-none outline-none text-[13px] font-medium text-stone-700 placeholder:text-stone-300 w-32 focus:w-48 transition-all"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <button className="relative p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-              </button>
-              <button className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all">
-                <Settings className="w-5 h-5" />
+            <div className="flex items-center gap-1">
+              <button className="relative p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-50 rounded-lg transition-all">
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-accent-600 rounded-full border border-white"></span>
               </button>
             </div>
 
-            <div className="h-8 w-[1px] bg-slate-100 mx-2"></div>
+            <div className="h-6 w-[1px] bg-stone-200 mx-1"></div>
 
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden sm:block">
-                <div className="text-xs font-black text-slate-900 tracking-tight leading-none mb-1 text-right">
+                <div className="text-[13px] font-bold text-stone-900 tracking-tight leading-none mb-0.5">
                   {typeof window !== "undefined" && (() => {
                     try {
                       const u = localStorage.getItem("user");
@@ -88,18 +88,18 @@ export default function UserLayoutClient({ children }) {
                     } catch { return "User"; }
                   })()}
                 </div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Active</div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none">Standard Access</div>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200 overflow-hidden group-hover:border-accent-600 transition-all">
-                <UserIcon className="w-6 h-6 text-slate-400 group-hover:text-accent-600 transition-colors" />
+              <div className="w-8 h-8 rounded-lg bg-stone-50 flex items-center justify-center border border-stone-200 overflow-hidden group-hover:border-accent-600 transition-all">
+                <UserIcon className="w-4 h-4 text-stone-400 group-hover:text-accent-600 transition-colors" />
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden p-8">
+        <main className="flex-1 overflow-x-hidden p-6 lg:p-10">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >

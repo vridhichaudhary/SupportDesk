@@ -1,21 +1,18 @@
 import { motion } from "framer-motion";
 
-export default function StatCard({ title, value, icon: Icon, colorClass = "bg-accent-500" }) {
+export default function StatCard({ title, value, icon: Icon }) {
   return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      className="p-6 bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-4"
-    >
+    <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-sm flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className={`p-3 rounded-2xl ${colorClass} bg-opacity-10`}>
-          {Icon && <Icon className={`w-6 h-6 ${colorClass.replace('bg-', 'text-')}`} />}
+        <div className="p-2.5 bg-accent-50 rounded-xl border border-accent-100">
+          {Icon && <Icon className="w-5 h-5 text-accent-600" />}
         </div>
       </div>
       <div>
-        <div className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">{title}</div>
-        <div className="text-3xl font-black text-slate-900 leading-none">{value}</div>
+        <div className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">{title}</div>
+        <div className="text-3xl font-bold text-stone-900 tracking-tight leading-none">{value}</div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

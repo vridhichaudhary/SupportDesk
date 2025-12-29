@@ -7,7 +7,6 @@ import StatCard from "@/components/StatCard";
 import {
   Plus,
   Search,
-  Filter,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -50,32 +49,23 @@ export default function UserDashboard() {
 
   return (
     <UserLayoutClient>
-      <div className="p-8 max-w-7xl mx-auto space-y-10">
+      <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h1 className="text-5xl font-black text-slate-900 tracking-tight mb-2">
-              Success <span className="gradient-text">Overview</span>
+          <div>
+            <h1 className="text-4xl font-bold text-stone-900 tracking-tight mb-1">
+              Terminal <span className="text-accent-600">Overview</span>
             </h1>
-            <p className="text-slate-500 font-medium text-lg">Manage your support experience with ease.</p>
-          </motion.div>
+            <p className="text-stone-500 font-medium text-sm">Managing your active support interactions.</p>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3"
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-5 py-2.5 bg-stone-900 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-stone-800 transition-colors shadow-sm active:scale-95"
           >
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
-            >
-              <Plus className="w-5 h-5" />
-              Initialize Request
-            </button>
-          </motion.div>
+            <Plus className="w-4 h-4" />
+            Create Request
+          </button>
         </div>
 
         <CreateTicketModal
@@ -87,108 +77,93 @@ export default function UserDashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
-            title="Active Requests"
+            title="Active"
             value={stats.open}
             icon={AlertCircle}
-            colorClass="bg-blue-600"
           />
           <StatCard
-            title="In Processing"
+            title="Processing"
             value={stats.inProgress}
             icon={Clock}
-            colorClass="bg-amber-500"
           />
           <StatCard
             title="Fulfilled"
             value={stats.resolved}
             icon={CheckCircle2}
-            colorClass="bg-emerald-500"
           />
         </div>
 
         {/* Recent Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 p-10"
-        >
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Recent Activity</h2>
-              <p className="text-slate-400 font-medium">Tracking your latest interactions</p>
+              <h2 className="text-2xl font-bold text-stone-900 tracking-tight">Recent Activity</h2>
+              <p className="text-stone-500 text-xs font-medium mt-0.5">Your most recent ticket interactions</p>
             </div>
-            <div className="p-3 bg-slate-50 rounded-2xl flex items-center gap-2 border border-slate-100">
-              <Search className="w-5 h-5 text-slate-400" />
+            <div className="p-2 bg-stone-50 rounded-lg flex items-center gap-2 border border-stone-100">
+              <Search className="w-4 h-4 text-stone-400" />
               <input
                 type="text"
-                placeholder="Locate ticket..."
-                className="bg-transparent border-none outline-none text-sm font-semibold text-slate-700 placeholder:text-slate-300 w-32 focus:w-48 transition-all"
+                placeholder="Filter items..."
+                className="bg-transparent border-none outline-none text-[13px] font-semibold text-stone-700 placeholder:text-stone-300 w-32 focus:w-48 transition-all"
               />
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {loading ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-400">
-                <Loader2 className="w-10 h-10 animate-spin text-accent-600" />
-                <span className="font-bold uppercase tracking-widest text-xs">Synchronizing Data...</span>
+              <div className="py-20 flex flex-col items-center justify-center gap-3 text-stone-400">
+                <Loader2 className="w-8 h-8 animate-spin text-accent-600" />
+                <span className="font-bold uppercase tracking-widest text-[10px]">Syncing...</span>
               </div>
             ) : recent.length === 0 ? (
-              <div className="py-20 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-4">
-                  <TicketIcon className="w-8 h-8 text-slate-300" />
+              <div className="py-20 bg-stone-50 rounded-2xl border border-dashed border-stone-200 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-4 border border-stone-100">
+                  <TicketIcon className="w-6 h-6 text-stone-300" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-1">No Activity Found</h3>
-                <p className="text-slate-400 max-w-xs px-4">You haven't initiated any support requests yet. Use the button above to get started.</p>
+                <h3 className="text-lg font-bold text-stone-900 mb-1">No Activity Found</h3>
+                <p className="text-stone-400 text-sm max-w-xs px-4">Initialize a support request to see it here.</p>
               </div>
             ) : (
-              recent.map((t, index) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
+              recent.map((t) => (
+                <div
                   key={t._id}
-                  className="group flex flex-col md:flex-row items-start md:items-center justify-between p-6 rounded-3xl border border-slate-100 hover:border-accent-200 hover:bg-slate-50/50 transition-all cursor-pointer"
+                  className="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-xl border border-stone-100 hover:border-accent-200 hover:bg-stone-50/50 transition-all cursor-pointer"
                 >
-                  <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${t.status === 'resolved' ? 'bg-emerald-50 text-emerald-600' :
-                        t.status === 'in-progress' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                      <TicketIcon className="w-7 h-7" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-stone-400 group-hover:text-accent-600 group-hover:border-accent-100 transition-colors">
+                      <TicketIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{t.ticketId}</span>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-tighter ${t.priority?.toLowerCase() === 'high' ? 'bg-rose-100 text-rose-600' :
-                            t.priority?.toLowerCase() === 'medium' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t.ticketId}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tight ${t.priority?.toLowerCase() === 'high' ? 'bg-rose-50 text-rose-600' :
+                          t.priority?.toLowerCase() === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-stone-100 text-stone-600'
                           }`}>
                           {t.priority}
                         </span>
                       </div>
-                      <h4 className="font-bold text-slate-900 text-lg group-hover:text-accent-600 transition-colors">{t.title}</h4>
-                      <p className="text-sm text-slate-400 font-medium">
-                        {t.category} • {new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      <h4 className="font-bold text-stone-900 text-base group-hover:text-accent-600 transition-colors leading-tight">{t.title}</h4>
+                      <p className="text-xs text-stone-500 font-medium">
+                        {t.category} • {new Date(t.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 md:mt-0 flex items-center gap-4">
-                    <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border ${t.status === 'resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                        t.status === 'in-progress' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                          'bg-blue-50 text-blue-700 border-blue-100'
+                  <div className="mt-4 md:mt-0 flex items-center gap-3">
+                    <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${t.status === 'resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                      t.status === 'in-progress' ? 'bg-sky-50 text-sky-700 border-sky-100' :
+                        'bg-stone-50 text-stone-700 border-stone-200'
                       }`}>
                       {t.status}
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                      <ChevronRight className="w-5 h-5" />
-                    </div>
+                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-900 transition-colors" />
                   </div>
-                </motion.div>
+                </div>
               ))
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
     </UserLayoutClient>
   );

@@ -4,7 +4,7 @@ import axiosInstance from "@/utils/axiosInstance";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogIn, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
+import { LogIn, Mail, Lock, Loader2, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,11 +34,6 @@ export default function LoginPage() {
       });
 
       const { token, user } = res.data;
-
-      if (!token || !user) {
-        throw new Error("Invalid response from server");
-      }
-
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -54,79 +49,60 @@ export default function LoginPage() {
 
     } catch (err) {
       console.error("Login error:", err);
-      const errorMsg = err?.response?.data?.message || "Invalid credentials";
-      setMessage("⚠️ " + errorMsg);
+      setMessage("⚠️ " + (err?.response?.data?.message || "Invalid credentials"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-6 font-sans">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-sm"
       >
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-          <div className="bg-slate-900 p-10 text-center text-white relative">
-            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-              <div className="absolute bottom-[-50%] right-[-20%] w-[120%] h-[120%] rounded-full bg-accent-500 blur-3xl"></div>
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+          <div className="p-8 text-center border-b border-stone-100">
+            <div className="w-12 h-12 bg-stone-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-stone-100">
+              <ShieldCheck className="w-6 h-6 text-accent-600" />
             </div>
-
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="inline-flex items-center justify-center p-4 bg-white/10 rounded-2xl mb-6 backdrop-blur-sm"
-            >
-              <LogIn className="w-8 h-8 text-accent-400" />
-            </motion.div>
-
-            <h1 className="text-4xl font-black mb-2 tracking-tight">Welcome Back</h1>
-            <p className="text-slate-400 font-medium tracking-wide italic">Elite Support Gateway</p>
+            <h1 className="text-2xl font-bold text-stone-900 tracking-tight">Sign In</h1>
+            <p className="text-stone-500 text-sm font-medium mt-1">Access your support terminal</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            <div className="space-y-4">
-              <div className="relative group">
-                <Mail className="absolute left-3 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-accent-600 transition-colors" />
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="name@company.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-accent-600 focus:border-transparent outline-none transition-all text-slate-700 placeholder:text-slate-400"
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="relative group">
-                <Lock className="absolute left-3 top-3.5 w-5 h-5 text-slate-400 group-focus-within:text-accent-600 transition-colors" />
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-accent-600 focus:border-transparent outline-none transition-all text-slate-700 placeholder:text-slate-400"
-                  required
-                  disabled={loading}
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="p-8 space-y-4">
+            <div className="space-y-3">
+              <input
+                name="email"
+                type="email"
+                placeholder="name@company.com"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:bg-white focus:border-accent-600 outline-none transition-all text-sm font-medium text-stone-900 placeholder:text-stone-400"
+                required
+                disabled={loading}
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:bg-white focus:border-accent-600 outline-none transition-all text-sm font-medium text-stone-900 placeholder:text-stone-400"
+                required
+                disabled={loading}
+              />
             </div>
 
             <AnimatePresence>
               {message && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`p-4 rounded-2xl text-sm font-semibold border ${message.includes('✅')
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                      : 'bg-rose-50 text-rose-700 border-rose-100 shadow-sm'
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`p-3 rounded-lg text-xs font-bold border ${message.includes('✅')
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    : 'bg-rose-50 text-rose-700 border-rose-100 shadow-sm'
                     }`}
                 >
                   {message}
@@ -137,32 +113,28 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-500/10 active:scale-[0.98] disabled:opacity-70"
+              className="w-full bg-stone-900 text-white py-3 rounded-lg font-bold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  Sign In
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1.5 transition-transform" />
+                  Authenticate
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="bg-slate-50/50 p-8 text-center border-t border-slate-100">
-            <p className="text-slate-500 font-medium">
+          <div className="p-8 text-center border-t border-stone-100 bg-stone-50">
+            <p className="text-xs font-medium text-stone-500">
               New to SupportDesk?{" "}
-              <Link href="/signup" className="text-accent-600 hover:text-accent-700 font-bold ml-1 transition-colors underline underline-offset-4">
-                Register account
+              <Link href="/signup" className="text-accent-600 hover:text-accent-700 font-bold ml-1 transition-colors">
+                Register here
               </Link>
             </p>
           </div>
         </div>
-
-        <p className="mt-8 text-center text-slate-400 text-xs font-semibold uppercase tracking-widest">
-          Powered by Advanced Agentic Intelligence
-        </p>
       </motion.div>
     </div>
   );

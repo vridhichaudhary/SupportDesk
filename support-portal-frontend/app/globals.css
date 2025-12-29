@@ -6,21 +6,17 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-stone-50 text-stone-900;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-.glass {
-  @apply bg-white/70 backdrop-blur-md border border-white/20;
+.clean-card {
+  @apply bg-white border border-stone-200 shadow-sm rounded-xl;
 }
 
-.glass-dark {
-  @apply bg-slate-900/70 backdrop-blur-md border border-slate-700/30;
-}
-
-.gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-600 to-indigo-500;
+.sky-text {
+  @apply text-accent-600;
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
-import { Menu, Bell, Search, ShieldCheck, Settings, Globe, Command, LogOut } from "lucide-react";
+import { Menu, Bell, Search, ShieldCheck, LogOut, Command } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -16,9 +16,9 @@ export default function AdminLayoutClient({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans">
+    <div className="min-h-screen bg-stone-50 flex font-sans selection:bg-accent-100 selection:text-accent-900">
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:block shrink-0">
+      <div className="hidden lg:block shrink-0 h-screen sticky top-0">
         <AdminSidebar />
       </div>
 
@@ -31,14 +31,14 @@ export default function AdminLayoutClient({ children }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-stone-900/20 backdrop-blur-[2px] z-40 lg:hidden"
             />
             <motion.div
-              initial={{ x: -300 }}
+              initial={{ x: -260 }}
               animate={{ x: 0 }}
-              exit={{ x: -300 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-72 bg-white z-50 lg:hidden shadow-2xl"
+              exit={{ x: -260 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="fixed inset-y-0 left-0 w-64 bg-white z-50 lg:hidden shadow-sm"
             >
               <AdminSidebar onNavigate={() => setIsSidebarOpen(false)} />
             </motion.div>
@@ -49,58 +49,55 @@ export default function AdminLayoutClient({ children }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 sticky top-0 z-30">
-          <div className="flex items-center gap-6">
+        <header className="h-16 bg-white border-b border-stone-200 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors"
+              className="lg:hidden p-2 hover:bg-stone-50 rounded-lg transition-colors border border-stone-100"
             >
-              <Menu className="w-6 h-6 text-slate-600" />
+              <Menu className="w-5 h-5 text-stone-600" />
             </button>
-            <div className="hidden md:flex items-center gap-3">
-              <div className="p-2 bg-indigo-50 rounded-lg">
-                <Command className="w-4 h-4 text-indigo-600" />
+            <div className="hidden md:flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-stone-50 rounded-lg flex items-center justify-center border border-stone-200">
+                <Command className="w-3.5 h-3.5 text-stone-900" />
               </div>
-              <div className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-[0.2em]">
-                <span>Control</span>
-                <span className="text-slate-300">/</span>
-                <span className="text-indigo-600">Operations</span>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-stone-400">
+                <span className="tracking-widest uppercase">Platform</span>
+                <span className="text-stone-200">/</span>
+                <span className="text-accent-600 uppercase tracking-widest">Control</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
-            <div className="hidden xl:flex items-center gap-3 px-5 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-600 focus-within:bg-white transition-all w-80">
-              <Search className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-600" />
+          <div className="flex items-center gap-6">
+            <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg group focus-within:ring-1 focus-within:ring-accent-600 focus-within:bg-white transition-all w-64">
+              <Search className="w-3.5 h-3.5 text-stone-400 group-focus-within:text-accent-600" />
               <input
                 type="text"
-                placeholder="System Command..."
-                className="bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder:text-slate-300 w-full"
+                placeholder="Executive Command..."
+                className="bg-transparent border-none outline-none text-[13px] font-medium text-stone-700 placeholder:text-stone-300 w-full"
               />
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all group">
-                <Globe className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-              </button>
-              <button className="relative p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all group">
-                <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-indigo-600 rounded-full border-2 border-white"></span>
+            <div className="flex items-center gap-1">
+              <button className="relative p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-50 rounded-lg transition-all group">
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-2.2 right-2.2 w-1.5 h-1.5 bg-accent-600 rounded-full border border-white"></span>
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all group"
-                title="Terminate Session"
+                className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all group"
+                title="Log Out"
               >
-                <LogOut className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             </div>
 
-            <div className="h-8 w-[1px] bg-slate-100"></div>
+            <div className="h-6 w-[1px] bg-stone-200"></div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <div className="text-xs font-black text-slate-900 tracking-tight leading-none mb-1 uppercase">
+                <div className="text-[13px] font-bold text-stone-900 tracking-tight leading-none mb-0.5 uppercase">
                   {typeof window !== "undefined" && (() => {
                     try {
                       const u = localStorage.getItem("user");
@@ -108,23 +105,23 @@ export default function AdminLayoutClient({ children }) {
                     } catch { return "Operator"; }
                   })()}
                 </div>
-                <div className="flex items-center justify-end gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">Status: Active</span>
+                <div className="flex items-center justify-end gap-1">
+                  <div className="w-1 h-1 rounded-full bg-emerald-500"></div>
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none">System Root</span>
                 </div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center border border-slate-800 shadow-lg shadow-black/5 overflow-hidden">
-                <ShieldCheck className="w-6 h-6 text-indigo-400" />
+              <div className="w-9 h-9 rounded-lg bg-stone-900 flex items-center justify-center border border-stone-800 shadow-sm overflow-hidden">
+                <ShieldCheck className="w-5 h-5 text-accent-400" />
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden p-8">
+        <main className="flex-1 overflow-x-hidden p-6 lg:p-10">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4 }}
           >
             {children}
           </motion.div>
