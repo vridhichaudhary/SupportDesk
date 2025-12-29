@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import UserSidebar from "@/components/UserSidebar";
-import { Menu, Bell, User as UserIcon, Search, Settings, ShieldCheck } from "lucide-react";
+import { Menu, User as UserIcon, Search, Settings, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function UserLayoutClient({ children }) {
@@ -69,12 +69,6 @@ export default function UserLayoutClient({ children }) {
               />
             </div>
 
-            <div className="flex items-center gap-1">
-              <button className="relative p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-50 rounded-lg transition-all">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-accent-600 rounded-full border border-white"></span>
-              </button>
-            </div>
 
             <div className="h-6 w-[1px] bg-stone-200 mx-1"></div>
 

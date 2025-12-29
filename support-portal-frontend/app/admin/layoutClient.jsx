@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import AdminSidebar from "../../components/AdminSidebar";
-import { Menu, Bell, Search, ShieldCheck, LogOut, Command } from "lucide-react";
+import { Menu, Search, ShieldCheck, LogOut, Command } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -80,10 +80,6 @@ export default function AdminLayoutClient({ children }) {
             </div>
 
             <div className="flex items-center gap-1">
-              <button className="relative p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-50 rounded-lg transition-all group">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-2.2 right-2.2 w-1.5 h-1.5 bg-accent-600 rounded-full border border-white"></span>
-              </button>
               <button
                 onClick={handleLogout}
                 className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all group"
@@ -130,4 +126,3 @@ export default function AdminLayoutClient({ children }) {
     </div>
   );
 }
-
