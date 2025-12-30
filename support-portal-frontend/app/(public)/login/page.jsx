@@ -48,8 +48,8 @@ export default function LoginPage() {
       }, 800);
 
     } catch (err) {
-      console.error("Login error:", err);
-      setMessage("⚠️ " + (err?.response?.data?.message || "Invalid credentials"));
+      console.error("Login error:", err.response?.data?.message || err.message || "Failed to sign in.", err);
+      setMessage("⚠️ " + (err.response?.data?.message || "Failed to sign in."));
     } finally {
       setLoading(false);
     }

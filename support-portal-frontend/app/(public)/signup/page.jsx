@@ -53,7 +53,7 @@ export default function SignupPage() {
         setTimeout(() => router.push("/login"), 1200);
       }
     } catch (err) {
-      console.error("Signup error:", err);
+      console.error("Signup error:", err.response?.data?.message || err.message || "Failed to create account.", err);
       setMessage("⚠️ " + (err.response?.data?.message || "Failed to create account."));
     } finally {
       setIsLoading(false);

@@ -19,19 +19,36 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const allowedOrigins = [
-    "http://localhost:3000",
-    process.env.FRONTEND_URL,
-];
+// const allowedOrigins = [
+//     "http://localhost:3000",
+//     process.env.FRONTEND_URL,
+// ];
+
+// app.use(cors({
+//     origin: allowedOrigins,
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization"]
+// }));
 
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "https://support-desk-teal-nine.vercel.app",
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
 
-app.options("*", cors());
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(bodyParser.json());
 app.use(express.json());
@@ -40,7 +57,7 @@ createAdminAccount();
 seedAgents();
 
 app.get("/", (req, res) => {
-    res.json({ message: "Support Portal API Running" });
+  res.json({ message: "Support Portal API Running" });
 });
 
 app.use("/user", signupRoute);
@@ -54,5 +71,5 @@ app.use("/admin", adminRoutes);
 app.use("/admin/agents", adminAgentsRoute);
 
 app.listen(PORT, () => {
-    console.log(`Backend running at http://localhost:${PORT}`);
+  console.log(`Backend running at http://localhost:${PORT}`);
 });
