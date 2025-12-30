@@ -131,6 +131,7 @@ export default function AdminAllTickets() {
         isOpen={isDetailModalOpen}
         ticket={selectedTicket}
         onClose={() => setIsDetailModalOpen(false)}
+        onRefresh={fetchTickets}
       />
     </div>
   );

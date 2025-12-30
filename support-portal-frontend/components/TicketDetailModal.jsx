@@ -1,8 +1,9 @@
 "use client";
 import { X, Calendar, User as UserIcon, Tag, AlertCircle, Clock, CheckCircle2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReassignDropdown from "./admin/ReassignDropdown";
 
-export default function TicketDetailModal({ ticket, isOpen, onClose }) {
+export default function TicketDetailModal({ ticket, isOpen, onClose, onRefresh }) {
     if (!ticket) return null;
 
     const isResolved = ticket.status === "resolved";
@@ -99,18 +100,22 @@ export default function TicketDetailModal({ ticket, isOpen, onClose }) {
                                     </p>
                                 </div>
 
-                                <div className="pt-6 border-t border-stone-100">
-                                    {ticket.assignedTo && (
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center">
-                                                <Shield className="w-5 h-5 text-white" />
+                                <div className="pt-6 border-t border-stone-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center">
+                                            <Shield className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                                {ticket.assignedTo ? "Assigned Agent" : "Assignment Status"}
                                             </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Assigned Agent</div>
-                                                <div className="text-sm font-bold text-stone-900">{ticket.assignedTo.name}</div>
+                                            <div className="text-sm font-bold text-stone-900">
+                                                {ticket.assignedTo?.name || "Unassigned"}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+
+                                    <ReassignDropdown ticket={ticket} onAssigned={onRefresh} />
                                 </div>
                             </div>
                         </div>
