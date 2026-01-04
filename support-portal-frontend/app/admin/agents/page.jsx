@@ -4,31 +4,31 @@ import { motion } from "framer-motion";
 
 const agents = [
   {
-    name: "John Doe",
+    name: "Rahul Sharma",
     role: "Senior Support Agent",
     tickets: 0,
     status: "online",
     experience: "5 years",
     rating: "4.9",
-    avatar: "JD"
+    avatar: "RS"
   },
   {
-    name: "Jane Smith",
+    name: "Alice Brown",
     role: "Support Agent",
     tickets: 3,
     status: "busy",
     experience: "2 years",
     rating: "4.7",
-    avatar: "JS"
+    avatar: "AB"
   },
   {
-    name: "Mike Johnson",
+    name: "Atlas Johnson",
     role: "Technical Specialist",
     tickets: 1,
     status: "online",
     experience: "4 years",
     rating: "4.8",
-    avatar: "MJ"
+    avatar: "AJ"
   },
   {
     name: "Sarah Wilson",
