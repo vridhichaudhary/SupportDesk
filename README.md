@@ -1,131 +1,184 @@
-🎫 Support Desk – Role-Based Ticketing System
+# 🎫 SupportDesk – Role-Based Support Ticketing System
 
-A full-stack role-based support ticketing system designed to replace inefficient email-based support workflows.
-The platform enables users to raise and track support tickets while allowing admins to manage, respond, and resolve issues through a structured dashboard.
+## Project Title
+**SupportDesk – Role-Based Support Ticketing System**
 
-This project focuses on real-world system design, authentication, authorization, and clean API-driven architecture.
+---
 
-🚀 Features
-👤 User Features
+## Problem Statement
 
-Secure authentication using JWT
+Traditional support systems often rely on scattered email threads, making it difficult to track issues, assign responsibility, and manage resolution timelines. Users lack visibility into ticket progress, while administrators struggle with prioritization and accountability.
 
-Create support tickets with structured metadata
+**SupportDesk** solves this problem by providing a centralized, role-based ticket management platform where users can raise issues, track their status, and receive updates, while admins can manage, respond to, and resolve tickets through a structured workflow.
 
-View and track ticket status (Open, In Progress, Resolved)
+---
 
-Access ticket history in a centralized dashboard
+## System Architecture
 
-🛠️ Admin Features
+### Architecture Flow
+**Frontend (Next.js)** → **Backend (Node.js + Express APIs)** → **Database (MongoDB)**
 
-Role-based access control (Admin vs User)
+---
 
-View all user-generated tickets
+## Frontend
 
-Update ticket status and manage lifecycle
+- Next.js  
+- React.js  
+- Tailwind CSS  
+- Axios for API requests  
 
-Respond to tickets via admin interface
+---
 
-🔐 Security & Access Control
+## Backend
 
-JWT-based authentication
+- Node.js  
+- Express.js  
+- JWT authentication  
+- Role-based authorization middleware  
 
-Role-based authorization middleware
+---
 
-Protected routes for admin-only actions
+## Database
 
-🧠 System Design Highlights
+- MongoDB  
+- Mongoose ODM  
 
-Separation of concerns between frontend, backend, and database layers
+---
 
-RESTful API architecture for scalability and maintainability
+## Hosting
 
-Role-based access control (RBAC) implemented at API level
+- Frontend: Vercel  
+- Backend: Render / Railway  
+- Database: MongoDB Atlas  
 
-Designed to support future extensibility (SLA tracking, priority levels, notifications)
+---
 
-🧰 Tech Stack
-Frontend
+## Key Features
 
-Next.js
+### 🔐 Authentication & Authorization
+- Secure login and signup using **JWT**
+- Role-based access control (User / Admin)
+- Protected routes using middleware
 
-React.js
+### 🎫 Ticket Management
+- Users can create support tickets
+- Tickets include structured metadata (title, description, status)
+- Ticket lifecycle management:  
+  **Open → In Progress → Resolved**
 
-Tailwind CSS
+### 🛠️ Admin Dashboard
+- View all user-submitted tickets
+- Update ticket status
+- Manage ticket resolution flow
 
-Axios for API communication
+### 👤 User Dashboard
+- View personal ticket history
+- Track real-time ticket status updates
 
-Backend
+### 🧱 Scalable Architecture
+- Clean separation between frontend, backend, and database
+- RESTful API design
+- Easily extendable for future features (SLA, priority, notifications)
 
-Node.js
+---
 
-Express.js
+## Tech Stack
 
-JWT Authentication
+### Frontend
+- Next.js  
+- React.js  
+- Tailwind CSS  
 
-RESTful APIs
+### Backend
+- Node.js  
+- Express.js  
+- JWT Authentication  
 
-Database
+### Database
+- MongoDB  
+- Mongoose  
 
-MongoDB
+### Tools
+- Git & GitHub  
+- Postman  
+- Figma  
 
-Mongoose ODM
+---
 
-Tools & Platforms
+## API Overview
 
-Git & GitHub
+All API routes are mounted under `/api`.  
+Protected routes require a valid JWT.
 
-Postman (API testing)
+---
 
-Figma (UI planning)
+### Authentication
 
-🔄 Ticket Lifecycle
+| Endpoint | Method | Description | Access |
+|--------|--------|------------|--------|
+| `/api/auth/register` | POST | Register a new user | Public |
+| `/api/auth/login` | POST | Authenticate user | Public |
 
-User creates ticket
+---
 
-Ticket stored with status Open
+### Tickets (User)
 
-Admin reviews ticket
+| Endpoint | Method | Description | Access |
+|--------|--------|------------|--------|
+| `/api/tickets` | POST | Create a new ticket | User |
+| `/api/tickets/my` | GET | Get user's tickets | User |
 
-Admin updates status:
+---
 
-In Progress
+### Tickets (Admin)
 
-Resolved
+| Endpoint | Method | Description | Access |
+|--------|--------|------------|--------|
+| `/api/tickets` | GET | Get all tickets | Admin |
+| `/api/tickets/:id` | PATCH | Update ticket status | Admin |
 
-User can track updates in real time via dashboard
+---
 
-🧪 API Overview
-Auth
+## Ticket Lifecycle
 
-POST /auth/register
+1. User creates a ticket  
+2. Ticket status set to **Open**  
+3. Admin reviews and marks **In Progress**  
+4. Ticket resolved and marked **Resolved**  
+5. User can track status throughout the lifecycle  
 
-POST /auth/login
+---
 
-User
 
-POST /tickets – Create ticket
+---
 
-GET /tickets/my – View user tickets
+## How to Run Locally
 
-Admin
+### Prerequisites
+- Node.js v18+
+- MongoDB Atlas / Local MongoDB
 
-GET /tickets – View all tickets
+---
 
-PATCH /tickets/:id – Update ticket status
+### Installation
 
-(All protected via JWT + role middleware)
+```bash
+git clone https://github.com/your-username/supportdesk.git
+cd supportdesk
+npm install
 
-🧩 Why This Project Matters
 
-Unlike toy CRUD apps, Support Desk simulates a real production system:
+Environment Variables
 
-Multi-role users
+Create a .env file in the root directory:
 
-Secure access control
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+PORT=5000
 
-State-driven workflows
+Run Development Server
+npm run dev
 
-Scalable backend structure
 
-This makes it directly relevant to backend, full-stack, and product-focused engineering roles.
+Open:
+http://localhost:3000
