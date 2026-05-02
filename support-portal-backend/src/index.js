@@ -32,19 +32,11 @@ const PORT = process.env.PORT || 8080;
 // }));
 
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "https://support-desk-teal-nine.vercel.app",
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
-    }
-  },
+  origin: [
+    "http://localhost:3000",
+    "https://support-desk-teal-nine.vercel.app",
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
