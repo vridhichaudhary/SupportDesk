@@ -2,6 +2,7 @@
 import { X, Calendar, User as UserIcon, Tag, AlertCircle, Clock, CheckCircle2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReassignDropdown from "./admin/ReassignDropdown";
+import UpdateStatusDropdown from "./admin/UpdateStatusDropdown";
 
 export default function TicketDetailModal({ ticket, isOpen, onClose, onRefresh }) {
     if (!ticket) return null;
@@ -115,7 +116,10 @@ export default function TicketDetailModal({ ticket, isOpen, onClose, onRefresh }
                                         </div>
                                     </div>
 
-                                    <ReassignDropdown ticket={ticket} onAssigned={onRefresh} />
+                                    <div className="flex items-center gap-3">
+                                        <UpdateStatusDropdown ticket={ticket} onUpdated={onRefresh} />
+                                        <ReassignDropdown ticket={ticket} onAssigned={onRefresh} />
+                                    </div>
                                 </div>
                             </div>
                         </div>

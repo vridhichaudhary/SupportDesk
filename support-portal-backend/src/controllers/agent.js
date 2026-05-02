@@ -23,11 +23,15 @@ async function listAgents(req, res) {
 async function assignTicket(req, res) {
   try {
     const ticketId = req.params.id;
-    const { assignedTo } = req.body;
+    const { assignedTo, status } = req.body;
+
+    const updateData = {};
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
+    if (status !== undefined) updateData.status = status;
 
     const ticket = await Ticket.findByIdAndUpdate(
       ticketId,
-      { assignedTo },
+      updateData,
       { new: true }
     ).populate("assignedTo", "name");
 

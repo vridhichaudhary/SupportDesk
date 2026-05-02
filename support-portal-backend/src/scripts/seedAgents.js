@@ -2,9 +2,9 @@ const Agent = require("../models/Agent");
 
 async function seedAgents() {
   const agents = [
-    { name: "John Doe", role: "Senior Support Agent" },
-    { name: "Jane Smith", role: "Support Agent" },
-    { name: "Mike Johnson", role: "Technical Specialist" },
+    { name: "Rahul Sharma", role: "Senior Support Agent" },
+    { name: "Alice Brown", role: "Support Agent" },
+    { name: "Atlas Johnson", role: "Technical Specialist" },
     { name: "Sarah Wilson", role: "Support Agent" }
   ];
 
