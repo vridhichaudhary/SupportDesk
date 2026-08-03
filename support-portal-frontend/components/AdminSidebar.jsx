@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AdminSidebar({ onNavigate }) {
@@ -10,6 +10,8 @@ export default function AdminSidebar({ onNavigate }) {
   const navLinks = [
     { href: "/admin/dashboard", label: "Platform Overview", icon: LayoutDashboard },
     { href: "/admin/tickets", label: "Global Tickets", icon: Ticket },
+    { href: "/admin/departments", label: "Departments", icon: Building2 },
+    { href: "/admin/teams", label: "Teams", icon: Network },
     { href: "/admin/agents", label: "Agent Directory", icon: Users },
   ];
 

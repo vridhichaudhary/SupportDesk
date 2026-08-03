@@ -11,43 +11,34 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!baseURL && typeof window !== "undefined") {
-  console.warn("⚠️ NEXT_PUBLIC_API_BASE_URL is not defined. API requests will fail.");
-}
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8001/api/v1";
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-
 axiosInstance.interceptors.request.use((config) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
-
 axiosInstance.interceptors.response.use(
   (res) => res,
-
   async (err) => {
     const originalRequest = err.config;
-    const message = err.response?.data?.message;
     const status = err.response?.status;
+    const code = err.response?.data?.error?.code;
 
-
-    if (message === "jwt expired") {
+    if (status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        return new Promise(function (resolve, reject) {
+        return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
           originalRequest.headers.Authorization = "Bearer " + token;
@@ -55,61 +46,48 @@ axiosInstance.interceptors.response.use(
         });
       }
 
+      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const oldToken = localStorage.getItem("token");
-
+        const refreshToken = localStorage.getItem("refresh_token");
         const refreshRes = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh-token`,
-          { token: oldToken }
+          `${baseURL}/auth/refresh`,
+          { refresh_token: refreshToken },
+          { withCredentials: true }
         );
 
-        const newToken = refreshRes.data.newToken;
+        const tokenData = refreshRes.data?.data;
+        const newToken = tokenData?.access_token;
+        const newRefreshToken = tokenData?.refresh_token;
 
-        localStorage.setItem("token", newToken);
+        if (newToken) {
+          localStorage.setItem("token", newToken);
+          if (newRefreshToken) localStorage.setItem("refresh_token", newRefreshToken);
 
-        axiosInstance.defaults.headers.Authorization = "Bearer " + newToken;
+          axiosInstance.defaults.headers.Authorization = "Bearer " + newToken;
+          processQueue(null, newToken);
 
-        processQueue(null, newToken);
-
-        originalRequest.headers.Authorization = "Bearer " + newToken;
-        return axiosInstance(originalRequest);
+          originalRequest.headers.Authorization = "Bearer " + newToken;
+          return axiosInstance(originalRequest);
+        }
       } catch (e) {
         processQueue(e, null);
-
         localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
 
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
-
         return Promise.reject(e);
       } finally {
         isRefreshing = false;
       }
     }
 
-
-    if (status === 401 || status === 403) {
-      if (message === "jwt expired" || isRefreshing) {
-        return Promise.reject(err);
-      }
-
-      try {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      } catch { }
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
-    }
-
     return Promise.reject(err);
   }
 );
-
 
 export default axiosInstance;
