@@ -5,6 +5,7 @@ import httpx
 import structlog
 
 from src.core.exceptions import ValidationException
+from src.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -32,7 +33,7 @@ class GoogleOAuthProvider:
         self.client_id = os.getenv("GOOGLE_CLIENT_ID", "mock-google-client-id")
         self.client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "mock-google-client-secret")
         self.redirect_uri = os.getenv(
-            "GOOGLE_REDIRECT_URI", "http://localhost:3000/auth/callback/google"
+            "GOOGLE_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/google"
         )
 
     def get_authorization_url(self, state: str) -> str:
@@ -95,7 +96,7 @@ class GitHubOAuthProvider:
         self.client_id = os.getenv("GITHUB_CLIENT_ID", "mock-github-client-id")
         self.client_secret = os.getenv("GITHUB_CLIENT_SECRET", "mock-github-client-secret")
         self.redirect_uri = os.getenv(
-            "GITHUB_REDIRECT_URI", "http://localhost:3000/auth/callback/github"
+            "GITHUB_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/github"
         )
 
     def get_authorization_url(self, state: str) -> str:

@@ -34,4 +34,13 @@ def health_check(db: Session = Depends(get_db), redis_client: redis.Redis = Depe
 
     status = "healthy" if db_status == "ok" and redis_status == "ok" else "unhealthy"
 
-    return SuccessResponse(data=HealthStatus(status=status, database=db_status, redis=redis_status))
+    health_data = HealthStatus(status=status, database=db_status, redis=redis_status)
+
+    if status == "unhealthy":
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503, 
+            detail=health_data.model_dump()
+        )
+
+    return SuccessResponse(data=health_data)
