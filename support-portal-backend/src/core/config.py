@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = Field(default="http://localhost:3000")
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"])
+    BACKEND_CORS_ORIGINS: str | List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"])
 
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgrespassword@localhost:5433/supportdesk"
