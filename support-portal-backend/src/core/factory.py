@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.v1 import agents, auth, departments, health, organizations, rbac, teams, users
+from src.api import health as root_health
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
 from src.core.logging import setup_logging
@@ -113,7 +114,11 @@ def create_app() -> FastAPI:
     os.makedirs("static/uploads/avatars", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    # Routers
+    # Root-level health probes (no /api/v1 prefix)
+    # Used by: Render health check, Kubernetes probes, Docker, uptime monitors
+    app.include_router(root_health.router)
+
+    # Versioned API routers
     app.include_router(health.router, prefix=settings.API_V1_STR)
     app.include_router(organizations.router, prefix=settings.API_V1_STR)
     app.include_router(auth.router, prefix=settings.API_V1_STR)
