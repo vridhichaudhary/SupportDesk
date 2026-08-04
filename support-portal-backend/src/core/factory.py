@@ -9,7 +9,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.api.v1 import agents, auth, departments, health, organizations, rbac, teams, users
+from src.api.v1 import agents, auth, customers, departments, health, organizations, rbac, teams, tickets, users
 from src.api import health as root_health
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
@@ -126,6 +126,8 @@ def create_app() -> FastAPI:
     app.include_router(rbac.router, prefix=settings.API_V1_STR)
     app.include_router(departments.router, prefix=settings.API_V1_STR)
     app.include_router(teams.router, prefix=settings.API_V1_STR)
+    app.include_router(customers.router, prefix=settings.API_V1_STR)
+    app.include_router(tickets.router, prefix=settings.API_V1_STR)
     app.include_router(agents.router, prefix=settings.API_V1_STR)
 
     return app

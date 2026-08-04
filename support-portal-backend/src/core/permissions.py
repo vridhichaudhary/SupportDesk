@@ -140,6 +140,18 @@ PERMISSION_REGISTRY: List[PermissionDefinition] = [
     ),
     # ── Tickets ───────────────────────────────────────────────────────────
     PermissionDefinition(
+        codename="view_tickets",
+        display_name="View Tickets",
+        module="Tickets",
+        description="View support tickets and search",
+    ),
+    PermissionDefinition(
+        codename="bulk_edit_tickets",
+        display_name="Bulk Edit Tickets",
+        module="Tickets",
+        description="Perform bulk assignment and bulk updates",
+    ),
+    PermissionDefinition(
         codename="assign_tickets",
         display_name="Assign Tickets",
         module="Tickets",
@@ -282,6 +294,8 @@ _ADMIN_PERMISSIONS: Set[str] = {
     "invite_users",
     "manage_teams",
     "view_teams",
+    "view_tickets",
+    "bulk_edit_tickets",
     "assign_tickets",
     "create_tickets",
     "reply_tickets",
@@ -310,6 +324,7 @@ _ADMIN_PERMISSIONS: Set[str] = {
 _AGENT_PERMISSIONS: Set[str] = {
     "view_organization",
     "view_teams",
+    "view_tickets",
     "create_tickets",
     "reply_tickets",
     "view_customers",

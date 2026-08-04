@@ -9,10 +9,10 @@ from src.models import (
     Customer,
     KBArticle,
     Organization,
-    SenderType,
     Team,
     Ticket,
-    TicketMessage,
+    TicketThread,
+    ThreadType,
     TicketStatus,
     User,
 )
@@ -143,13 +143,13 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         resolved_tickets = _count(Ticket, [Ticket.status == TicketStatus.RESOLVED])
         knowledge_articles = _count(KBArticle)
 
-        # AI usage = tickets that received at least one AI-generated message
+        # AI usage = tickets that received at least one SYSTEM_EVENT thread
         ai_usage_query = (
-            select(func.count(func.distinct(TicketMessage.ticket_id)))
-            .join(Ticket, Ticket.id == TicketMessage.ticket_id)
+            select(func.count(func.distinct(TicketThread.ticket_id)))
+            .join(Ticket, Ticket.id == TicketThread.ticket_id)
             .where(
                 Ticket.organization_id == organization_id,
-                TicketMessage.sender_type == SenderType.AI,
+                TicketThread.thread_type == ThreadType.SYSTEM_EVENT,
             )
         )
         ai_usage = db.execute(ai_usage_query).scalar() or 0
