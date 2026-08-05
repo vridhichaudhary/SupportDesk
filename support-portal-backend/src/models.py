@@ -18,6 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship, backref
+from pgvector.sqlalchemy import Vector
 
 from src.core.database import Base
 
@@ -110,6 +111,19 @@ class DocumentStatus(enum.Enum):
 class AuthTokenType(enum.Enum):
     EMAIL_VERIFICATION = "EMAIL_VERIFICATION"
     PASSWORD_RESET = "PASSWORD_RESET"
+
+
+class CustomFieldType(enum.Enum):
+    TEXT = "TEXT"
+    NUMBER = "NUMBER"
+    DROPDOWN = "DROPDOWN"
+    CHECKBOX = "CHECKBOX"
+    DATE = "DATE"
+
+
+class KnowledgeSourceType(enum.Enum):
+    DOCUMENT = "DOCUMENT"
+    KB_ARTICLE = "KB_ARTICLE"
 
 
 class ActionType(enum.Enum):
@@ -1114,3 +1128,100 @@ class UserRoleAssignment(Base):
         Index("ix_role_assignment_user", "user_id"),
         Index("ix_role_assignment_org", "organization_id"),
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Copilot & Knowledge Index Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class KnowledgeVector(Base):
+    """
+    Unified searchable index for all Enterprise Knowledge (documents, KB articles, FAQs).
+    """
+
+    __tablename__ = "knowledge_vectors"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    
+    # We use 768 dimensions for Gemini Embeddings
+    embedding = Column(Vector(768), nullable=False)
+    
+    source_type = Column(Enum(KnowledgeSourceType), nullable=False)
+    
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=True)
+    chunk_id = Column(UUID(as_uuid=True), ForeignKey("document_chunks.id", ondelete="CASCADE"), nullable=True)
+    knowledge_article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=True)
+    
+    title = Column(String(512), nullable=True)
+    content = Column(Text, nullable=False)
+    metadata_json = Column(JSONType, default=dict, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization")
+    document = relationship("Document")
+    chunk = relationship("DocumentChunk")
+    knowledge_article = relationship("KBArticle")
+
+    __table_args__ = (
+        Index("ix_knowledge_vector_org", "organization_id"),
+    )
+
+
+class AIChatSession(Base):
+    """
+    Conversational memory session for a user interacting with the AI Copilot.
+    """
+
+    __tablename__ = "ai_chat_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    organization = relationship("Organization")
+    user = relationship("User")
+    messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_ai_chat_session_org_user", "organization_id", "user_id"),
+    )
+
+
+class AIChatMessage(Base):
+    """
+    A single message in an AI conversation.
+    """
+
+    __tablename__ = "ai_chat_messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = Column(
+        UUID(as_uuid=True), ForeignKey("ai_chat_sessions.id", ondelete="CASCADE"), nullable=False
+    )
+    # e.g., 'user' or 'model'
+    role = Column(String(50), nullable=False)
+    content = Column(Text, nullable=False)
+    
+    # Storing citations as JSON (URLs, titles, snippet context)
+    citations_json = Column(JSONType, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("AIChatSession", back_populates="messages")
+
+    __table_args__ = (
+        Index("ix_ai_chat_message_session", "session_id"),
+    )
+

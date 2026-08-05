@@ -5,9 +5,10 @@ from pathlib import Path
 
 from src.core.celery_app import celery_app
 from src.core.database import SessionLocal
-from src.models import Document, DocumentChunk, DocumentStatus
+from src.models import Document, DocumentChunk, DocumentStatus, KnowledgeVector, KnowledgeSourceType
 from src.services.document_parser import document_parser
 from src.services.document_chunker import document_chunker
+from src.services.embeddings import embedding_service
 
 logger = structlog.get_logger()
 
@@ -58,7 +59,7 @@ def process_document_task(self, document_id_str: str):
         # 2. Chunk text
         chunks_data = document_chunker.chunk(extracted_text, document_id_str)
 
-        # 3. Save chunks
+        # 3. Save chunks and generate embeddings
         for c in chunks_data:
             chunk = DocumentChunk(
                 document_id=document_id,
@@ -70,6 +71,25 @@ def process_document_task(self, document_id_str: str):
                 content_hash=c["content_hash"]
             )
             db.add(chunk)
+            db.flush() # flush to get chunk.id
+            
+            # Generate embedding
+            embedding = embedding_service.get_embedding(c["content"], task_type="retrieval_document")
+            if embedding:
+                vector_entry = KnowledgeVector(
+                    organization_id=doc.organization_id,
+                    embedding=embedding,
+                    source_type=KnowledgeSourceType.DOCUMENT,
+                    document_id=document_id,
+                    chunk_id=chunk.id,
+                    title=f"{doc.title} - Part {c['chunk_index'] + 1}",
+                    content=c["content"],
+                    metadata_json={
+                        "page_number": c["page_number"],
+                        "original_filename": doc.original_filename
+                    }
+                )
+                db.add(vector_entry)
 
         # Update document completion
         end_time = time.time()

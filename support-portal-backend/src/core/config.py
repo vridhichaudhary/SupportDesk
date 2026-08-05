@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(default="supportdesk-super-secret-jwt-key-2026", min_length=32)
     FRONTEND_URL: str = Field(default="http://localhost:3000")
 
+    # AI Config
+    GEMINI_API_KEY: Optional[str] = None
+
     # CORS
     BACKEND_CORS_ORIGINS: str | List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"])
 
