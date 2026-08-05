@@ -80,7 +80,8 @@ export default function UploadDocumentModal({ isOpen, onClose, onUploadSuccess }
       setFile(null);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || "Upload failed. Please try again.");
+      const errMsg = err.response?.data?.detail || err.response?.data?.error?.message || err.message || "Upload failed. Please try again.";
+      setError(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
     } finally {
       setIsUploading(false);
     }

@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import Link from "next/link";
+import ErrorCard from "@/components/ErrorCard";
 import {
   Search,
   Filter,
@@ -147,7 +148,7 @@ export default function AdminTicketsPage() {
       setItems(data.items ?? []);
       setTotal(data.total ?? 0);
     } catch (err) {
-      setError("Failed to load tickets.");
+      setError(err);
       console.error(err);
     } finally {
       setLoading(false);
@@ -282,11 +283,9 @@ export default function AdminTicketsPage() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="bg-rose-50 border border-rose-100 rounded-lg px-4 py-3 text-sm text-rose-700 font-medium">
-          {error}
-        </div>
-      )}
+      <div className="mb-4">
+        <ErrorCard error={error} onRetry={fetchTickets} />
+      </div>
 
       {/* Table */}
       <div className="bg-white border border-stone-200 rounded-xl overflow-hidden shadow-sm">

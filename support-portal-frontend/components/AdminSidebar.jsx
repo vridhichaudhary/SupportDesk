@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network, BookOpen, FileText } from "lucide-react";
@@ -6,6 +7,20 @@ import { motion } from "framer-motion";
 
 export default function AdminSidebar({ onNavigate }) {
   const pathname = usePathname();
+  const [userName, setUserName] = useState("Administrator");
+
+  // Load user name on the client only — prevents hydration mismatch
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.name) setUserName(parsed.name);
+      }
+    } catch {
+      // keep default
+    }
+  }, []);
 
   const navLinks = [
     { href: "/admin/dashboard", label: "Platform Overview", icon: LayoutDashboard },
@@ -68,12 +83,7 @@ export default function AdminSidebar({ onNavigate }) {
           <div className="flex-1 min-w-0">
             <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">Operator</div>
             <div className="text-xs font-bold text-stone-900 truncate">
-              {typeof window !== "undefined" && (() => {
-                try {
-                  const u = localStorage.getItem("user");
-                  return u ? JSON.parse(u).name : "Administrator";
-                } catch { return "Administrator"; }
-              })()}
+              {userName}
             </div>
           </div>
         </div>

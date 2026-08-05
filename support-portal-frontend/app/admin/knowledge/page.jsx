@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import axiosInstance from "@/utils/axiosInstance";
+import ErrorCard from "@/components/ErrorCard";
 import {
   BookOpen,
   Plus,
@@ -106,7 +107,8 @@ export default function KnowledgePage() {
       setArticles(data.items || []);
       setTotal(data.total || 0);
     } catch (e) {
-      setError(e?.response?.data?.error?.message || "Failed to load articles.");
+      console.error(e);
+      setError(e);
     } finally {
       setLoading(false);
     }
@@ -239,9 +241,11 @@ export default function KnowledgePage() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
-            <AlertCircle className="w-8 h-8 text-red-400" />
-            <p className="text-sm text-stone-500">{error}</p>
-            <button onClick={fetchArticles} className="text-xs text-accent-600 underline">Retry</button>
+            {error && (
+              <div className="mb-4">
+                <ErrorCard error={error} onRetry={fetchArticles} />
+              </div>
+            )}
           </div>
         ) : articles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">

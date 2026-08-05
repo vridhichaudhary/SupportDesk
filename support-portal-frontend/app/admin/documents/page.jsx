@@ -10,6 +10,7 @@ import { format } from "date-fns";
 
 import api from "@/utils/axiosInstance";
 import UploadDocumentModal from "@/components/UploadDocumentModal";
+import ErrorCard from "@/components/ErrorCard";
 
 const statusConfig = {
   UPLOADED: { color: "bg-gray-100 text-gray-700 border-gray-200", icon: Clock, label: "Uploaded" },
@@ -50,7 +51,7 @@ export default function DocumentsHub() {
       const res = await api.get("/documents?limit=50");
       setDocuments(res.data.items);
     } catch (err) {
-      setError("Failed to load documents.");
+      setError(err);
       console.error(err);
     } finally {
       setLoading(false);
@@ -134,6 +135,11 @@ export default function DocumentsHub() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        {/* Error */}
+        {error && (
+          <ErrorCard error={error} onRetry={fetchDocuments} />
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
