@@ -231,6 +231,25 @@ PERMISSION_REGISTRY: List[PermissionDefinition] = [
         module="Knowledge",
         description="Archive or permanently delete knowledge base articles",
     ),
+    # ── Documents (Intelligence Pipeline) ─────────────────────────────────
+    PermissionDefinition(
+        codename="manage_documents",
+        display_name="Manage Documents",
+        module="Documents",
+        description="Full access to delete and retry document processing",
+    ),
+    PermissionDefinition(
+        codename="upload_documents",
+        display_name="Upload Documents",
+        module="Documents",
+        description="Upload new documents to the intelligence pipeline",
+    ),
+    PermissionDefinition(
+        codename="view_documents",
+        display_name="View Documents",
+        module="Documents",
+        description="Read parsed document chunks and metadata",
+    ),
     # ── AI ────────────────────────────────────────────────────────────────
     PermissionDefinition(
         codename="configure_ai",
@@ -321,6 +340,9 @@ _ADMIN_PERMISSIONS: Set[str] = {
     "edit_kb_articles",
     "publish_kb_articles",
     "delete_kb_articles",
+    "manage_documents",
+    "upload_documents",
+    "view_documents",
     "view_ai_suggestions",
     "view_analytics",
     "manage_settings",
@@ -345,6 +367,8 @@ _AGENT_PERMISSIONS: Set[str] = {
     "view_knowledge_base",
     "create_kb_articles",
     "edit_kb_articles",
+    "upload_documents",
+    "view_documents",
     "view_ai_suggestions",
     "manage_notifications",
     "view_agent_profiles",

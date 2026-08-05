@@ -71,7 +71,8 @@ def upgrade() -> None:
         }
     ]
 
-    op.bulk_insert(permissions, new_permissions)
+    for p in new_permissions:
+        op.execute(f"INSERT INTO permissions (id, codename, display_name, description, module, created_at) VALUES ('{p['id']}', '{p['codename']}', '{p['display_name']}', '{p['description']}', '{p['module']}', '{p['created_at']}') ON CONFLICT (codename) DO NOTHING")
 
 
 def downgrade() -> None:

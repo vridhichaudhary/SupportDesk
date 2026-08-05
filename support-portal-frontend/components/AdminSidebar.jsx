@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network, BookOpen, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AdminSidebar({ onNavigate }) {
@@ -14,6 +14,7 @@ export default function AdminSidebar({ onNavigate }) {
     { href: "/admin/teams", label: "Teams", icon: Network },
     { href: "/admin/agents", label: "Agent Directory", icon: Users },
     { href: "/admin/knowledge", label: "Knowledge Base", icon: BookOpen },
+    { href: "/admin/documents", label: "Documents Hub", icon: FileText },
   ];
 
   const handleLogout = () => {

@@ -56,3 +56,7 @@ class CloudinaryStorageProvider(BaseStorageProvider):
 
 # Default storage service instance using LocalStorageProvider
 storage_provider: BaseStorageProvider = LocalStorageProvider()
+document_storage_provider: BaseStorageProvider = LocalStorageProvider(
+    upload_dir="static/uploads/documents",
+    base_url="/static/uploads/documents"
+)

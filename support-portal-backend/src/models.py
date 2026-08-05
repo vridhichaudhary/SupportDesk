@@ -98,6 +98,15 @@ class VisibilityLevel(enum.Enum):
     ORGANIZATION = "ORGANIZATION"
 
 
+class DocumentStatus(enum.Enum):
+    UPLOADED = "UPLOADED"
+    QUEUED = "QUEUED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    ARCHIVED = "ARCHIVED"
+
+
 class AuthTokenType(enum.Enum):
     EMAIL_VERIFICATION = "EMAIL_VERIFICATION"
     PASSWORD_RESET = "PASSWORD_RESET"
@@ -749,6 +758,64 @@ class KBCategory(Base):
     __table_args__ = (
         UniqueConstraint("organization_id", "slug", name="uq_kb_category_slug"),
         Index("ix_kb_category_org", "organization_id"),
+    )
+
+
+# Document Intelligence Pipeline Models
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    uploader_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    
+    title = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_url = Column(String(1024), nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    file_size = Column(Integer, nullable=False)  # in bytes
+    page_count = Column(Integer, nullable=True)
+    
+    status = Column(Enum(DocumentStatus), nullable=False, default=DocumentStatus.UPLOADED)
+    error_message = Column(Text, nullable=True)
+    metadata_json = Column(JSONType, default=dict, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
+
+    organization = relationship("Organization")
+    uploader = relationship("User")
+    chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_documents_org_status", "organization_id", "status"),
+    )
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    section_title = Column(String(512), nullable=True)
+    page_number = Column(Integer, nullable=True)
+    
+    character_count = Column(Integer, nullable=False)
+    word_count = Column(Integer, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    document = relationship("Document", back_populates="chunks")
+
+    __table_args__ = (
+        Index("ix_document_chunks_document", "document_id"),
+        UniqueConstraint("document_id", "chunk_index", name="uq_document_chunk_index"),
     )
 
 
