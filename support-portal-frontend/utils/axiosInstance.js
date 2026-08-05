@@ -34,60 +34,72 @@ axiosInstance.interceptors.response.use(
   async (err) => {
     const originalRequest = err.config;
     const status = err.response?.status;
-    const code = err.response?.data?.error?.code;
+    const errorMsg = err.response?.data?.error_message || "";
+    const errorCode = err.response?.data?.code || "";
 
-    if (status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = "Bearer " + token;
-          return axiosInstance(originalRequest);
-        });
+    // Handle token-expired responses that arrive as 422 (legacy) or 401 (fixed)
+    const isTokenExpired =
+      (status === 422 && (errorMsg.toLowerCase().includes("expired") || errorMsg.toLowerCase().includes("invalid") || errorCode === "VALIDATION_ERROR")) ||
+      (status === 401 && errorMsg.toLowerCase().includes("expired"));
+
+    if (isTokenExpired && !originalRequest._retry) {
+      // Stale/expired token — attempt silent refresh first (401 path)
+      if (status === 401) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = "Bearer " + token;
+            return axiosInstance(originalRequest);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshToken = localStorage.getItem("refresh_token");
+          const refreshRes = await axios.post(
+            `${baseURL}/auth/refresh`,
+            { refresh_token: refreshToken },
+            { withCredentials: true }
+          );
+
+          const tokenData = refreshRes.data?.data;
+          const newToken = tokenData?.access_token;
+          const newRefreshToken = tokenData?.refresh_token;
+
+          if (newToken) {
+            localStorage.setItem("token", newToken);
+            if (newRefreshToken) localStorage.setItem("refresh_token", newRefreshToken);
+
+            axiosInstance.defaults.headers.Authorization = "Bearer " + newToken;
+            processQueue(null, newToken);
+
+            originalRequest.headers.Authorization = "Bearer " + newToken;
+            return axiosInstance(originalRequest);
+          }
+        } catch (e) {
+          processQueue(e, null);
+        } finally {
+          isRefreshing = false;
+        }
       }
 
-      originalRequest._retry = true;
-      isRefreshing = true;
+      // Either 422 expired token, or refresh failed — clear session and redirect
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
 
-      try {
-        const refreshToken = localStorage.getItem("refresh_token");
-        const refreshRes = await axios.post(
-          `${baseURL}/auth/refresh`,
-          { refresh_token: refreshToken },
-          { withCredentials: true }
-        );
-
-        const tokenData = refreshRes.data?.data;
-        const newToken = tokenData?.access_token;
-        const newRefreshToken = tokenData?.refresh_token;
-
-        if (newToken) {
-          localStorage.setItem("token", newToken);
-          if (newRefreshToken) localStorage.setItem("refresh_token", newRefreshToken);
-
-          axiosInstance.defaults.headers.Authorization = "Bearer " + newToken;
-          processQueue(null, newToken);
-
-          originalRequest.headers.Authorization = "Bearer " + newToken;
-          return axiosInstance(originalRequest);
-        }
-      } catch (e) {
-        processQueue(e, null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("user");
-
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-          window.location.href = "/login";
-        }
-        return Promise.reject(e);
-      } finally {
-        isRefreshing = false;
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
       }
+      return Promise.reject(err);
     }
 
     return Promise.reject(err);
   }
 );
+
 
 export default axiosInstance;

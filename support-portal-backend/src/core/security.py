@@ -9,7 +9,7 @@ import jwt
 from passlib.context import CryptContext
 
 from src.core.config import settings
-from src.core.exceptions import ValidationException
+from src.core.exceptions import AuthenticationException, ValidationException
 
 # Argon2 Password Hashing Context
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -120,9 +120,9 @@ def decode_access_token(token: str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
-            raise ValidationException("Invalid token type")
+            raise AuthenticationException("Invalid token type")
         return payload
     except jwt.ExpiredSignatureError:
-        raise ValidationException("Access token has expired") from None
+        raise AuthenticationException("Access token has expired") from None
     except jwt.InvalidTokenError:
-        raise ValidationException("Invalid authentication token") from None
+        raise AuthenticationException("Invalid authentication token") from None
