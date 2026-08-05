@@ -9,7 +9,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.api.v1 import agents, auth, customers, departments, documents, health, knowledge, organizations, rbac, teams, tickets, users, ai
+from src.api.v1 import agents, auth, customers, departments, documents, health, knowledge, organizations, rbac, teams, tickets, users, ai, routing, automation, analytics, api_keys, webhooks, integrations
 from src.api import health as root_health
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
@@ -132,5 +132,11 @@ def create_app() -> FastAPI:
     app.include_router(knowledge.router, prefix=settings.API_V1_STR)
     app.include_router(documents.router, prefix=settings.API_V1_STR)
     app.include_router(ai.router, prefix=settings.API_V1_STR)
+    app.include_router(routing.router, prefix=settings.API_V1_STR)
+    app.include_router(automation.router, prefix=settings.API_V1_STR)
+    app.include_router(analytics.router, prefix=settings.API_V1_STR)
+    app.include_router(api_keys.router, prefix=settings.API_V1_STR)
+    app.include_router(webhooks.router, prefix=settings.API_V1_STR)
+    app.include_router(integrations.router, prefix=settings.API_V1_STR)
 
     return app

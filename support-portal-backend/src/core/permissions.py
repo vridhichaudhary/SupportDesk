@@ -374,10 +374,20 @@ _AGENT_PERMISSIONS: Set[str] = {
     "view_agent_profiles",
 }
 
+_CUSTOMER_PERMISSIONS: Set[str] = {
+    "view_organization",
+    "view_tickets",
+    "create_tickets",
+    "reply_tickets",
+    "view_knowledge_base",
+    "view_documents",
+}
+
 DEFAULT_ROLE_PERMISSIONS: Dict[UserRole, Set[str]] = {
     UserRole.OWNER: _OWNER_PERMISSIONS,
     UserRole.ADMIN: _ADMIN_PERMISSIONS,
     UserRole.AGENT: _AGENT_PERMISSIONS,
+    UserRole.CUSTOMER: _CUSTOMER_PERMISSIONS,
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

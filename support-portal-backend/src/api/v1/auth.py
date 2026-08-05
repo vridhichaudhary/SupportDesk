@@ -10,6 +10,7 @@ from src.models import User
 from src.repositories.session import session_repository
 from src.schemas.auth import (
     ChangePasswordRequest,
+    CustomerSignupRequest,
     ForgotPasswordRequest,
     LoginRequest,
     OwnerSignupRequest,
@@ -70,6 +71,40 @@ def signup(
         )
     )
 
+
+# ── Customer Signup ─────────────────────────────────────────────────────────
+@router.post(
+    "/customer-signup",
+    response_model=SuccessResponse[TokenResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Sign up as a Customer",
+    description="Registers a new customer for the support portal.",
+)
+def customer_signup(
+    payload: CustomerSignupRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> SuccessResponse[TokenResponse]:
+    logger.info("Customer signup attempt", email=payload.email)
+    user, org, access_token, refresh_token = auth_service.signup_customer(db, payload)
+
+    # Set HTTP-Only Cookie for Refresh Token
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=7 * 24 * 3600,
+        samesite="lax",
+        secure=False,
+    )
+
+    return SuccessResponse(
+        data=TokenResponse(
+            access_token=access_token,
+            expires_in=900,
+            refresh_token=refresh_token,
+        )
+    )
 
 # ── Login ───────────────────────────────────────────────────────────────────
 @router.post(

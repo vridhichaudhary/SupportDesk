@@ -18,6 +18,13 @@ class OwnerSignupRequest(BaseModel):
         ..., min_length=8, description="Must contain uppercase, lowercase, digit, and special char"
     )
 
+class CustomerSignupRequest(BaseModel):
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr = Field(..., description="Customer email address")
+    password: str = Field(..., min_length=8)
+    company: Optional[str] = Field(None, max_length=100)
+
 
 # ── Login Request ──────────────────────────────────────────────────────────
 class LoginRequest(BaseModel):

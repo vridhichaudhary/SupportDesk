@@ -47,13 +47,17 @@ export default function LoginPage() {
       // Fetch current user details
       const meRes = await axiosInstance.get("/auth/me");
       if (meRes.data?.data) {
-        localStorage.setItem("user", JSON.stringify(meRes.data.data));
+        const user = meRes.data.data;
+        localStorage.setItem("user", JSON.stringify(user));
+        setMessage("✅ Sign-in successful!");
+        setTimeout(() => {
+          if (user.role === "CUSTOMER") {
+            router.push("/portal/dashboard");
+          } else {
+            router.push("/admin/dashboard");
+          }
+        }, 800);
       }
-
-      setMessage("✅ Sign-in successful!");
-      setTimeout(() => {
-        router.push("/settings/profile");
-      }, 800);
     } catch (err) {
       const errDetail = err.response?.data?.error?.message || err.message || "Failed to sign in.";
       setMessage("⚠️ " + errDetail);

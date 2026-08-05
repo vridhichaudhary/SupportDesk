@@ -25,6 +25,7 @@ from src.models import (
     User,
     UserRole,
     UserSession,
+    Customer,
 )
 from src.repositories.session import session_repository
 from src.repositories.user import user_repository
@@ -113,6 +114,83 @@ class AuthService:
             entity_type="User",
             entity_id=user.id,
             actor_id=user.id,
+        )
+
+        return user, org, access_token, raw_refresh
+
+    # ── Customer Signup ──────────────────────────────────────────────────────────
+    def signup_customer(
+        self, db: Session, payload: "CustomerSignupRequest"
+    ) -> Tuple[User, Organization, str, str]:
+        # Grab the default org (for simplicity in this prototype, we'll use the first one)
+        org = db.query(Organization).first()
+        if not org:
+            raise ValidationException("No organization exists to join")
+
+        # Check existing user
+        existing_user = user_repository.get_by_email(db, payload.email)
+        if existing_user:
+            raise ValidationException("Email is already registered")
+
+        hashed_pwd = hash_password(payload.password)
+        
+        # 1. Create User
+        user = User(
+            id=uuid.uuid4(),
+            organization_id=org.id,
+            email=payload.email.lower().strip(),
+            password_hash=hashed_pwd,
+            role=UserRole.CUSTOMER,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            display_name=f"{payload.first_name} {payload.last_name}",
+            is_email_verified=False,
+            is_active=True,
+        )
+        db.add(user)
+        
+        # 2. Create Customer record mapping
+        customer = Customer(
+            id=uuid.uuid4(),
+            organization_id=org.id,
+            email=payload.email.lower().strip(),
+            name=f"{payload.first_name} {payload.last_name}",
+            company=payload.company
+        )
+        db.add(customer)
+        
+        db.commit()
+        db.refresh(user)
+
+        # 3. Create Session & Tokens
+        session_id = uuid.uuid4()
+        raw_refresh, refresh_hash, expire = create_refresh_token(user.id, org.id, session_id)
+
+        user_session = UserSession(
+            id=session_id,
+            user_id=user.id,
+            organization_id=org.id,
+            refresh_token_hash=refresh_hash,
+            device_info="Web Browser",
+            expires_at=expire,
+        )
+        db.add(user_session)
+        db.commit()
+
+        access_token = create_access_token(user.id, org.id, user.role.value)
+
+        # 4. Generate Verification Token & Send Email
+        verification_raw = generate_opaque_token()
+        ver_hash = hash_token(verification_raw)
+        user_repository.create_auth_token(
+            db=db,
+            user_id=user.id,
+            token_hash=ver_hash,
+            token_type=AuthTokenType.EMAIL_VERIFICATION,
+            expires_at=datetime.utcnow() + timedelta(hours=24),
+        )
+        email_service.send_verification_email(
+            user.email, user.display_name or user.first_name, verification_raw
         )
 
         return user, org, access_token, raw_refresh

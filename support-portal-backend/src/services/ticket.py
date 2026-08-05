@@ -15,6 +15,7 @@ from src.repositories.customer import customer_repository
 from src.schemas.ticket import TicketCreate, TicketUpdate, BulkAssignRequest, BulkStatusRequest
 from src.schemas.thread import ThreadCreate
 from src.services.base import BaseService
+from src.services.event_bus import event_bus
 
 
 class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
@@ -72,6 +73,30 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
         
         db.commit()
         db.refresh(ticket)
+        
+        # Dispatch AI routing pipeline asynchronously
+        try:
+            from src.workers.routing_tasks import route_ticket_task
+            route_ticket_task.delay(str(ticket.id))
+        except Exception as e:
+            import structlog
+            structlog.get_logger().warning("Routing task dispatch failed", error=str(e), ticket_id=str(ticket.id))
+            
+        # Publish to Event Bus for Webhooks
+        event_bus.publish(
+            db=db,
+            organization_id=organization_id,
+            event_type="ticket.created",
+            payload={
+                "ticket_id": str(ticket.id),
+                "ticket_number": ticket.ticket_number,
+                "status": ticket.status.value,
+                "subject": ticket.subject
+            },
+            target_id=str(ticket.id),
+            actor_id=actor_id
+        )
+        
         return ticket
 
     def assign_ticket(

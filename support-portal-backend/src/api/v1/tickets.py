@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from src.core.authorization import require_permission, require_any_permission
 from src.core.dependencies import get_db
 from src.core.exceptions import ValidationException
-from src.models import User
+from src.models import User, UserRole, Customer
 from src.schemas.ticket import (
     TicketCreate,
     TicketUpdate,
@@ -59,6 +59,13 @@ def create_ticket(
     # Auto-generate ticket number if not provided
     if not body.ticket_number:
         body.ticket_number = ticket_service.repository.generate_ticket_number(db, actor.organization_id)
+        
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer:
+            raise HTTPException(status_code=403, detail="Customer record not found")
+        body.customer_id = customer.id
+        
     return ticket_service.create_ticket(db, obj_in=body, organization_id=actor.organization_id, actor_id=actor.id)
 
 
@@ -97,6 +104,12 @@ def list_tickets(
     if assigned_team_id:
         filters["assigned_team_id"] = assigned_team_id
 
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer:
+            return PaginatedResult(items=[], total=0, page=1, size=limit, pages=1)
+        filters["customer_id"] = customer.id
+
     pagination = SimpleNamespace(offset=skip, limit=limit)
     return ticket_service.repository.search(
         db, actor.organization_id, pagination, query=q, filters=filters
@@ -118,6 +131,12 @@ def get_ticket(
     Requires `view_tickets` permission.
     """
     ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer or ticket.customer_id != customer.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
+            
     # Attach threads. Agents/admins see internal notes; customers wouldn't.
     include_internal = True
     ticket.threads = thread_repository.get_for_ticket(db, ticket_id, include_internal=include_internal)
@@ -228,13 +247,24 @@ def reply_to_ticket(
     Set `is_internal: true` for notes only visible to agents.
     Requires `reply_tickets` permission.
     """
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer or ticket.customer_id != customer.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
+            
+    is_internal = body.is_internal
+    if actor.role == UserRole.CUSTOMER:
+        is_internal = False # Customers can never send internal notes
+        
     return ticket_service.reply(
         db,
         ticket_id=ticket_id,
         org_id=actor.organization_id,
         actor_id=actor.id,
         body=body.body,
-        is_internal=body.is_internal,
+        is_internal=is_internal,
     )
 
 
@@ -253,7 +283,13 @@ def get_thread(
     Set `include_internal=false` to exclude internal notes.
     Requires `view_tickets` permission.
     """
-    ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # 404 guard
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer or ticket.customer_id != customer.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
+
     return thread_repository.get_for_ticket(db, ticket_id, include_internal=include_internal)
 
 
@@ -273,7 +309,12 @@ def get_timeline(
     from sqlalchemy import select
     from src.models import TicketTimeline
 
-    ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # 404 guard
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    
+    if actor.role == UserRole.CUSTOMER:
+        customer = db.query(Customer).filter(Customer.email == actor.email).first()
+        if not customer or ticket.customer_id != customer.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
     events = db.execute(
         select(TicketTimeline)
         .where(TicketTimeline.ticket_id == ticket_id)

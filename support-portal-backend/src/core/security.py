@@ -126,3 +126,44 @@ def decode_access_token(token: str) -> Dict[str, Any]:
         raise AuthenticationException("Access token has expired") from None
     except jwt.InvalidTokenError:
         raise AuthenticationException("Invalid authentication token") from None
+
+# -------------------------------------------------------------------
+# API Keys (Integration Platform)
+# -------------------------------------------------------------------
+import secrets
+import string
+import hmac
+import base64
+
+def generate_api_key() -> Tuple[str, str]:
+    """
+    Generates a secure API key and its hashed version.
+    Returns: (plain_key, hashed_key)
+    """
+    alphabet = string.ascii_letters + string.digits
+    secret = "".join(secrets.choice(alphabet) for _ in range(48))
+    plain_key = f"sd_live_{secret}"
+    hashed_key = hash_token(plain_key) # Reuse SHA-256 for fast/secure matching
+    return plain_key, hashed_key
+
+def verify_api_key(plain_key: str, hashed_key: str) -> bool:
+    """Verifies an API key against its hash."""
+    # Constant-time string comparison for security
+    return secrets.compare_digest(hash_token(plain_key), hashed_key)
+
+# -------------------------------------------------------------------
+# Webhook Signatures
+# -------------------------------------------------------------------
+def generate_webhook_signature(payload: str, secret: str) -> str:
+    """
+    Generates an HMAC SHA256 signature for a webhook payload.
+    """
+    mac = hmac.new(secret.encode("utf-8"), msg=payload.encode("utf-8"), digestmod=hashlib.sha256)
+    return f"sha256={mac.hexdigest()}"
+
+def verify_webhook_signature(payload: str, signature: str, secret: str) -> bool:
+    """
+    Verifies an incoming webhook signature.
+    """
+    expected = generate_webhook_signature(payload, secret)
+    return hmac.compare_digest(expected, signature)

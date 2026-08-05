@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, MessageSquare, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
-import api from "@/lib/api";
+import api from "@/utils/axiosInstance";
 import ReactMarkdown from "react-markdown";
 
 export default function AICopilotPage() {
@@ -35,7 +35,7 @@ export default function AICopilotPage() {
 
   const fetchSessions = async () => {
     try {
-      const res = await api.get("/api/v1/ai/sessions");
+      const res = await api.get("/ai/sessions");
       setSessions(res.data);
     } catch (error) {
       console.error("Failed to fetch sessions", error);
@@ -44,7 +44,7 @@ export default function AICopilotPage() {
 
   const fetchMessages = async (sessionId) => {
     try {
-      const res = await api.get(`/api/v1/ai/sessions/${sessionId}/messages`);
+      const res = await api.get(`/ai/sessions/${sessionId}/messages`);
       setMessages(res.data);
     } catch (error) {
       console.error("Failed to fetch messages", error);
@@ -60,7 +60,7 @@ export default function AICopilotPage() {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this chat?")) return;
     try {
-      await api.delete(`/api/v1/ai/sessions/${sessionId}`);
+      await api.delete(`/ai/sessions/${sessionId}`);
       if (activeSessionId === sessionId) {
         setActiveSessionId(null);
         setMessages([]);
@@ -87,7 +87,7 @@ export default function AICopilotPage() {
       if (activeSessionId) {
         payload.session_id = activeSessionId;
       }
-      const res = await api.post("/api/v1/ai/ask", payload);
+      const res = await api.post("/ai/ask", payload);
       
       if (!activeSessionId) {
         setActiveSessionId(res.data.session_id);

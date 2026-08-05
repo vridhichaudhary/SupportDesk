@@ -12,7 +12,7 @@ celery_app = Celery(
     "supportdesk_pipeline",
     broker=redis_url,
     backend=redis_url,
-    include=["src.workers.document_tasks"]
+    include=["src.workers.document_tasks", "src.workers.routing_tasks", "src.workers.analytics_tasks"]
 )
 
 celery_app.conf.update(

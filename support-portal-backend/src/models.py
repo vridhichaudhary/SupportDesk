@@ -80,6 +80,7 @@ class UserRole(enum.Enum):
     OWNER = "OWNER"
     ADMIN = "ADMIN"
     AGENT = "AGENT"
+    CUSTOMER = "CUSTOMER"
 
 
 class KBArticleStatus(enum.Enum):
@@ -973,8 +974,8 @@ class AISuggestion(Base):
     __table_args__ = (Index("ix_ai_suggestion_ticket", "ticket_id"),)
 
 
-class Workflow(Base):
-    __tablename__ = "workflows"
+class AutomationRule(Base):
+    __tablename__ = "automation_rules"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id = Column(
@@ -988,7 +989,7 @@ class Workflow(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (Index("ix_workflow_organization", "organization_id"),)
+    __table_args__ = (Index("ix_automation_rule_organization", "organization_id"),)
 
 
 class AuditLog(Base):
@@ -1223,5 +1224,308 @@ class AIChatMessage(Base):
 
     __table_args__ = (
         Index("ix_ai_chat_message_session", "session_id"),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Routing & Workflow Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class RoutingDecision(Base):
+    __tablename__ = "routing_decisions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    ticket_id = Column(
+        UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
+    )
+    
+    predicted_category = Column(String(100), nullable=True)
+    predicted_priority = Column(String(100), nullable=True)
+    assigned_department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
+    assigned_team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
+    assigned_agent_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    
+    suggested_tags_json = Column(JSONType, nullable=True)
+    suggested_sla_hours = Column(Integer, nullable=True)
+    
+    confidence_score = Column(Integer, nullable=True) # 0-100
+    reasoning = Column(Text, nullable=True)
+    execution_time_ms = Column(Integer, nullable=True)
+    model_version = Column(String(100), nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization")
+    ticket = relationship("Ticket", backref="routing_decision")
+    department = relationship("Department")
+    team = relationship("Team")
+    agent = relationship("User")
+
+    __table_args__ = (
+        Index("ix_routing_decision_org", "organization_id"),
+        Index("ix_routing_decision_ticket", "ticket_id", unique=True),
+    )
+
+
+class WorkflowExecution(Base):
+    __tablename__ = "workflow_executions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    rule_id = Column(
+        UUID(as_uuid=True), ForeignKey("automation_rules.id", ondelete="CASCADE"), nullable=False
+    )
+    ticket_id = Column(
+        UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
+    )
+    status = Column(String(50), nullable=False, default="SUCCESS") # SUCCESS, FAILED
+    logs = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization")
+    rule = relationship("AutomationRule")
+    ticket = relationship("Ticket")
+
+    __table_args__ = (
+        Index("ix_workflow_execution_ticket", "ticket_id"),
+        Index("ix_workflow_execution_rule", "rule_id"),
+    )
+
+
+class AssignmentHistory(Base):
+    __tablename__ = "assignment_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    ticket_id = Column(
+        UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
+    )
+    actor_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    ) # NULL if automated
+    
+    assignment_type = Column(String(50), nullable=False) # e.g., 'AGENT', 'TEAM', 'DEPARTMENT'
+    old_value_id = Column(UUID(as_uuid=True), nullable=True)
+    new_value_id = Column(UUID(as_uuid=True), nullable=True)
+    
+    reason = Column(Text, nullable=True)
+    is_override = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization")
+    ticket = relationship("Ticket")
+    actor = relationship("User")
+
+    __table_args__ = (
+        Index("ix_assignment_history_ticket", "ticket_id"),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Analytics & Dashboard Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AnalyticsSnapshot(Base):
+    __tablename__ = "analytics_snapshots"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    date = Column(DateTime, nullable=False) # e.g. 2026-08-05 00:00:00
+    
+    total_tickets = Column(Integer, default=0)
+    open_tickets = Column(Integer, default=0)
+    resolved_tickets = Column(Integer, default=0)
+    
+    avg_first_response_time_minutes = Column(Integer, nullable=True)
+    avg_resolution_time_minutes = Column(Integer, nullable=True)
+    
+    sla_compliance_percent = Column(Integer, nullable=True)
+    csat_score = Column(Integer, nullable=True)
+    
+    ai_resolution_rate_percent = Column(Integer, nullable=True)
+    automation_success_rate_percent = Column(Integer, nullable=True)
+    knowledge_articles_used = Column(Integer, default=0)
+    
+    metrics_json = Column(JSONType, nullable=True) # Catch-all for extra daily metrics
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "date", name="uq_analytics_snapshot_org_date"),
+        Index("ix_analytics_snapshot_org_date", "organization_id", "date"),
+    )
+
+
+class KPIHistory(Base):
+    __tablename__ = "kpi_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    target_type = Column(String(50), nullable=False) # 'AGENT', 'TEAM', 'DEPARTMENT', 'ORGANIZATION'
+    target_id = Column(UUID(as_uuid=True), nullable=True)
+    
+    kpi_name = Column(String(100), nullable=False) # e.g. 'RESOLUTION_TIME', 'CSAT'
+    kpi_value = Column(String(255), nullable=False)
+    
+    date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_kpi_history_org_target", "organization_id", "target_type", "target_id"),
+        Index("ix_kpi_history_org_date", "organization_id", "date"),
+    )
+
+
+class DashboardCache(Base):
+    __tablename__ = "dashboard_caches"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    cache_key = Column(String(255), nullable=False)
+    payload_json = Column(JSONType, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "cache_key", name="uq_dashboard_cache_org_key"),
+        Index("ix_dashboard_cache_expires", "expires_at"),
+    )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Integrations, Webhooks & API Keys Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class APIKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    name = Column(String(255), nullable=False)
+    prefix = Column(String(10), nullable=False) # e.g. 'sd_live_...'
+    hashed_secret = Column(String(255), nullable=False)
+    scopes = Column(JSONType, nullable=False, default=list)
+    
+    expires_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    created_by_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_api_key_organization", "organization_id"),
+        Index("ix_api_key_prefix", "prefix"),
+    )
+
+
+class WebhookEndpoint(Base):
+    __tablename__ = "webhook_endpoints"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    url = Column(String(1024), nullable=False)
+    hmac_secret = Column(String(255), nullable=False)
+    description = Column(String(255), nullable=True)
+    
+    subscribed_events = Column(JSONType, nullable=False, default=list) # e.g. ['ticket.created', 'ticket.updated']
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_webhook_endpoint_organization", "organization_id"),
+    )
+
+
+class WebhookDelivery(Base):
+    __tablename__ = "webhook_deliveries"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    endpoint_id = Column(
+        UUID(as_uuid=True), ForeignKey("webhook_endpoints.id", ondelete="CASCADE"), nullable=False
+    )
+    event_id = Column(String(255), nullable=False)
+    event_type = Column(String(100), nullable=False)
+    
+    payload_json = Column(JSONType, nullable=False)
+    
+    delivery_status = Column(String(50), nullable=False, default="PENDING") # PENDING, SUCCESS, FAILED
+    status_code = Column(Integer, nullable=True)
+    response_body = Column(Text, nullable=True)
+    
+    retry_count = Column(Integer, default=0, nullable=False)
+    next_retry_at = Column(DateTime, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_webhook_delivery_endpoint", "endpoint_id"),
+        Index("ix_webhook_delivery_status", "delivery_status"),
+    )
+
+
+class Integration(Base):
+    __tablename__ = "integrations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    provider = Column(String(100), nullable=False) # 'SLACK', 'MSTEAMS', 'JIRA', 'GITHUB', 'EMAIL'
+    is_active = Column(Boolean, default=False, nullable=False)
+    
+    config_json = Column(JSONType, nullable=False, default=dict)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "provider", name="uq_integration_org_provider"),
+    )
+
+
+class EventLog(Base):
+    __tablename__ = "event_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type = Column(String(100), nullable=False)
+    target_id = Column(String(255), nullable=True)
+    actor_id = Column(UUID(as_uuid=True), nullable=True)
+    
+    payload_json = Column(JSONType, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_event_log_organization", "organization_id"),
+        Index("ix_event_log_type", "event_type"),
     )
 
