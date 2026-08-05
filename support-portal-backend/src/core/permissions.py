@@ -415,6 +415,8 @@ class PermissionEngine:
     def _read_cache(
         self, redis_client: redis_lib.Redis, user_id: uuid.UUID
     ) -> Optional[Set[str]]:
+        if redis_client is None:
+            return None
         try:
             raw = redis_client.get(_cache_key(user_id))
             if raw:
@@ -426,6 +428,8 @@ class PermissionEngine:
     def _write_cache(
         self, redis_client: redis_lib.Redis, user_id: uuid.UUID, permissions: Set[str]
     ) -> None:
+        if redis_client is None:
+            return
         try:
             redis_client.setex(
                 _cache_key(user_id), _CACHE_TTL_SECONDS, json.dumps(list(permissions))
@@ -437,6 +441,8 @@ class PermissionEngine:
         """
         Call this whenever a user's role changes or permissions on their role change.
         """
+        if redis_client is None:
+            return
         try:
             redis_client.delete(_cache_key(user_id))
             logger.info("Permission cache invalidated", user_id=str(user_id))

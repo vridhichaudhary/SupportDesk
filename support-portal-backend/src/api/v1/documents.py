@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
+import redis
 
-from src.core.database import get_db
-from src.core.dependencies import get_current_user
+from src.core.dependencies import get_db, get_current_user, get_redis
 from src.core.permissions import permission_engine
 from src.models import Document, DocumentChunk, DocumentStatus, User
 from src.schemas.document import DocumentChunkListResponse, DocumentListResponse, DocumentResponse
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -31,7 +32,7 @@ def upload_document(
     and enqueues a background task for processing.
     """
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "upload_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "upload_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized to upload documents")
 
@@ -86,19 +87,23 @@ def upload_document(
 def list_documents(
     skip: int = 0,
     limit: int = 50,
-    status_filter: Optional[DocumentStatus] = None,
+    status: Optional[DocumentStatus] = None,
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    List all documents in the organization, with optional status filter.
+    """
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "view_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "view_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized to view documents")
 
     query = db.query(Document).filter(Document.organization_id == current_user.organization_id)
     
-    if status_filter:
-        query = query.filter(Document.status == status_filter)
+    if status:
+        query = query.filter(Document.status == status)
         
     total = query.count()
     items = query.order_by(desc(Document.created_at)).offset(skip).limit(limit).all()
@@ -114,10 +119,14 @@ def list_documents(
 def get_document(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Get document metadata by ID.
+    """
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "view_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "view_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -137,15 +146,19 @@ def get_document(
     response_model=DocumentChunkListResponse,
     summary="List chunks for a document",
 )
-def list_document_chunks(
+def get_document_chunks(
     document_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Retrieve the extracted text chunks for a processed document.
+    """
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "view_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "view_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized")
         
@@ -173,10 +186,11 @@ def list_document_chunks(
 def retry_document_processing(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "manage_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "upload_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized to manage documents")
 
@@ -212,10 +226,15 @@ def retry_document_processing(
 def delete_document(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    Soft-delete a document and remove its file from storage.
+    Note: Chunk and embedding cleanup will be handled by background workers.
+    """
     if not permission_engine.has_permission(
-        db, None, current_user.id, current_user.role, current_user.organization_id, "manage_documents"
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id, "delete_documents"
     ):
         raise HTTPException(status_code=403, detail="Not authorized to manage documents")
 
