@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-import api from "@/lib/api";
+import api from "@/utils/axiosInstance";
 import UploadDocumentModal from "@/components/UploadDocumentModal";
 
 const statusConfig = {

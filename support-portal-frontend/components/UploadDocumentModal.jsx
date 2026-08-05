@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { X, Upload, FileText, Loader2, FileCheck, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import api from "@/lib/api";
+import api from "@/utils/axiosInstance";
 
 export default function UploadDocumentModal({ isOpen, onClose, onUploadSuccess }) {
   const [file, setFile] = useState(null);

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-import api from "@/lib/api";
+import api from "@/utils/axiosInstance";
 
 const statusConfig = {
   UPLOADED: { color: "bg-gray-100 text-gray-700", icon: Clock, label: "Uploaded" },
