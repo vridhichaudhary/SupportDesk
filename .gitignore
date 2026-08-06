@@ -1,4 +1,21 @@
 support-portal-backend/node_modules
-*/.env
-*/.env.local
-*/node_modules
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+*/node_modules/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Next.js
+.next/
+
+# Logs
+*.log
