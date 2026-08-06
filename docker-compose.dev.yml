@@ -1,0 +1,138 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SupportDesk AI — Development Compose
+# Usage: docker-compose -f docker-compose.dev.yml up
+#
+# Hot-reload is enabled for both backend and frontend.
+# Source code is mounted as volumes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL (pgvector) ─────────────────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: supportdesk_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-supportdesk}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: supportdesk_redis
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # ── Backend (FastAPI) — hot-reload ───────────────────────────────────────
+  backend:
+    build:
+      context: ./support-portal-backend
+      target: builder          # Use builder stage for dev (has build tools)
+    container_name: supportdesk_backend
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./support-portal-backend/src:/app/src
+      - ./support-portal-backend/alembic:/app/alembic
+      - ./support-portal-backend/static:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+      - public
+
+  # ── Celery Worker ─────────────────────────────────────────────────────────
+  celery-worker:
+    build:
+      context: ./support-portal-backend
+      target: builder
+    container_name: supportdesk_celery_worker
+    command: celery -A src.core.celery_app.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - ./support-portal-backend/src:/app/src
+      - ./support-portal-backend/static:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # ── Frontend (Next.js) — hot-reload ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./support-portal-frontend
+      target: deps             # Use deps stage for dev
+    container_name: supportdesk_frontend
+    command: npm run dev
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./support-portal-frontend:/app
+      - /app/node_modules        # Prevent host override of node_modules
+      - /app/.next               # Prevent host override of .next cache
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - public
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  internal:
+    driver: bridge
+  public:
+    driver: bridge

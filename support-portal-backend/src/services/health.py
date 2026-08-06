@@ -16,6 +16,7 @@ Metadata emitted:
 import socket
 import time
 from datetime import datetime, timezone
+import psutil
 
 import redis as redis_lib
 import structlog
@@ -23,6 +24,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.core.config import settings
+from src.core.celery_app import celery_app
 
 logger = structlog.get_logger()
 
@@ -45,16 +47,20 @@ class HealthResult:
         is_ready: bool,
         database: str,
         redis: str,
+        celery: str,
     ) -> None:
         self.is_live = is_live
         self.is_ready = is_ready
         self.database = database
         self.redis = redis
+        self.celery = celery
         self.version = APP_VERSION
         self.environment = settings.ENVIRONMENT
         self.uptime_seconds = round(time.monotonic() - _APP_START_TIME, 2)
         self.timestamp = datetime.now(timezone.utc).isoformat()
         self.hostname = socket.gethostname()
+        self.memory_usage_percent = psutil.virtual_memory().percent
+        self.disk_usage_percent = psutil.disk_usage("/").percent
 
     @property
     def overall_status(self) -> str:
@@ -67,7 +73,10 @@ class HealthResult:
             "environment": self.environment,
             "database": self.database,
             "redis": self.redis,
+            "celery": self.celery,
             "uptime_seconds": self.uptime_seconds,
+            "memory_usage_percent": self.memory_usage_percent,
+            "disk_usage_percent": self.disk_usage_percent,
             "timestamp": self.timestamp,
             "hostname": self.hostname,
         }
@@ -98,6 +107,7 @@ class HealthService:
             is_ready=True,   # liveness doesn't gate readiness
             database="not_checked",
             redis="not_checked",
+            celery="not_checked",
         )
 
     # ------------------------------------------------------------------ #
@@ -119,14 +129,16 @@ class HealthService:
         """
         db_status = self._ping_database(db)
         redis_status = self._ping_redis(redis_client)
+        celery_status = self._ping_celery()
 
-        is_ready = db_status == "healthy" and redis_status == "healthy"
+        is_ready = db_status == "healthy" and redis_status == "healthy" and celery_status == "healthy"
 
         return HealthResult(
             is_live=True,
             is_ready=is_ready,
             database=db_status,
             redis=redis_status,
+            celery=celery_status,
         )
 
     # ------------------------------------------------------------------ #
@@ -146,6 +158,19 @@ class HealthService:
             return "healthy"
         except Exception as exc:
             logger.warning("Redis health check failed", error=str(exc))
+            return "unhealthy"
+            
+    def _ping_celery(self) -> str:
+        try:
+            # Send a ping task to celery workers (with a timeout)
+            # If there are no workers, this will return empty dict
+            inspect = celery_app.control.inspect(timeout=1.0)
+            stats = inspect.stats()
+            if not stats:
+                return "unhealthy"
+            return "healthy"
+        except Exception as exc:
+            logger.warning("Celery health check failed", error=str(exc))
             return "unhealthy"
 
 

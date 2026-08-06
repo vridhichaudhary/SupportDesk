@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.v1 import agents, auth, customers, departments, documents, health, knowledge, organizations, rbac, teams, tickets, users, ai, routing, automation, analytics, api_keys, webhooks, integrations
 from src.api import health as root_health
+import sentry_sdk
+from prometheus_fastapi_instrumentator import Instrumentator
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
 from src.core.logging import setup_logging
@@ -25,6 +27,15 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging(log_level="INFO")
     logger.info("Application starting up", env=settings.ENVIRONMENT)
+
+    if settings.SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        )
+        logger.info("Sentry initialized")
+        
     yield
     # Shutdown
     logger.info("Application shutting down")
@@ -78,8 +89,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # Change in production
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+    if settings.ENABLE_METRICS:
+        Instrumentator().instrument(app).expose(app, include_in_schema=False, should_gzip=True)
 
     # Global Exception Handlers
     @app.exception_handler(SupportDeskException)

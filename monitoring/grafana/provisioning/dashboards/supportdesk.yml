@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'SupportDesk Dashboards'
+    orgId: 1
+    folder: 'SupportDesk'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

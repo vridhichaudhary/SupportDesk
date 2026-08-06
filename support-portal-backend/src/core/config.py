@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:16379/0"
 
+    # Observability
+    SENTRY_DSN: Optional[str] = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1   # 10% of requests traced
+    ENABLE_METRICS: bool = True               # Expose /metrics endpoint
+
+    # Security
+    ALLOWED_HOSTS: str | List[str] = Field(default=["*"])
+    MAX_REQUEST_SIZE_MB: int = 50
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

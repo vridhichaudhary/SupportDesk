@@ -29,7 +29,10 @@ class HealthResponse(BaseModel):
     environment: str
     database: str
     redis: str
+    celery: str
     uptime_seconds: float
+    memory_usage_percent: float
+    disk_usage_percent: float
     timestamp: str
     hostname: str
 

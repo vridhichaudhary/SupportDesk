@@ -69,3 +69,8 @@ websockets==17.0.1
 celery[redis]==5.4.0
 pypdf==5.1.0
 python-docx==1.1.2
+
+# ── Observability & Monitoring ─────────────────────────────────────────────
+prometheus-fastapi-instrumentator==6.1.0
+sentry-sdk[fastapi,celery]==2.19.2
+psutil==6.0.0
