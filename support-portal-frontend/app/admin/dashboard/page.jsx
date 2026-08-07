@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   BarChart3, TrendingUp, Users, Clock, AlertTriangle, 
-  Brain, Download, LayoutDashboard, Target, Zap, Shield
+  Brain, Download, LayoutDashboard, Target, Zap, Shield, CheckCircle2
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -307,5 +307,3 @@ export default function AnalyticsDashboard() {
   );
 }
 
-// Ensure CheckCircle2 is defined for Agent View
-import { CheckCircle2 } from "lucide-react";

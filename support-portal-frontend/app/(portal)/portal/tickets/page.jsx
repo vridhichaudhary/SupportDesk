@@ -29,7 +29,7 @@ export default function PortalTicketsPage() {
       }
       
       const res = await axiosInstance.get(url);
-      setTickets(res.data?.data?.items || []);
+      setTickets(res.data?.items || res.data?.data?.items || []);
     } catch (err) {
       console.error("Failed to fetch tickets:", err);
     } finally {

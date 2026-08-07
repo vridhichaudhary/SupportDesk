@@ -25,10 +25,9 @@ export default function NewTicketPage() {
       
       setSuggesting(true);
       try {
-        const res = await axiosInstance.get(`/knowledge/search?q=${encodeURIComponent(form.subject)}&limit=3`);
-        if (res.data?.data?.items) {
-          setSuggestions(res.data.data.items);
-        }
+        const res = await axiosInstance.get(`/knowledge/articles?query=${encodeURIComponent(form.subject)}&limit=3&status=PUBLISHED`);
+        const items = res.data?.items || [];
+        setSuggestions(items);
       } catch (err) {
         console.error("AI deflection error:", err);
       } finally {

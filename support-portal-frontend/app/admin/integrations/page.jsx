@@ -54,7 +54,8 @@ export default function IntegrationsMarketplace() {
   const fetchIntegrations = async () => {
     try {
       const res = await api.get("/integrations");
-      setActiveIntegrations(res.data.map(i => i.provider));
+      const data = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setActiveIntegrations(data.map(i => i.provider));
     } catch (e) {
       console.error(e);
     }
@@ -64,9 +65,9 @@ export default function IntegrationsMarketplace() {
   const handleToggle = async (provider, isActive) => {
     try {
       if (isActive) {
-        // Find ID and delete (mock behavior for now, ideally we'd fetch IDs properly)
         const res = await api.get("/integrations");
-        const integration = res.data.find(i => i.provider === provider);
+        const data = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        const integration = data.find(i => i.provider === provider);
         if (integration) await api.delete(`/integrations/${integration.id}`);
       } else {
         await api.post("/integrations", { provider, config_json: {} });

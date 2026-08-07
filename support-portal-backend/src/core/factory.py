@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from src.api.v1 import agents, auth, customers, departments, documents, health, knowledge, organizations, rbac, teams, tickets, users, ai, routing, automation, analytics, api_keys, webhooks, integrations
 from src.api import health as root_health
 import sentry_sdk
-from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import make_asgi_app, CollectorRegistry, CONTENT_TYPE_LATEST, generate_latest, REGISTRY
+from starlette.responses import Response
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
 from src.core.logging import setup_logging
@@ -93,7 +94,9 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     if settings.ENABLE_METRICS:
-        Instrumentator().instrument(app).expose(app, include_in_schema=False, should_gzip=True)
+        # Mount native prometheus metrics ASGI app at /metrics
+        metrics_app = make_asgi_app()
+        app.mount("/metrics", metrics_app)
 
     # Global Exception Handlers
     @app.exception_handler(SupportDeskException)

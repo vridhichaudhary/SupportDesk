@@ -35,13 +35,21 @@ services:
   redis:
     image: redis:7-alpine
     container_name: supportdesk_redis
-    command: redis-server --save 60 1 --loglevel warning
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      /bin/sh -c '
+      if [ -n "$$REDIS_PASSWORD" ]; then
+        exec redis-server --save 60 1 --save 300 10 --loglevel warning --requirepass "$$REDIS_PASSWORD"
+      else
+        exec redis-server --save 60 1 --save 300 10 --loglevel warning
+      fi'
     ports:
       - "16379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli -a \"$$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,14 +64,11 @@ services:
       target: builder          # Use builder stage for dev (has build tools)
     container_name: supportdesk_backend
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ./support-portal-backend/.env
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
       - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - FRONTEND_URL=http://localhost:3000
-      - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:3001
     ports:
       - "8000:8000"
     volumes:
@@ -87,12 +92,11 @@ services:
       target: builder
     container_name: supportdesk_celery_worker
     command: celery -A src.core.celery_app.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - ./support-portal-backend/.env
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
       - REDIS_URL=redis://redis:6379/0
-      - ENVIRONMENT=development
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - ./support-portal-backend/src:/app/src
       - ./support-portal-backend/static:/app/static
@@ -112,6 +116,8 @@ services:
       target: deps             # Use deps stage for dev
     container_name: supportdesk_frontend
     command: npm run dev
+    env_file:
+      - ./support-portal-frontend/.env
     environment:
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
       - NODE_ENV=development

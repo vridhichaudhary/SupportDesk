@@ -19,14 +19,13 @@ export default function PortalKnowledgePage() {
   const fetchKnowledgeBase = async () => {
     setLoading(true);
     try {
-      // For this prototype, we'll fetch articles and group them by category locally
-      const res = await axiosInstance.get("/knowledge?limit=100");
-      const items = res.data?.data?.items || [];
+      const res = await axiosInstance.get("/knowledge/articles?limit=100&status=PUBLISHED&visibility=PUBLIC");
+      const items = res.data?.items || [];
       
       // Group by category
       const grouped = {};
       items.forEach(article => {
-        const cat = article.category || "General";
+        const cat = article.category?.name || "General";
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(article);
       });

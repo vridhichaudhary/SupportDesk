@@ -11,6 +11,7 @@ export default function AICopilotPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -34,18 +35,22 @@ export default function AICopilotPage() {
   };
 
   const fetchSessions = async () => {
+    setSessionsError(null);
     try {
       const res = await api.get("/ai/sessions");
-      setSessions(res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setSessions(data);
     } catch (error) {
       console.error("Failed to fetch sessions", error);
+      setSessionsError("Could not load sessions.");
     }
   };
 
   const fetchMessages = async (sessionId) => {
     try {
       const res = await api.get(`/ai/sessions/${sessionId}/messages`);
-      setMessages(res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setMessages(data);
     } catch (error) {
       console.error("Failed to fetch messages", error);
     }
@@ -131,7 +136,11 @@ export default function AICopilotPage() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          {sessions.map((session) => (
+          {sessionsError ? (
+            <p className="text-xs text-rose-500 text-center px-3 py-4">{sessionsError}</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center px-3 py-4">No sessions yet. Start a new chat.</p>
+          ) : sessions.map((session) => (
             <div
               key={session.id}
               onClick={() => setActiveSessionId(session.id)}

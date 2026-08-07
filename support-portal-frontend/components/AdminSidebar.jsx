@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network, BookOpen, FileText, Sparkles, Brain, Link2 } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, LogOut, ShieldCheck, Building2, Network, BookOpen, FileText, Sparkles, Brain, Link2, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AdminSidebar({ onNavigate }) {
@@ -33,6 +33,8 @@ export default function AdminSidebar({ onNavigate }) {
     { href: "/admin/ai", label: "AI Copilot", icon: Sparkles },
     { href: "/admin/routing", label: "Smart Routing", icon: Brain },
     { href: "/admin/integrations", label: "Integrations", icon: Link2 },
+    { href: "/admin/customers", label: "Customers", icon: Users },
+    { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
   const handleLogout = () => {

@@ -17,10 +17,8 @@ export default function PortalArticlePage({ params }) {
   useEffect(() => {
     const fetchArticle = async () => {
       try {
-        const res = await axiosInstance.get(`/knowledge/${articleId}`);
-        if (res.data?.data) {
-          setArticle(res.data.data);
-        }
+        const res = await axiosInstance.get(`/knowledge/articles/${articleId}`);
+        setArticle(res.data?.data || res.data);
       } catch (err) {
         console.error("Failed to fetch article:", err);
       } finally {

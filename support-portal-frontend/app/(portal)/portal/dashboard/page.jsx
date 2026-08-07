@@ -16,7 +16,7 @@ export default function PortalDashboard() {
     const fetchDashboard = async () => {
       try {
         const res = await axiosInstance.get("/tickets?limit=5");
-        const items = res.data?.data?.items || [];
+        const items = res.data?.items || res.data?.data?.items || [];
         setTickets(items);
         
         let open = 0, pending = 0, resolved = 0;

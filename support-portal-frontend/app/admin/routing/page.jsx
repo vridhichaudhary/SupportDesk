@@ -45,6 +45,7 @@ export default function RoutingDashboardPage() {
   const [selected, setSelected] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDecisions();
@@ -52,12 +53,15 @@ export default function RoutingDashboardPage() {
 
   const fetchDecisions = async () => {
     setIsRefreshing(true);
+    setError(null);
     try {
       const res = await api.get("/routing/decisions?limit=30");
-      setDecisions(res.data);
-      if (res.data.length > 0 && !selected) setSelected(res.data[0]);
+      const data = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setDecisions(data);
+      if (data.length > 0 && !selected) setSelected(data[0]);
     } catch (e) {
       console.error("Failed to fetch routing decisions", e);
+      setError("Could not load routing decisions. Check your permissions or try again.");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -106,6 +110,15 @@ export default function RoutingDashboardPage() {
         <div className="flex flex-col items-center justify-center h-64 gap-3">
           <Loader2 size={28} className="animate-spin text-blue-500" />
           <p className="text-sm text-gray-500">Loading routing decisions…</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-stone-500">
+          <Brain size={40} className="opacity-30" />
+          <p className="text-sm font-semibold text-stone-700">Failed to load routing decisions</p>
+          <p className="text-xs text-center max-w-sm text-stone-400">{error}</p>
+          <button onClick={fetchDecisions} className="text-xs font-bold px-4 py-2 bg-white border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors shadow-sm mt-2">
+            Try Again
+          </button>
         </div>
       ) : decisions.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 gap-3 text-gray-400">
