@@ -34,6 +34,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade system pip and setuptools to fix vulnerabilities in the base image
+RUN pip install --no-cache-dir --upgrade pip setuptools msgpack
+
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"

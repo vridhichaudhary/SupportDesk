@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 1: Dependencies — Install node_modules
 # ─────────────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -13,7 +13,7 @@ RUN npm ci
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Builder — Build the Next.js application
 # ─────────────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -32,7 +32,9 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: Runner — Minimal production image
 # ─────────────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
+
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
