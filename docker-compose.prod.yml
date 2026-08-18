@@ -15,7 +15,7 @@ services:
     image: pgvector/pgvector:pg15
     container_name: supportdesk_db
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
@@ -42,7 +42,7 @@ services:
     image: redis:7-alpine
     container_name: supportdesk_redis
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     command: >
@@ -76,7 +76,7 @@ services:
       target: production
     container_name: supportdesk_backend
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
@@ -115,7 +115,7 @@ services:
     container_name: supportdesk_celery_worker
     command: celery -A src.core.celery_app.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-4} -E
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
@@ -154,7 +154,7 @@ services:
     container_name: supportdesk_celery_beat
     command: celery -A src.core.celery_app.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-supportdesk}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
@@ -185,7 +185,7 @@ services:
       target: runner
     container_name: supportdesk_frontend
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost/api/v1}
       - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
@@ -268,7 +268,7 @@ services:
     image: grafana/grafana:10.2.0
     container_name: supportdesk_grafana
     env_file:
-      - ./support-portal-backend/.env
+      - .env.production
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false

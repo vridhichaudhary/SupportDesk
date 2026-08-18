@@ -1,5 +1,3 @@
-from datetime import timezone
-
 """
 Agent Repository
 ================
@@ -11,6 +9,7 @@ No business logic. Tenant-isolated by organization_id where applicable.
 from __future__ import annotations
 
 import uuid
+from datetime import timezone
 from typing import List, Optional
 
 from sqlalchemy import select

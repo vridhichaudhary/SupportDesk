@@ -6,9 +6,9 @@ No business logic. Tenant-isolated by organization_id.
 """
 
 from __future__ import annotations
-from datetime import timezone
 
 import uuid
+from datetime import timezone
 from typing import List, Optional
 
 from sqlalchemy import select
