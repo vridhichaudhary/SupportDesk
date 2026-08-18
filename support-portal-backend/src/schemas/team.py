@@ -3,6 +3,7 @@ Team Schemas
 ============
 Pydantic request/response models for the Team and TeamMember APIs.
 """
+
 from __future__ import annotations
 
 import uuid

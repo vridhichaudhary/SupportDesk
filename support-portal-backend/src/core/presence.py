@@ -13,11 +13,12 @@ Key operations:
 All keys are namespaced per tenant for isolation.
 TTL: 90 seconds (3× heartbeat interval). Agent is OFFLINE if key expires.
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import redis as redis_lib
@@ -46,7 +47,7 @@ def _serialize(
             "status": status.value,
             "org_id": str(org_id),
             "device_info": device_info,
-            "since": datetime.utcnow().isoformat(),
+            "since": datetime.now(timezone.utc).isoformat(),
             "expected_return": expected_return.isoformat() if expected_return else None,
         }
     )
@@ -94,13 +95,9 @@ class PresenceEngine:
 
             payload = _serialize(status, org_id, device_info)
             redis_client.setex(_key(user_id), _HEARTBEAT_TTL, payload)
-            logger.debug(
-                "Presence heartbeat", user_id=str(user_id), status=status.value
-            )
+            logger.debug("Presence heartbeat", user_id=str(user_id), status=status.value)
         except Exception as exc:
-            logger.warning(
-                "Presence heartbeat failed", user_id=str(user_id), error=str(exc)
-            )
+            logger.warning("Presence heartbeat failed", user_id=str(user_id), error=str(exc))
 
     def set_status(
         self,
@@ -132,9 +129,7 @@ class PresenceEngine:
                 status=status.value,
             )
         except Exception as exc:
-            logger.warning(
-                "Presence set_status failed", user_id=str(user_id), error=str(exc)
-            )
+            logger.warning("Presence set_status failed", user_id=str(user_id), error=str(exc))
 
     def get_status(
         self,
@@ -152,9 +147,7 @@ class PresenceEngine:
                 data["is_online"] = True
                 return data
         except Exception as exc:
-            logger.warning(
-                "Presence get_status failed", user_id=str(user_id), error=str(exc)
-            )
+            logger.warning("Presence get_status failed", user_id=str(user_id), error=str(exc))
         return {
             "status": AgentStatus.OFFLINE.value,
             "is_online": False,
@@ -183,7 +176,7 @@ class PresenceEngine:
             values = [None] * len(user_ids)
 
         result: Dict[str, Dict] = {}
-        for uid, raw in zip(user_ids, values):
+        for uid, raw in zip(user_ids, values, strict=False):
             if raw:
                 data = _deserialize(raw)
                 data["is_online"] = True
@@ -209,9 +202,7 @@ class PresenceEngine:
             redis_client.delete(_key(user_id))
             logger.info("Presence cleared (offline)", user_id=str(user_id))
         except Exception as exc:
-            logger.warning(
-                "Presence clear failed", user_id=str(user_id), error=str(exc)
-            )
+            logger.warning("Presence clear failed", user_id=str(user_id), error=str(exc))
 
 
 # Singleton — import everywhere that needs presence resolution

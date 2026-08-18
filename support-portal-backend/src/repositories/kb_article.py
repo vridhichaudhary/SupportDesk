@@ -1,10 +1,10 @@
 import uuid
 from typing import List, Optional, Tuple
 
-from sqlalchemy import select, or_, func, desc
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from src.models import KBArticle, KBArticleStatus, VisibilityLevel, Tag
+from src.models import KBArticle, KBArticleStatus, Tag, VisibilityLevel
 
 
 class KBArticleRepository:
@@ -12,26 +12,34 @@ class KBArticleRepository:
         self.db = db
 
     def get_by_id(self, article_id: uuid.UUID, organization_id: uuid.UUID) -> Optional[KBArticle]:
-        stmt = select(KBArticle).options(
-            selectinload(KBArticle.tags),
-            selectinload(KBArticle.author),
-            selectinload(KBArticle.category),
-        ).where(
-            KBArticle.id == article_id,
-            KBArticle.organization_id == organization_id,
-            KBArticle.deleted_at.is_(None)
+        stmt = (
+            select(KBArticle)
+            .options(
+                selectinload(KBArticle.tags),
+                selectinload(KBArticle.author),
+                selectinload(KBArticle.category),
+            )
+            .where(
+                KBArticle.id == article_id,
+                KBArticle.organization_id == organization_id,
+                KBArticle.deleted_at.is_(None),
+            )
         )
         return self.db.execute(stmt).scalar_one_or_none()
-        
+
     def get_by_slug(self, slug: str, organization_id: uuid.UUID) -> Optional[KBArticle]:
-        stmt = select(KBArticle).options(
-            selectinload(KBArticle.tags),
-            selectinload(KBArticle.author),
-            selectinload(KBArticle.category),
-        ).where(
-            KBArticle.slug == slug,
-            KBArticle.organization_id == organization_id,
-            KBArticle.deleted_at.is_(None)
+        stmt = (
+            select(KBArticle)
+            .options(
+                selectinload(KBArticle.tags),
+                selectinload(KBArticle.author),
+                selectinload(KBArticle.category),
+            )
+            .where(
+                KBArticle.slug == slug,
+                KBArticle.organization_id == organization_id,
+                KBArticle.deleted_at.is_(None),
+            )
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
@@ -47,8 +55,7 @@ class KBArticleRepository:
         sort_by: str = "updated_at",
     ) -> Tuple[List[KBArticle], int]:
         stmt = select(KBArticle).where(
-            KBArticle.organization_id == organization_id,
-            KBArticle.deleted_at.is_(None)
+            KBArticle.organization_id == organization_id, KBArticle.deleted_at.is_(None)
         )
 
         if category_id:
@@ -68,7 +75,7 @@ class KBArticleRepository:
                 or_(
                     KBArticle.title.ilike(search_pattern),
                     KBArticle.summary.ilike(search_pattern),
-                    KBArticle.tags.any(Tag.name.ilike(search_pattern))
+                    KBArticle.tags.any(Tag.name.ilike(search_pattern)),
                 )
             )
 
@@ -87,11 +94,15 @@ class KBArticleRepository:
             # Default to recently updated
             stmt = stmt.order_by(desc(KBArticle.updated_at))
 
-        stmt = stmt.options(
-            selectinload(KBArticle.tags),
-            selectinload(KBArticle.author),
-            selectinload(KBArticle.category),
-        ).offset(skip).limit(limit)
+        stmt = (
+            stmt.options(
+                selectinload(KBArticle.tags),
+                selectinload(KBArticle.author),
+                selectinload(KBArticle.category),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
 
         items = list(self.db.execute(stmt).scalars().all())
         return items, total
@@ -109,7 +120,7 @@ class KBArticleRepository:
     def delete(self, article: KBArticle) -> None:
         self.db.delete(article)
         self.db.flush()
-        
+
     def increment_view(self, article_id: uuid.UUID) -> None:
         stmt = select(KBArticle).where(KBArticle.id == article_id)
         article = self.db.execute(stmt).scalar_one_or_none()

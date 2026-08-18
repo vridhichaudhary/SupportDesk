@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 from sqlalchemy import select, update
@@ -17,7 +17,7 @@ class SessionRepository(BaseRepository[UserSession, Any, Any]):
         query = select(UserSession).where(
             UserSession.refresh_token_hash == token_hash,
             UserSession.is_revoked.is_(False),
-            UserSession.expires_at > datetime.utcnow(),
+            UserSession.expires_at > datetime.now(timezone.utc),
         )
         return db.execute(query).scalar_one_or_none()
 
@@ -27,7 +27,7 @@ class SessionRepository(BaseRepository[UserSession, Any, Any]):
             .where(
                 UserSession.user_id == user_id,
                 UserSession.is_revoked.is_(False),
-                UserSession.expires_at > datetime.utcnow(),
+                UserSession.expires_at > datetime.now(timezone.utc),
             )
             .order_by(UserSession.last_accessed_at.desc())
         )

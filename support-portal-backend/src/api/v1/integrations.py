@@ -1,16 +1,18 @@
 import uuid
-from typing import List, Any
+from typing import Any, List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
-from src.models import User, UserRole, Integration
+from src.core.dependencies import get_current_user, get_db
+from src.models import Integration, User, UserRole
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
+
 
 class IntegrationCreate(BaseModel):
     provider: str
@@ -27,6 +29,7 @@ class IntegrationResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=List[IntegrationResponse])
 def list_integrations(
     db: Session = Depends(get_db),
@@ -34,10 +37,12 @@ def list_integrations(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    integrations = db.query(Integration).filter(
-        Integration.organization_id == current_user.organization_id
-    ).all()
+
+    integrations = (
+        db.query(Integration)
+        .filter(Integration.organization_id == current_user.organization_id)
+        .all()
+    )
     return integrations
 
 
@@ -49,12 +54,16 @@ def configure_integration(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    integration = db.query(Integration).filter(
-        Integration.organization_id == current_user.organization_id,
-        Integration.provider == data.provider
-    ).first()
-    
+
+    integration = (
+        db.query(Integration)
+        .filter(
+            Integration.organization_id == current_user.organization_id,
+            Integration.provider == data.provider,
+        )
+        .first()
+    )
+
     if integration:
         integration.config_json = data.config_json
         integration.is_active = True
@@ -63,10 +72,10 @@ def configure_integration(
             organization_id=current_user.organization_id,
             provider=data.provider,
             config_json=data.config_json,
-            is_active=True
+            is_active=True,
         )
         db.add(integration)
-        
+
     db.commit()
     db.refresh(integration)
     return integration
@@ -80,15 +89,19 @@ def remove_integration(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    integration = db.query(Integration).filter(
-        Integration.id == integration_id,
-        Integration.organization_id == current_user.organization_id
-    ).first()
-    
+
+    integration = (
+        db.query(Integration)
+        .filter(
+            Integration.id == integration_id,
+            Integration.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
-        
+
     db.delete(integration)
     db.commit()
     return None

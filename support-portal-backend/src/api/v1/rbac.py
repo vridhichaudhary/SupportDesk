@@ -20,6 +20,7 @@ Routes:
     GET    /rbac/users/{user_id}/permissions          Get user's resolved permissions
     GET    /rbac/users/me/permissions                 Get my resolved permissions
 """
+
 from __future__ import annotations
 
 import uuid
@@ -33,10 +34,10 @@ from sqlalchemy.orm import Session
 from src.core.authorization import require_permission
 from src.core.dependencies import get_current_user, get_db, get_redis
 from src.core.exceptions import NotFoundException
-from src.core.permissions import PERMISSION_REGISTRY, permission_engine
+from src.core.permissions import PERMISSION_REGISTRY
 from src.core.responses import ErrorResponse, SuccessResponse
 from src.models import User
-from src.repositories.rbac import role_permission_repo, role_repo
+from src.repositories.rbac import role_permission_repo
 from src.repositories.user import user_repository
 from src.schemas.rbac import (
     AssignRoleRequest,
@@ -92,9 +93,7 @@ def list_permissions(
     for p in perms:
         grouped.setdefault(p.module, []).append(p)
 
-    return SuccessResponse(
-        data=PermissionsListResponse(permissions=perms, grouped=grouped)
-    )
+    return SuccessResponse(data=PermissionsListResponse(permissions=perms, grouped=grouped))
 
 
 @router.get(
@@ -253,9 +252,7 @@ def delete_role(
     db: Session = Depends(get_db),
     redis_client: redis_lib.Redis = Depends(get_redis),
 ) -> SuccessResponse[dict]:
-    rbac_service.delete_custom_role(
-        db=db, redis_client=redis_client, actor=actor, role_id=role_id
-    )
+    rbac_service.delete_custom_role(db=db, redis_client=redis_client, actor=actor, role_id=role_id)
     return SuccessResponse(data={"message": "Role deleted successfully"})
 
 
@@ -284,9 +281,7 @@ def grant_permission(
         role_id=role_id,
         codename=payload.codename,
     )
-    return SuccessResponse(
-        data={"message": f"Permission '{payload.codename}' granted to role"}
-    )
+    return SuccessResponse(data={"message": f"Permission '{payload.codename}' granted to role"})
 
 
 @router.delete(
@@ -308,9 +303,7 @@ def revoke_permission(
         role_id=role_id,
         codename=codename,
     )
-    return SuccessResponse(
-        data={"message": f"Permission '{codename}' revoked from role"}
-    )
+    return SuccessResponse(data={"message": f"Permission '{codename}' revoked from role"})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -1,11 +1,11 @@
 import uuid
-from typing import List, Optional, Any
-from pydantic import BaseModel, Field
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
+from src.core.dependencies import get_current_user, get_db
 from src.models import User
 from src.services.ai_copilot import ai_copilot_service
 
@@ -14,7 +14,9 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 class AskRequest(BaseModel):
     query: str = Field(..., description="The user's question")
-    session_id: Optional[uuid.UUID] = Field(None, description="Optional ID of an existing session to continue")
+    session_id: Optional[uuid.UUID] = Field(
+        None, description="Optional ID of an existing session to continue"
+    )
 
 
 class Citation(BaseModel):
@@ -62,17 +64,13 @@ def ask_ai(
     """
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
-        
+
     msg, session = ai_copilot_service.ask(db, current_user, request.query, request.session_id)
-    
+
     citations_data = msg.citations_json or []
     citations = [Citation(**c) for c in citations_data]
-    
-    return AskResponse(
-        session_id=session.id,
-        answer=msg.content,
-        citations=citations
-    )
+
+    return AskResponse(session_id=session.id, answer=msg.content, citations=citations)
 
 
 @router.get(
@@ -87,10 +85,7 @@ def list_sessions(
     sessions = ai_copilot_service.list_sessions(db, current_user)
     return [
         ChatSessionResponse(
-            id=s.id,
-            title=s.title,
-            created_at=s.created_at,
-            updated_at=s.updated_at
+            id=s.id, title=s.title, created_at=s.created_at, updated_at=s.updated_at
         )
         for s in sessions
     ]
@@ -113,7 +108,7 @@ def get_session_messages(
             role=m.role,
             content=m.content,
             citations=[Citation(**c) for c in (m.citations_json or [])],
-            created_at=m.created_at
+            created_at=m.created_at,
         )
         for m in messages
     ]

@@ -13,30 +13,33 @@ class KBCategoryRepository:
 
     def get_by_id(self, category_id: uuid.UUID, organization_id: uuid.UUID) -> Optional[KBCategory]:
         stmt = select(KBCategory).where(
-            KBCategory.id == category_id,
-            KBCategory.organization_id == organization_id
+            KBCategory.id == category_id, KBCategory.organization_id == organization_id
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
     def get_by_slug(self, slug: str, organization_id: uuid.UUID) -> Optional[KBCategory]:
         stmt = select(KBCategory).where(
-            KBCategory.slug == slug,
-            KBCategory.organization_id == organization_id
+            KBCategory.slug == slug, KBCategory.organization_id == organization_id
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
     def list_all(self, organization_id: uuid.UUID) -> List[KBCategory]:
         """Returns all categories for building the tree in memory"""
-        stmt = select(KBCategory).where(
-            KBCategory.organization_id == organization_id
-        ).order_by(KBCategory.display_order.asc(), KBCategory.name.asc())
+        stmt = (
+            select(KBCategory)
+            .where(KBCategory.organization_id == organization_id)
+            .order_by(KBCategory.display_order.asc(), KBCategory.name.asc())
+        )
         return list(self.db.execute(stmt).scalars().all())
 
-    def get_subcategories(self, parent_id: Optional[uuid.UUID], organization_id: uuid.UUID) -> List[KBCategory]:
-        stmt = select(KBCategory).where(
-            KBCategory.parent_id == parent_id,
-            KBCategory.organization_id == organization_id
-        ).order_by(KBCategory.display_order.asc(), KBCategory.name.asc())
+    def get_subcategories(
+        self, parent_id: Optional[uuid.UUID], organization_id: uuid.UUID
+    ) -> List[KBCategory]:
+        stmt = (
+            select(KBCategory)
+            .where(KBCategory.parent_id == parent_id, KBCategory.organization_id == organization_id)
+            .order_by(KBCategory.display_order.asc(), KBCategory.name.asc())
+        )
         return list(self.db.execute(stmt).scalars().all())
 
     def create(self, category: KBCategory) -> KBCategory:

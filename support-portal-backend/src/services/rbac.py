@@ -12,6 +12,7 @@ Security invariants enforced here:
    target resource before mutation.
 5. Audit trail: every change produces an AuditLog entry.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -26,7 +27,7 @@ from src.core.exceptions import (
     ResourceConflictException,
     ValidationException,
 )
-from src.core.permissions import DEFAULT_ROLE_PERMISSIONS, permission_engine
+from src.core.permissions import permission_engine
 from src.models import ActionType, Role, UserRole, UserRoleAssignment
 from src.repositories.rbac import (
     permission_repo,
@@ -51,13 +52,9 @@ class RBACService:
         user_role: UserRole,
         org_id: uuid.UUID,
     ) -> Set[str]:
-        return permission_engine.resolve_permissions(
-            db, redis_client, user_id, user_role, org_id
-        )
+        return permission_engine.resolve_permissions(db, redis_client, user_id, user_role, org_id)
 
-    def get_permission_matrix(
-        self, db: Session, org_id: uuid.UUID
-    ) -> Dict[str, List[str]]:
+    def get_permission_matrix(self, db: Session, org_id: uuid.UUID) -> Dict[str, List[str]]:
         return permission_engine.get_permission_matrix(db, org_id)
 
     # ── Role Queries ─────────────────────────────────────────────────────
@@ -98,16 +95,12 @@ class RBACService:
 
         # Validate initial permissions — actor can only assign perms they have
         if initial_permissions:
-            self._assert_can_grant_permissions(
-                db, redis_client, actor, initial_permissions
-            )
+            self._assert_can_grant_permissions(db, redis_client, actor, initial_permissions)
 
-        role = role_repo.create_custom_role(
-            db, actor.organization_id, name, description
-        )
+        role = role_repo.create_custom_role(db, actor.organization_id, name, description)
 
         # Grant initial permissions
-        for codename in (initial_permissions or []):
+        for codename in initial_permissions or []:
             if permission_repo.get_by_codename(db, codename):
                 role_permission_repo.grant(db, role.id, codename)
 
@@ -184,7 +177,9 @@ class RBACService:
         role = self.get_role(db, role_id, actor.organization_id)
 
         if role.name == UserRole.OWNER.value:
-            raise ValidationException("The Owner role always holds all permissions and cannot be modified")
+            raise ValidationException(
+                "The Owner role always holds all permissions and cannot be modified"
+            )
 
         # Privilege escalation check
         self._assert_can_grant_permissions(db, redis_client, actor, [codename])
@@ -194,9 +189,7 @@ class RBACService:
             raise NotFoundException(f"Permission '{codename}' does not exist")
 
         if role_permission_repo.has_permission(db, role_id, codename):
-            raise ResourceConflictException(
-                f"Role already has permission '{codename}'"
-            )
+            raise ResourceConflictException(f"Role already has permission '{codename}'")
 
         role_permission_repo.grant(db, role_id, codename)
         db.commit()
@@ -274,15 +267,11 @@ class RBACService:
             raise NotFoundException("Role not found")
 
         if role.name == UserRole.OWNER.value and actor.role != UserRole.OWNER:
-            raise AuthorizationException(
-                "Only the current Owner can transfer the Owner role"
-            )
+            raise AuthorizationException("Only the current Owner can transfer the Owner role")
 
         # Owner protection: prevent de-roling the Owner without replacement
         if target_user.role == UserRole.OWNER and actor.role != UserRole.OWNER:
-            raise AuthorizationException(
-                "Only the Owner can change their own role"
-            )
+            raise AuthorizationException("Only the Owner can change their own role")
 
         # Privilege escalation: verify actor can grant this role's permissions
         role_codenames = role_permission_repo.get_for_role(db, role_id)

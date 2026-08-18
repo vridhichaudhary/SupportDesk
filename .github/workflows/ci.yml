@@ -86,7 +86,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/supportdesk_test
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret
+          SECRET_KEY: test-secret-for-ci-only-32-characters-long
           ENVIRONMENT: testing
           TESTING: 1
         run: pytest tests/ -v

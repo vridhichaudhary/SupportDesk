@@ -2,10 +2,10 @@
 Test suite for the Enterprise Ticket Management Engine (SPEC-009).
 Covers: lifecycle, state machine, permissions, bulk operations, merge.
 """
+
 import uuid
 
 from fastapi.testclient import TestClient
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Helpers
@@ -208,7 +208,7 @@ class TestTicketLifecycle:
 
     def test_assign_ticket(self, client: TestClient):
         token, ticket = self._setup(client, "t_assign")
-        auth = _signup_and_login(client, "t_assign2@co.com", "t_assign2 Org")
+        _signup_and_login(client, "t_assign2@co.com", "t_assign2 Org")
         # Self-assign
         resp = client.post(
             f"/api/v1/tickets/{ticket['id']}/assign",
@@ -327,7 +327,9 @@ class TestTicketStateMachine:
         # NEW → OPEN → RESOLVED → CLOSED
         tid = ticket["id"]
         client.post(f"/api/v1/tickets/{tid}/status", json={"status": "OPEN"}, headers=_auth(token))
-        client.post(f"/api/v1/tickets/{tid}/status", json={"status": "RESOLVED"}, headers=_auth(token))
+        client.post(
+            f"/api/v1/tickets/{tid}/status", json={"status": "RESOLVED"}, headers=_auth(token)
+        )
         resp = client.post(
             f"/api/v1/tickets/{tid}/status", json={"status": "CLOSED"}, headers=_auth(token)
         )
@@ -337,7 +339,9 @@ class TestTicketStateMachine:
     def test_cancelled_is_terminal(self, client: TestClient):
         token, ticket = self._setup(client, "sm_cancel")
         tid = ticket["id"]
-        client.post(f"/api/v1/tickets/{tid}/status", json={"status": "CANCELLED"}, headers=_auth(token))
+        client.post(
+            f"/api/v1/tickets/{tid}/status", json={"status": "CANCELLED"}, headers=_auth(token)
+        )
         resp = client.post(
             f"/api/v1/tickets/{tid}/status", json={"status": "OPEN"}, headers=_auth(token)
         )
@@ -357,7 +361,9 @@ class TestTicketStateMachine:
         token, ticket = self._setup(client, "sm_csat")
         tid = ticket["id"]
         client.post(f"/api/v1/tickets/{tid}/status", json={"status": "OPEN"}, headers=_auth(token))
-        client.post(f"/api/v1/tickets/{tid}/status", json={"status": "RESOLVED"}, headers=_auth(token))
+        client.post(
+            f"/api/v1/tickets/{tid}/status", json={"status": "RESOLVED"}, headers=_auth(token)
+        )
         resp = client.post(
             f"/api/v1/tickets/{tid}/status", json={"status": "CLOSED"}, headers=_auth(token)
         )

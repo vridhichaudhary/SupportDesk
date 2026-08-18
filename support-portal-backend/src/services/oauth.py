@@ -4,8 +4,8 @@ from typing import Optional
 import httpx
 import structlog
 
-from src.core.exceptions import ValidationException
 from src.core.config import settings
+from src.core.exceptions import ValidationException
 
 logger = structlog.get_logger()
 

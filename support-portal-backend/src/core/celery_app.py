@@ -1,14 +1,15 @@
 import os
+
 import sentry_sdk
-from sentry_sdk.integrations.celery import CeleryIntegration
 from celery import Celery
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 sentry_dsn = os.getenv("SENTRY_DSN")
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
         environment=os.getenv("ENVIRONMENT", "development"),
-        integrations=[CeleryIntegration()]
+        integrations=[CeleryIntegration()],
     )
 
 # Check if we're running tests to avoid starting up a real worker against a broken Redis during CI
@@ -22,7 +23,12 @@ celery_app = Celery(
     "supportdesk_pipeline",
     broker=redis_url,
     backend=redis_url,
-    include=["src.workers.document_tasks", "src.workers.routing_tasks", "src.workers.analytics_tasks", "src.workers.webhook_tasks"]
+    include=[
+        "src.workers.document_tasks",
+        "src.workers.routing_tasks",
+        "src.workers.analytics_tasks",
+        "src.workers.webhook_tasks",
+    ],
 )
 
 celery_app.conf.update(

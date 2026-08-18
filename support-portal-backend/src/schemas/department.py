@@ -3,6 +3,7 @@ Department Schemas
 ==================
 Pydantic request/response models for the Department API.
 """
+
 from __future__ import annotations
 
 import uuid

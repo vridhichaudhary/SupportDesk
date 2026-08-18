@@ -1,5 +1,5 @@
-from typing import List, Literal, Optional
 import json
+from typing import List, Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
 
     # CORS
-    BACKEND_CORS_ORIGINS: str | List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"])
+    BACKEND_CORS_ORIGINS: str | List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8000"]
+    )
 
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgrespassword@localhost:5433/supportdesk"
@@ -29,8 +31,8 @@ class Settings(BaseSettings):
 
     # Observability
     SENTRY_DSN: Optional[str] = None
-    SENTRY_TRACES_SAMPLE_RATE: float = 0.1   # 10% of requests traced
-    ENABLE_METRICS: bool = True               # Expose /metrics endpoint
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1  # 10% of requests traced
+    ENABLE_METRICS: bool = True  # Expose /metrics endpoint
 
     # Security
     ALLOWED_HOSTS: str | List[str] = Field(default=["*"])
@@ -61,9 +63,13 @@ class Settings(BaseSettings):
             if self.SECRET_KEY == "supportdesk-super-secret-jwt-key-2026":
                 raise ValueError("SECRET_KEY must be changed in production")
             if "localhost" in self.DATABASE_URL:
-                raise ValueError("DATABASE_URL must point to a production database in production environment")
+                raise ValueError(
+                    "DATABASE_URL must point to a production database in production environment"
+                )
             if "localhost" in self.FRONTEND_URL:
-                raise ValueError("FRONTEND_URL must point to a production frontend in production environment")
+                raise ValueError(
+                    "FRONTEND_URL must point to a production frontend in production environment"
+                )
         return self
 
 

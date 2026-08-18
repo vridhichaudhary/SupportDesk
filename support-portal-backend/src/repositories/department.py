@@ -4,7 +4,9 @@ Department Repository
 Data access layer for the Department model.
 No business logic. Tenant-isolated by organization_id.
 """
+
 from __future__ import annotations
+from datetime import timezone
 
 import uuid
 from typing import List, Optional
@@ -16,10 +18,7 @@ from src.models import Department, DepartmentStatus
 
 
 class DepartmentRepository:
-
-    def get(
-        self, db: Session, department_id: uuid.UUID, org_id: uuid.UUID
-    ) -> Optional[Department]:
+    def get(self, db: Session, department_id: uuid.UUID, org_id: uuid.UUID) -> Optional[Department]:
         stmt = select(Department).where(
             Department.id == department_id,
             Department.organization_id == org_id,
@@ -53,9 +52,7 @@ class DepartmentRepository:
         )
         return db.execute(stmt).scalar_one()
 
-    def get_by_name(
-        self, db: Session, name: str, org_id: uuid.UUID
-    ) -> Optional[Department]:
+    def get_by_name(self, db: Session, name: str, org_id: uuid.UUID) -> Optional[Department]:
         stmt = select(Department).where(
             Department.organization_id == org_id,
             Department.name == name,
@@ -111,7 +108,7 @@ class DepartmentRepository:
     def soft_delete(self, db: Session, dept: Department) -> None:
         from datetime import datetime
 
-        dept.deleted_at = datetime.utcnow()
+        dept.deleted_at = datetime.now(timezone.utc)
         dept.status = DepartmentStatus.DELETED
         db.add(dept)
         db.flush()

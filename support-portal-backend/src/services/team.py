@@ -4,6 +4,7 @@ Team Service
 Business logic for Team and TeamMember management.
 Enforces tenant isolation, capacity limits, uniqueness, and audit logging.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -23,7 +24,6 @@ from src.services.audit_log import audit_log_service
 
 
 class TeamService:
-
     def __init__(
         self,
         repo: TeamRepository,
@@ -36,9 +36,7 @@ class TeamService:
     # Read
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_or_404(
-        self, db: Session, team_id: uuid.UUID, org_id: uuid.UUID
-    ) -> Team:
+    def get_or_404(self, db: Session, team_id: uuid.UUID, org_id: uuid.UUID) -> Team:
         team = self.repo.get(db, team_id, org_id)
         if not team:
             raise NotFoundException("Team not found")
@@ -52,7 +50,9 @@ class TeamService:
         skip: int = 0,
         limit: int = 100,
     ) -> dict:
-        items = self.repo.list_active(db, org_id, department_id=department_id, skip=skip, limit=limit)
+        items = self.repo.list_active(
+            db, org_id, department_id=department_id, skip=skip, limit=limit
+        )
         total = self.repo.count_active(db, org_id, department_id=department_id)
         return {"items": items, "total": total, "skip": skip, "limit": limit}
 

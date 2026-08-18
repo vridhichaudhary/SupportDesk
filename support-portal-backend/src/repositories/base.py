@@ -77,9 +77,9 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def delete(self, db: Session, db_obj: ModelType) -> None:
         if hasattr(self.model, "deleted_at"):
-            from datetime import datetime
+            from datetime import datetime, timezone
 
-            db_obj.deleted_at = datetime.utcnow()
+            db_obj.deleted_at = datetime.now(timezone.utc)
             db.add(db_obj)
         else:
             db.delete(db_obj)

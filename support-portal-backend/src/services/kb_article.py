@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
 from src.core.exceptions import SupportDeskException
-from src.models import KBArticle, KBArticleVersion, KBArticleStatus, VisibilityLevel
+from src.models import KBArticle, KBArticleStatus, KBArticleVersion, VisibilityLevel
 from src.repositories.kb_article import KBArticleRepository
 from src.repositories.kb_version import KBVersionRepository
 
@@ -20,9 +20,7 @@ class KBArticleService:
         article = self.repo.get_by_id(article_id, org_id)
         if not article:
             raise SupportDeskException(
-                message="Article not found",
-                code="NOT_FOUND",
-                status_code=404
+                message="Article not found", code="NOT_FOUND", status_code=404
             )
         return article
 
@@ -30,9 +28,7 @@ class KBArticleService:
         article = self.repo.get_by_slug(slug, org_id)
         if not article:
             raise SupportDeskException(
-                message="Article not found",
-                code="NOT_FOUND",
-                status_code=404
+                message="Article not found", code="NOT_FOUND", status_code=404
             )
         return article
 
@@ -58,7 +54,7 @@ class KBArticleService:
             raise SupportDeskException(
                 message="An article with this slug already exists.",
                 code="CONFLICT",
-                status_code=409
+                status_code=409,
             )
 
         article = KBArticle(
@@ -66,17 +62,22 @@ class KBArticleService:
             author_id=author_id,
             status=KBArticleStatus.DRAFT,
             version=1,
-            **data
+            **data,
         )
         article = self.repo.create(article)
 
         # Snapshot initial version
         self._snapshot_version(article, author_id, "Initial creation")
-        
+
         return article
 
     def update_article(
-        self, article_id: uuid.UUID, data: dict, org_id: uuid.UUID, editor_id: uuid.UUID, edit_reason: Optional[str] = None
+        self,
+        article_id: uuid.UUID,
+        data: dict,
+        org_id: uuid.UUID,
+        editor_id: uuid.UUID,
+        edit_reason: Optional[str] = None,
     ) -> KBArticle:
         article = self.get_article(article_id, org_id)
 
@@ -87,7 +88,7 @@ class KBArticleService:
                 raise SupportDeskException(
                     message="An article with this slug already exists.",
                     code="CONFLICT",
-                    status_code=409
+                    status_code=409,
                 )
 
         content_changed = False
@@ -104,43 +105,49 @@ class KBArticleService:
 
         return self.repo.update(article)
 
-    def transition_status(self, article_id: uuid.UUID, org_id: uuid.UUID, new_status: KBArticleStatus, actor_id: uuid.UUID) -> KBArticle:
+    def transition_status(
+        self,
+        article_id: uuid.UUID,
+        org_id: uuid.UUID,
+        new_status: KBArticleStatus,
+        actor_id: uuid.UUID,
+    ) -> KBArticle:
         article = self.get_article(article_id, org_id)
-        
+
         # State machine validations could go here
         # e.g., only IN_REVIEW can become APPROVED, only APPROVED can become PUBLISHED
-        
+
         if new_status == KBArticleStatus.PUBLISHED and article.status != KBArticleStatus.PUBLISHED:
-            article.published_at = datetime.utcnow()
-            
+            article.published_at = datetime.now(timezone.utc)
+
         article.status = new_status
         return self.repo.update(article)
 
     def delete_article(self, article_id: uuid.UUID, org_id: uuid.UUID) -> None:
         article = self.get_article(article_id, org_id)
         # Soft delete
-        article.deleted_at = datetime.utcnow()
+        article.deleted_at = datetime.now(timezone.utc)
         self.repo.update(article)
 
-    def restore_version(self, article_id: uuid.UUID, version_number: int, org_id: uuid.UUID, editor_id: uuid.UUID) -> KBArticle:
+    def restore_version(
+        self, article_id: uuid.UUID, version_number: int, org_id: uuid.UUID, editor_id: uuid.UUID
+    ) -> KBArticle:
         article = self.get_article(article_id, org_id)
-        
+
         version_record = self.version_repo.get_by_version_number(article_id, version_number)
         if not version_record:
             raise SupportDeskException(
-                message="Version not found",
-                code="NOT_FOUND",
-                status_code=404
+                message="Version not found", code="NOT_FOUND", status_code=404
             )
-            
+
         article.title = version_record.title
         article.content = version_record.content
         article.summary = version_record.summary
         article.version += 1
-        
+
         self.repo.update(article)
         self._snapshot_version(article, editor_id, f"Restored from version {version_number}")
-        
+
         return article
 
     def _snapshot_version(self, article: KBArticle, editor_id: uuid.UUID, edit_reason: str):
@@ -151,7 +158,7 @@ class KBArticleService:
             title=article.title,
             content=article.content,
             summary=article.summary,
-            edit_reason=edit_reason
+            edit_reason=edit_reason,
         )
         self.version_repo.create(version)
 

@@ -4,10 +4,11 @@ Department Service
 Business logic for Department management.
 Enforces tenant isolation, name uniqueness, and audit logging.
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,6 @@ from src.services.audit_log import audit_log_service
 
 
 class DepartmentService:
-
     def __init__(self, repo: DepartmentRepository) -> None:
         self.repo = repo
 
@@ -26,9 +26,7 @@ class DepartmentService:
     # Read
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_or_404(
-        self, db: Session, department_id: uuid.UUID, org_id: uuid.UUID
-    ) -> Department:
+    def get_or_404(self, db: Session, department_id: uuid.UUID, org_id: uuid.UUID) -> Department:
         dept = self.repo.get(db, department_id, org_id)
         if not dept:
             raise NotFoundException("Department not found")

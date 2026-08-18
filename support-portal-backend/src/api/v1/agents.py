@@ -5,15 +5,16 @@ Endpoints for Agent Profile, Skills, Availability, Working Hours,
 and Presence (Heartbeat).
 All endpoints are tenant-scoped and RBAC-secured.
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import Dict, List
+from typing import List
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from src.core.authorization import require_any_permission, require_permission
+from src.core.authorization import require_permission
 from src.core.dependencies import get_db, get_redis
 from src.core.exceptions import NotFoundException
 from src.models import User
@@ -54,7 +55,9 @@ def list_skills(
     from src.models import SkillCategory
 
     cat = SkillCategory(category) if category else None
-    return agent_service.list_org_skills(db, actor.organization_id, category=cat, skip=skip, limit=limit)
+    return agent_service.list_org_skills(
+        db, actor.organization_id, category=cat, skip=skip, limit=limit
+    )
 
 
 @router.post(
@@ -163,7 +166,9 @@ def set_my_availability(
     )
 
 
-@router.get("/me/working-hours", response_model=WorkingHoursResponse, summary="Get my working hours")
+@router.get(
+    "/me/working-hours", response_model=WorkingHoursResponse, summary="Get my working hours"
+)
 def get_my_working_hours(
     actor: User = require_permission("view_agent_profiles"),
     db: Session = Depends(get_db),
@@ -174,7 +179,9 @@ def get_my_working_hours(
     return wh
 
 
-@router.put("/me/working-hours", response_model=WorkingHoursResponse, summary="Update my working hours")
+@router.put(
+    "/me/working-hours", response_model=WorkingHoursResponse, summary="Update my working hours"
+)
 def update_my_working_hours(
     body: WorkingHoursUpdate,
     actor: User = require_permission("manage_availability"),
@@ -257,7 +264,9 @@ def get_agent_profile(
     return profile
 
 
-@router.patch("/{agent_id}/profile", response_model=AgentProfileResponse, summary="Update agent profile")
+@router.patch(
+    "/{agent_id}/profile", response_model=AgentProfileResponse, summary="Update agent profile"
+)
 def update_agent_profile(
     agent_id: uuid.UUID,
     body: AgentProfileUpdate,
@@ -324,4 +333,6 @@ def get_team_presence(
 ):
     ids = [uuid.UUID(uid.strip()) for uid in user_ids.split(",") if uid.strip()]
     presence_data = agent_service.get_team_presence(redis, ids)
-    return TeamPresenceResponse(presence={k: PresenceResponse(**v) for k, v in presence_data.items()})
+    return TeamPresenceResponse(
+        presence={k: PresenceResponse(**v) for k, v in presence_data.items()}
+    )

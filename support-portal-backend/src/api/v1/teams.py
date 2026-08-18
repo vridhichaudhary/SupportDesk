@@ -4,6 +4,7 @@ Teams API
 CRUD endpoints for Teams and Team Member management.
 Secured by the RBAC Permission Engine.
 """
+
 from __future__ import annotations
 
 import uuid

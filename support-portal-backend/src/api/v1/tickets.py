@@ -4,33 +4,33 @@ Tickets API
 Core ticket lifecycle endpoints for the SupportDesk Enterprise Ticket Engine.
 All endpoints are tenant-isolated and secured by the RBAC Permission Engine.
 """
+
 from __future__ import annotations
 
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from src.core.authorization import require_permission, require_any_permission
+from src.core.authorization import require_permission
 from src.core.dependencies import get_db
 from src.core.exceptions import ValidationException
-from src.models import User, UserRole, Customer
+from src.models import Customer, User, UserRole
+from src.repositories.thread import thread_repository
 from src.schemas.ticket import (
-    TicketCreate,
-    TicketUpdate,
-    TicketResponse,
-    TicketDetailResponse,
-    TicketAssign,
-    TicketStatusUpdate,
-    TicketPriorityUpdate,
-    TicketReplyRequest,
-    TicketMergeRequest,
     BulkAssignRequest,
     BulkStatusRequest,
+    TicketAssign,
+    TicketCreate,
+    TicketDetailResponse,
+    TicketMergeRequest,
+    TicketReplyRequest,
+    TicketResponse,
+    TicketStatusUpdate,
+    TicketUpdate,
 )
 from src.services.ticket import ticket_service
-from src.repositories.thread import thread_repository
 from src.utils.pagination import PaginatedResult
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
@@ -58,15 +58,19 @@ def create_ticket(
     """
     # Auto-generate ticket number if not provided
     if not body.ticket_number:
-        body.ticket_number = ticket_service.repository.generate_ticket_number(db, actor.organization_id)
-        
+        body.ticket_number = ticket_service.repository.generate_ticket_number(
+            db, actor.organization_id
+        )
+
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer:
             raise HTTPException(status_code=403, detail="Customer record not found")
         body.customer_id = customer.id
-        
-    return ticket_service.create_ticket(db, obj_in=body, organization_id=actor.organization_id, actor_id=actor.id)
+
+    return ticket_service.create_ticket(
+        db, obj_in=body, organization_id=actor.organization_id, actor_id=actor.id
+    )
 
 
 @router.get(
@@ -77,7 +81,9 @@ def create_ticket(
 def list_tickets(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    q: Optional[str] = Query(None, description="Free-text search on subject, ticket number, customer email"),
+    q: Optional[str] = Query(
+        None, description="Free-text search on subject, ticket number, customer email"
+    ),
     status_filter: Optional[str] = Query(None, alias="status"),
     priority_filter: Optional[str] = Query(None, alias="priority"),
     category_filter: Optional[str] = Query(None, alias="category"),
@@ -131,15 +137,17 @@ def get_ticket(
     Requires `view_tickets` permission.
     """
     ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
-    
+
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer or ticket.customer_id != customer.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
-            
+
     # Attach threads. Agents/admins see internal notes; customers wouldn't.
     include_internal = True
-    ticket.threads = thread_repository.get_for_ticket(db, ticket_id, include_internal=include_internal)
+    ticket.threads = thread_repository.get_for_ticket(
+        db, ticket_id, include_internal=include_internal
+    )
     return ticket
 
 
@@ -158,7 +166,9 @@ def update_ticket(
     Update ticket subject, category, or priority.
     Requires `reply_tickets` permission.
     """
-    return ticket_service.update(db, id=ticket_id, obj_in=body, organization_id=actor.organization_id)
+    return ticket_service.update(
+        db, id=ticket_id, obj_in=body, organization_id=actor.organization_id
+    )
 
 
 @router.delete(
@@ -225,10 +235,14 @@ def update_ticket_status(
     """
     try:
         return ticket_service.update_status(
-            db, ticket_id=ticket_id, org_id=actor.organization_id, actor_id=actor.id, new_status=body.status
+            db,
+            ticket_id=ticket_id,
+            org_id=actor.organization_id,
+            actor_id=actor.id,
+            new_status=body.status,
         )
     except ValidationException as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
 
 @router.post(
@@ -248,16 +262,16 @@ def reply_to_ticket(
     Requires `reply_tickets` permission.
     """
     ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
-    
+
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer or ticket.customer_id != customer.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
-            
+
     is_internal = body.is_internal
     if actor.role == UserRole.CUSTOMER:
-        is_internal = False # Customers can never send internal notes
-        
+        is_internal = False  # Customers can never send internal notes
+
     return ticket_service.reply(
         db,
         ticket_id=ticket_id,
@@ -284,7 +298,7 @@ def get_thread(
     Requires `view_tickets` permission.
     """
     ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
-    
+
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer or ticket.customer_id != customer.id:
@@ -307,19 +321,24 @@ def get_timeline(
     Requires `view_tickets` permission.
     """
     from sqlalchemy import select
+
     from src.models import TicketTimeline
 
     ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
-    
+
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer or ticket.customer_id != customer.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
-    events = db.execute(
-        select(TicketTimeline)
-        .where(TicketTimeline.ticket_id == ticket_id)
-        .order_by(TicketTimeline.created_at.asc())
-    ).scalars().all()
+    events = (
+        db.execute(
+            select(TicketTimeline)
+            .where(TicketTimeline.ticket_id == ticket_id)
+            .order_by(TicketTimeline.created_at.asc())
+        )
+        .scalars()
+        .all()
+    )
     return events
 
 
@@ -353,7 +372,7 @@ def merge_tickets(
             actor_id=actor.id,
         )
     except ValidationException as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -385,7 +404,9 @@ def bulk_assign(
                 assigned_user_id=body.assigned_user_id,
                 assigned_team_id=body.assigned_team_id,
             )
-            results.append({"ticket_id": str(ticket_id), "success": True, "ticket_number": t.ticket_number})
+            results.append(
+                {"ticket_id": str(ticket_id), "success": True, "ticket_number": t.ticket_number}
+            )
         except Exception as e:
             results.append({"ticket_id": str(ticket_id), "success": False, "error": str(e)})
     return {"results": results}
@@ -415,7 +436,9 @@ def bulk_status_update(
                 actor_id=actor.id,
                 new_status=body.status,
             )
-            results.append({"ticket_id": str(ticket_id), "success": True, "new_status": t.status.value})
+            results.append(
+                {"ticket_id": str(ticket_id), "success": True, "new_status": t.status.value}
+            )
         except ValidationException as e:
             results.append({"ticket_id": str(ticket_id), "success": False, "error": str(e)})
     return {"results": results}

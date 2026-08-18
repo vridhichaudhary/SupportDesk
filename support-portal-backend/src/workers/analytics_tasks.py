@@ -1,12 +1,14 @@
+from datetime import datetime, timezone
+
 import structlog
-from datetime import datetime, timedelta
 
 from src.core.celery_app import celery_app
 from src.core.database import SessionLocal
-from src.models import Organization, AnalyticsSnapshot, Ticket
+from src.models import AnalyticsSnapshot, Organization
 from src.services.analytics import analytics_service
 
 logger = structlog.get_logger()
+
 
 @celery_app.task
 def aggregate_daily_analytics_task():
@@ -17,12 +19,12 @@ def aggregate_daily_analytics_task():
     db = SessionLocal()
     try:
         orgs = db.query(Organization).all()
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
         for org in orgs:
             # Reusing the service for the 1 day scope
             exec_data = analytics_service.get_executive_dashboard(db, org.id, days=1)
-            
+
             snapshot = AnalyticsSnapshot(
                 organization_id=org.id,
                 date=today,
@@ -33,15 +35,14 @@ def aggregate_daily_analytics_task():
                 sla_compliance_percent=exec_data["sla_compliance_percent"],
                 ai_resolution_rate_percent=exec_data["ai_resolution_rate_percent"],
             )
-            
+
             # Upsert logic (delete existing if rerun)
             db.query(AnalyticsSnapshot).filter(
-                AnalyticsSnapshot.organization_id == org.id,
-                AnalyticsSnapshot.date == today
+                AnalyticsSnapshot.organization_id == org.id, AnalyticsSnapshot.date == today
             ).delete()
-            
+
             db.add(snapshot)
-            
+
         db.commit()
         logger.info("Daily analytics aggregation complete", orgs_processed=len(orgs))
     except Exception as e:
@@ -49,6 +50,7 @@ def aggregate_daily_analytics_task():
         db.rollback()
     finally:
         db.close()
+
 
 @celery_app.task
 def refresh_dashboard_cache_task():

@@ -1,15 +1,15 @@
-import structlog
 import uuid
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
+import structlog
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, select
-from pgvector.sqlalchemy import Vector
 
-from src.models import KnowledgeVector, KnowledgeSourceType
+from src.models import KnowledgeSourceType, KnowledgeVector
 from src.services.embeddings import embedding_service
 
 logger = structlog.get_logger()
+
 
 class RetrievalService:
     def search(
@@ -26,14 +26,14 @@ class RetrievalService:
         """
         # Generate query embedding
         query_embedding = embedding_service.get_embedding(query, task_type="retrieval_query")
-        
+
         if not query_embedding:
             logger.error("Failed to generate query embedding", query=query)
             return []
 
         # Start base query, filtering by organization
         stmt = select(KnowledgeVector).filter(KnowledgeVector.organization_id == organization_id)
-        
+
         if source_types:
             stmt = stmt.filter(KnowledgeVector.source_type.in_(source_types))
 
@@ -42,7 +42,7 @@ class RetrievalService:
         stmt = stmt.order_by(KnowledgeVector.embedding.l2_distance(query_embedding)).limit(top_k)
 
         results = db.scalars(stmt).all()
-        
+
         return [
             {
                 "id": str(r.id),
@@ -55,5 +55,6 @@ class RetrievalService:
             }
             for r in results
         ]
+
 
 retrieval_service = RetrievalService()

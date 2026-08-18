@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
 from sqlalchemy.orm import Session
@@ -21,15 +21,15 @@ from src.core.security import (
 from src.models import (
     ActionType,
     AuthTokenType,
+    Customer,
     Organization,
     User,
     UserRole,
     UserSession,
-    Customer,
 )
 from src.repositories.session import session_repository
 from src.repositories.user import user_repository
-from src.schemas.auth import OwnerSignupRequest
+from src.schemas.auth import CustomerSignupRequest, OwnerSignupRequest
 from src.services.audit_log import audit_log_service
 from src.services.email import email_service
 from src.services.oauth import github_oauth_provider, google_oauth_provider
@@ -100,7 +100,7 @@ class AuthService:
             user_id=user.id,
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
-            expires_at=datetime.utcnow() + timedelta(hours=24),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
             user.email, user.display_name or user.first_name, verification_raw
@@ -120,7 +120,7 @@ class AuthService:
 
     # ── Customer Signup ──────────────────────────────────────────────────────────
     def signup_customer(
-        self, db: Session, payload: "CustomerSignupRequest"
+        self, db: Session, payload: CustomerSignupRequest
     ) -> Tuple[User, Organization, str, str]:
         # Grab the default org (for simplicity in this prototype, we'll use the first one)
         org = db.query(Organization).first()
@@ -133,7 +133,7 @@ class AuthService:
             raise ValidationException("Email is already registered")
 
         hashed_pwd = hash_password(payload.password)
-        
+
         # 1. Create User
         user = User(
             id=uuid.uuid4(),
@@ -148,17 +148,17 @@ class AuthService:
             is_active=True,
         )
         db.add(user)
-        
+
         # 2. Create Customer record mapping
         customer = Customer(
             id=uuid.uuid4(),
             organization_id=org.id,
             email=payload.email.lower().strip(),
             name=f"{payload.first_name} {payload.last_name}",
-            company=payload.company
+            company=payload.company,
         )
         db.add(customer)
-        
+
         db.commit()
         db.refresh(user)
 
@@ -187,7 +187,7 @@ class AuthService:
             user_id=user.id,
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
-            expires_at=datetime.utcnow() + timedelta(hours=24),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
             user.email, user.display_name or user.first_name, verification_raw
@@ -209,7 +209,7 @@ class AuthService:
             raise AuthenticationException("Invalid email or password")
 
         # Check account lock out
-        if user.locked_until and user.locked_until > datetime.utcnow():
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
             raise AuthenticationException(
                 "Account is temporarily locked due to multiple failed attempts. Please try again later."
             )
@@ -222,7 +222,7 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=15)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
             db.add(user)
             db.commit()
             raise AuthenticationException("Invalid email or password")
@@ -230,7 +230,7 @@ class AuthService:
         # Reset failed attempts on success
         user.failed_login_attempts = 0
         user.locked_until = None
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
 
@@ -356,7 +356,7 @@ class AuthService:
             user_id=user.id,
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
-            expires_at=datetime.utcnow() + timedelta(hours=24),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
             user.email, user.display_name or user.first_name, verification_raw
@@ -375,7 +375,7 @@ class AuthService:
             user_id=user.id,
             token_hash=reset_hash,
             token_type=AuthTokenType.PASSWORD_RESET,
-            expires_at=datetime.utcnow() + timedelta(hours=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         )
         email_service.send_password_reset_email(
             user.email, user.display_name or user.first_name, reset_raw

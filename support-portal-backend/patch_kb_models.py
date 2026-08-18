@@ -20,7 +20,12 @@ class VisibilityLevel(enum.Enum):
     DEPARTMENT = "DEPARTMENT"
     ORGANIZATION = "ORGANIZATION"
 """
-content = re.sub(r"class KBArticleStatus\(enum\.Enum\):.*?ARCHIVED = \"ARCHIVED\"\n", kb_status_enum, content, flags=re.DOTALL)
+content = re.sub(
+    r"class KBArticleStatus\(enum\.Enum\):.*?ARCHIVED = \"ARCHIVED\"\n",
+    kb_status_enum,
+    content,
+    flags=re.DOTALL,
+)
 
 # 2. Add Association Tables and New Models
 kb_models_pattern = r"class KBArticle\(Base\):.*?class AISuggestion\(Base\):"
@@ -72,22 +77,22 @@ class KBArticle(Base):
     category_id = Column(UUID(as_uuid=True), ForeignKey("kb_categories.id", ondelete="SET NULL"), nullable=True)
     author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+
     title = Column(String(255), nullable=False)
     slug = Column(String(255), nullable=False)
     summary = Column(Text, nullable=True)
     content = Column(Text, nullable=False)
     rendered_html = Column(Text, nullable=True)
-    
+
     status = Column(Enum(KBArticleStatus), nullable=False, default=KBArticleStatus.DRAFT)
     visibility = Column(Enum(VisibilityLevel), nullable=False, default=VisibilityLevel.INTERNAL)
     version = Column(Integer, default=1, nullable=False)
-    
+
     reading_time_minutes = Column(Integer, default=0)
     views = Column(Integer, default=0)
     helpful_count = Column(Integer, default=0)
     not_helpful_count = Column(Integer, default=0)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = Column(DateTime, nullable=True)
@@ -97,7 +102,7 @@ class KBArticle(Base):
     category = relationship("KBCategory", back_populates="articles")
     author = relationship("User", foreign_keys=[author_id])
     reviewer = relationship("User", foreign_keys=[reviewer_id])
-    
+
     tags = relationship("Tag", secondary=kb_article_tags)
     related_to = relationship(
         "KBArticle",
@@ -122,13 +127,13 @@ class KBArticleVersion(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
     editor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+
     version_number = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
     edit_reason = Column(String(255), nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="versions")
@@ -145,12 +150,12 @@ class KBAttachment(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
     uploader_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+
     filename = Column(String(255), nullable=False)
     file_url = Column(String(1024), nullable=False)
     size = Column(Integer, nullable=False)
     mime_type = Column(String(100), nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="attachments")
@@ -165,7 +170,7 @@ class KBAnalytics(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     session_id = Column(String(255), nullable=True)
     event_type = Column(String(50), nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="analytics")

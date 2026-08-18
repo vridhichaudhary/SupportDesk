@@ -1,11 +1,8 @@
-import uuid
-from typing import Dict, Any, List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
+from src.core.dependencies import get_current_user, get_db
 from src.models import User, UserRole
 from src.services.analytics import analytics_service
 
@@ -40,7 +37,9 @@ def get_agent_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return analytics_service.get_agent_dashboard(db, current_user.organization_id, current_user.id, days=days)
+    return analytics_service.get_agent_dashboard(
+        db, current_user.organization_id, current_user.id, days=days
+    )
 
 
 @router.get("/trends")
@@ -64,5 +63,5 @@ def export_analytics(
     return PlainTextResponse(
         content=csv_data,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=analytics_{type}.csv"}
+        headers={"Content-Disposition": f"attachment; filename=analytics_{type}.csv"},
     )

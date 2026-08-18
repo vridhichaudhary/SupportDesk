@@ -1,10 +1,10 @@
 import uuid
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from src.models import TicketStatus, TicketPriority, TicketCategory, TicketSource
+from src.models import TicketCategory, TicketPriority, TicketSource, TicketStatus
 from src.schemas.customer import CustomerResponse
 from src.schemas.thread import ThreadResponse
 
@@ -53,7 +53,7 @@ class TicketResponse(TicketBase):
     status: TicketStatus
     created_by_id: Optional[uuid.UUID] = None
     merged_into_id: Optional[uuid.UUID] = None
-    
+
     created_at: datetime
     updated_at: datetime
     resolved_at: Optional[datetime] = None
@@ -80,10 +80,12 @@ class TicketMergeRequest(BaseModel):
 
 class BulkActionRequest(BaseModel):
     ticket_ids: List[uuid.UUID]
-    
+
+
 class BulkAssignRequest(BulkActionRequest):
     assigned_user_id: Optional[uuid.UUID] = None
     assigned_team_id: Optional[uuid.UUID] = None
+
 
 class BulkStatusRequest(BulkActionRequest):
     status: TicketStatus

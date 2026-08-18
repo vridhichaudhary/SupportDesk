@@ -4,7 +4,9 @@ Team Repository
 Data access layer for Team and TeamMember models.
 No business logic. Tenant-isolated by organization_id.
 """
+
 from __future__ import annotations
+from datetime import timezone
 
 import uuid
 from typing import List, Optional
@@ -16,10 +18,7 @@ from src.models import Team, TeamMember, TeamStatus
 
 
 class TeamRepository:
-
-    def get(
-        self, db: Session, team_id: uuid.UUID, org_id: uuid.UUID
-    ) -> Optional[Team]:
+    def get(self, db: Session, team_id: uuid.UUID, org_id: uuid.UUID) -> Optional[Team]:
         stmt = select(Team).where(
             Team.id == team_id,
             Team.organization_id == org_id,
@@ -62,9 +61,7 @@ class TeamRepository:
             stmt = stmt.where(Team.department_id == department_id)
         return db.execute(stmt).scalar_one()
 
-    def get_by_name(
-        self, db: Session, name: str, org_id: uuid.UUID
-    ) -> Optional[Team]:
+    def get_by_name(self, db: Session, name: str, org_id: uuid.UUID) -> Optional[Team]:
         stmt = select(Team).where(
             Team.organization_id == org_id,
             Team.name == name,
@@ -152,14 +149,13 @@ class TeamRepository:
     def soft_delete(self, db: Session, team: Team) -> None:
         from datetime import datetime
 
-        team.deleted_at = datetime.utcnow()
+        team.deleted_at = datetime.now(timezone.utc)
         team.status = TeamStatus.DELETED
         db.add(team)
         db.flush()
 
 
 class TeamMemberRepository:
-
     def get_membership(
         self, db: Session, team_id: uuid.UUID, user_id: uuid.UUID
     ) -> Optional[TeamMember]:
@@ -181,9 +177,7 @@ class TeamMemberRepository:
         )
         return list(db.execute(stmt).scalars().all())
 
-    def list_user_teams(
-        self, db: Session, user_id: uuid.UUID
-    ) -> List[TeamMember]:
+    def list_user_teams(self, db: Session, user_id: uuid.UUID) -> List[TeamMember]:
         stmt = (
             select(TeamMember)
             .where(TeamMember.user_id == user_id)
@@ -218,9 +212,7 @@ class TeamMemberRepository:
         db.delete(membership)
         db.flush()
 
-    def set_primary(
-        self, db: Session, team_id: uuid.UUID, user_id: uuid.UUID
-    ) -> None:
+    def set_primary(self, db: Session, team_id: uuid.UUID, user_id: uuid.UUID) -> None:
         """Sets one member as primary, clears primary flag from all others."""
         all_members = self.list_team_members(db, team_id)
         for m in all_members:

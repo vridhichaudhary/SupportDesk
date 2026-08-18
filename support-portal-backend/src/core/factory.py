@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,12 +9,32 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import (
+    make_asgi_app,
+)
 
-from src.api.v1 import agents, auth, customers, departments, documents, health, knowledge, organizations, rbac, teams, tickets, users, ai, routing, automation, analytics, api_keys, webhooks, integrations
 from src.api import health as root_health
-import sentry_sdk
-from prometheus_client import make_asgi_app, CollectorRegistry, CONTENT_TYPE_LATEST, generate_latest, REGISTRY
-from starlette.responses import Response
+from src.api.v1 import (
+    agents,
+    ai,
+    analytics,
+    api_keys,
+    auth,
+    automation,
+    customers,
+    departments,
+    documents,
+    health,
+    integrations,
+    knowledge,
+    organizations,
+    rbac,
+    routing,
+    teams,
+    tickets,
+    users,
+    webhooks,
+)
 from src.core.config import settings
 from src.core.exceptions import SupportDeskException
 from src.core.logging import setup_logging
@@ -36,7 +57,7 @@ async def lifespan(app: FastAPI):
             traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
         )
         logger.info("Sentry initialized")
-        
+
     yield
     # Shutdown
     logger.info("Application shutting down")
@@ -60,8 +81,14 @@ def create_app() -> FastAPI:
             {"name": "Authentication", "description": "Authentication and session management."},
             {"name": "Users", "description": "User profiles and settings."},
             {"name": "Departments", "description": "Organizational department management."},
-            {"name": "Teams", "description": "Team management, member assignments, and capacity tracking."},
-            {"name": "Agents", "description": "Agent profiles, skills, availability, presence, and working hours."},
+            {
+                "name": "Teams",
+                "description": "Team management, member assignments, and capacity tracking.",
+            },
+            {
+                "name": "Agents",
+                "description": "Agent profiles, skills, availability, presence, and working hours.",
+            },
             {
                 "name": "Roles & Permissions",
                 "description": "Enterprise RBAC — role management, permission assignment, and authorization matrix.",

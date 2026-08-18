@@ -1,6 +1,6 @@
 import re
 
-with open('src/models.py', 'r') as f:
+with open("src/models.py", "r") as f:
     content = f.read()
 
 # Expand TicketStatus
@@ -17,7 +17,7 @@ content = re.sub(
     REOPENED = "REOPENED"
     CANCELLED = "CANCELLED"''',
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
 # Expand TicketPriority
@@ -30,11 +30,11 @@ content = re.sub(
     URGENT = "URGENT"
     CRITICAL = "CRITICAL"''',
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
 # Add TicketCategory, TicketSource, ThreadType
-new_enums = '''
+new_enums = """
 
 class TicketCategory(enum.Enum):
     BILLING = "BILLING"
@@ -59,12 +59,12 @@ class ThreadType(enum.Enum):
     AGENT_REPLY = "AGENT_REPLY"
     INTERNAL_NOTE = "INTERNAL_NOTE"
     SYSTEM_EVENT = "SYSTEM_EVENT"
-'''
+"""
 content = re.sub(
     r'(class TicketPriority\(enum\.Enum\):.*?CRITICAL = "CRITICAL")',
-    r'\1' + new_enums,
+    r"\1" + new_enums,
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
 # Expand ActionType
@@ -80,25 +80,25 @@ content = re.sub(
     TICKET_MERGED = "TICKET_MERGED"
     TICKET_CLOSED = "TICKET_CLOSED"
     TICKET_REOPENED = "TICKET_REOPENED"''',
-    content
+    content,
 )
 
 # Extend Customer
 content = re.sub(
-    r'    metadata_json = Column\(JSONType, nullable=True\)',
-    '''    phone = Column(String(50), nullable=True)
+    r"    metadata_json = Column\(JSONType, nullable=True\)",
+    """    phone = Column(String(50), nullable=True)
     company = Column(String(255), nullable=True)
     timezone = Column(String(50), default="UTC", nullable=False)
     language = Column(String(10), default="en", nullable=False)
     is_vip = Column(Boolean, default=False, nullable=False)
     total_tickets = Column(Integer, default=0, nullable=False)
     avg_satisfaction = Column(Integer, nullable=True)
-    metadata_json = Column(JSONType, nullable=True)''',
-    content
+    metadata_json = Column(JSONType, nullable=True)""",
+    content,
 )
 
 # Extend Ticket
-ticket_updates = '''
+ticket_updates = """
     ticket_number = Column(String(50), nullable=False, unique=True)
     department_id = Column(
         UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
@@ -142,17 +142,17 @@ ticket_updates = '''
         Index("ix_ticket_organization", "organization_id"),
         Index("ix_ticket_org_status_date", "organization_id", "status", "created_at"),
         Index("ix_ticket_number", "ticket_number"),
-    )'''
+    )"""
 
 content = re.sub(
-    r'    subject = Column\(String\(255\), nullable=False\).*?__table_args__ = \([^)]+\)',
+    r"    subject = Column\(String\(255\), nullable=False\).*?__table_args__ = \([^)]+\)",
     ticket_updates.strip(),
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
 # Remove TicketMessage and InternalNote, add TicketThread, TicketTimeline, TicketAttachment, TicketMerge
-thread_models = '''
+thread_models = """
 class TicketThread(Base):
     __tablename__ = "ticket_threads"
 
@@ -249,14 +249,14 @@ class TicketMerge(Base):
     merged_by = relationship("User")
 
     __table_args__ = (Index("ix_merge_target", "target_ticket_id"),)
-'''
+"""
 
 content = re.sub(
     r'class TicketMessage\(Base\):.*?__table_args__ = \(Index\("ix_internal_note_ticket", "ticket_id"\),\)',
     thread_models.strip(),
     content,
-    flags=re.DOTALL
+    flags=re.DOTALL,
 )
 
-with open('src/models.py', 'w') as f:
+with open("src/models.py", "w") as f:
     f.write(content)

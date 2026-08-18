@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Generator, Optional
 
 import redis
-from fastapi import Depends
+from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -10,7 +11,7 @@ from src.core.config import settings
 from src.core.database import SessionLocal
 from src.core.exceptions import AuthenticationException
 from src.core.security import decode_access_token, verify_api_key
-from src.models import User, APIKey
+from src.models import APIKey, User
 from src.repositories.user import user_repository
 
 security_scheme = HTTPBearer(auto_error=False)
@@ -99,13 +100,12 @@ def get_current_organization_id(
 # -------------------------------------------------------------------
 # Public API & Webhook Dependencies
 # -------------------------------------------------------------------
-from fastapi import Header
-from datetime import datetime, timezone
+
 
 def get_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> APIKey:
     """
     Validates either 'X-API-Key' or 'Authorization: Bearer <api_key>'.
@@ -113,42 +113,39 @@ def get_api_key(
     token = x_api_key
     if not token and authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
-        
+
     if not token:
         raise AuthenticationException("API Key missing")
-        
+
     if not token.startswith("sd_live_"):
         raise AuthenticationException("Invalid API Key format")
-        
+
     # Look up by prefix (first 12 chars: sd_live_XXXX)
     prefix = token[:12]
-    api_key_record = db.query(APIKey).filter(
-        APIKey.prefix == prefix,
-        APIKey.is_active == True
-    ).first()
-    
+    api_key_record = db.query(APIKey).filter(APIKey.prefix == prefix, APIKey.is_active).first()
+
     if not api_key_record:
         raise AuthenticationException("Invalid API Key")
-        
+
     # Verify exact secret
     if not verify_api_key(token, api_key_record.hashed_secret):
         raise AuthenticationException("Invalid API Key")
-        
+
     # Verify Expiration
-    if api_key_record.expires_at and api_key_record.expires_at < datetime.utcnow():
+    if api_key_record.expires_at and api_key_record.expires_at < datetime.now(timezone.utc):
         raise AuthenticationException("API Key expired")
-        
+
     # Update last used (we can defer this to a background task in high scale, but for now it's fine)
-    api_key_record.last_used_at = datetime.utcnow()
+    api_key_record.last_used_at = datetime.now(timezone.utc)
     db.commit()
-    
+
     return api_key_record
 
 
 def get_current_user_or_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> dict:
     """
     Allows endpoints to be used by either logged in UI users or programmatic API keys.
@@ -158,12 +155,15 @@ def get_current_user_or_api_key(
     if x_api_key or (authorization and authorization.startswith("Bearer sd_live_")):
         api_key = get_api_key(authorization, x_api_key, db)
         return {"user": None, "api_key": api_key, "org_id": api_key.organization_id}
-        
+
     # 2. Try User JWT
     try:
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=authorization.split(" ")[1]) if authorization else None
+        credentials = (
+            HTTPAuthorizationCredentials(scheme="Bearer", credentials=authorization.split(" ")[1])
+            if authorization
+            else None
+        )
         user = get_current_user(credentials, db)
         return {"user": user, "api_key": None, "org_id": user.organization_id}
     except Exception as e:
-        raise AuthenticationException("Not authenticated")
-
+        raise AuthenticationException("Not authenticated") from e

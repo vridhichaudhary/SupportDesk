@@ -4,6 +4,7 @@ Departments API
 CRUD endpoints for managing organizational departments.
 Secured by the RBAC Permission Engine.
 """
+
 from __future__ import annotations
 
 import uuid

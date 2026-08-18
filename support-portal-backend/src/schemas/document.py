@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.models import DocumentStatus
 
 # ── Document Chunk Schemas ──────────────────────────────────────────────────
+
 
 class DocumentChunkResponse(BaseModel):
     id: uuid.UUID
@@ -29,6 +30,7 @@ class DocumentChunkListResponse(BaseModel):
 
 
 # ── Document Schemas ────────────────────────────────────────────────────────
+
 
 class DocumentBase(BaseModel):
     title: str

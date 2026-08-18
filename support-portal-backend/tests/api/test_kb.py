@@ -2,10 +2,10 @@
 Test suite for SPEC-010: Enterprise Knowledge Base Management System.
 Covers: categories CRUD, article lifecycle, version history, workflow, feedback.
 """
+
 import uuid
 
 from fastapi.testclient import TestClient
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -45,7 +45,9 @@ def _create_category(client: TestClient, token: str, name: str = "Getting Starte
     return resp.json()
 
 
-def _create_article(client: TestClient, token: str, title: str = "Hello World", category_id: str = None) -> dict:
+def _create_article(
+    client: TestClient, token: str, title: str = "Hello World", category_id: str = None
+) -> dict:
     payload = {
         "title": title,
         "slug": title.lower().replace(" ", "-"),
@@ -174,7 +176,12 @@ class TestKBArticleCRUD:
         art = _create_article(client, token)
         resp = client.put(
             f"/api/v1/knowledge/articles/{art['id']}",
-            json={"title": "Updated Title", "slug": "updated-title", "content": "New content here.", "edit_reason": "Title update"},
+            json={
+                "title": "Updated Title",
+                "slug": "updated-title",
+                "content": "New content here.",
+                "edit_reason": "Title update",
+            },
             headers=_auth(token),
         )
         assert resp.status_code == 200
@@ -281,11 +288,15 @@ class TestKBVersions:
         ctx = _signup_and_login(client, "ver_restore@test.com", "VerRestoreOrg")
         token = ctx["access_token"]
         art = _create_article(client, token)
-        original_content = art["content"]
+        art["content"]
         # Update to v2
         client.put(
             f"/api/v1/knowledge/articles/{art['id']}",
-            json={"title": art["title"], "slug": art["slug"], "content": "Content that will be replaced"},
+            json={
+                "title": art["title"],
+                "slug": art["slug"],
+                "content": "Content that will be replaced",
+            },
             headers=_auth(token),
         )
         # Restore to v1
@@ -330,8 +341,12 @@ class TestKBAnalytics:
         token = ctx["access_token"]
         art = _create_article(client, token)
 
-        client.post(f"/api/v1/knowledge/articles/{art['id']}/vote?helpful=true", headers=_auth(token))
-        client.post(f"/api/v1/knowledge/articles/{art['id']}/vote?helpful=false", headers=_auth(token))
+        client.post(
+            f"/api/v1/knowledge/articles/{art['id']}/vote?helpful=true", headers=_auth(token)
+        )
+        client.post(
+            f"/api/v1/knowledge/articles/{art['id']}/vote?helpful=false", headers=_auth(token)
+        )
 
         updated = client.get(f"/api/v1/knowledge/articles/{art['id']}", headers=_auth(token)).json()
         assert updated["helpful_count"] == 1

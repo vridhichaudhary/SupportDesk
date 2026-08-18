@@ -1,14 +1,15 @@
 """
 Automation Rules API — CRUD for configuring routing rules.
 """
-import uuid
-from typing import List, Optional, Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
+from src.core.dependencies import get_current_user, get_db
 from src.models import User
 from src.services.automation import automation_service
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/automation", tags=["automation"])
 
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
+
 
 class AutomationRuleCreate(BaseModel):
     name: str = Field(..., min_length=2)
@@ -46,8 +48,10 @@ class AutomationRuleResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
-@router.get("/rules", response_model=List[AutomationRuleResponse],
-            summary="List all automation rules")
+
+@router.get(
+    "/rules", response_model=List[AutomationRuleResponse], summary="List all automation rules"
+)
 def list_rules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -55,35 +59,54 @@ def list_rules(
     rules = automation_service.list_rules(db, current_user.organization_id)
     return [
         AutomationRuleResponse(
-            id=r.id, name=r.name, trigger_event=r.trigger_event,
-            conditions_json=r.conditions_json, actions_json=r.actions_json,
-            is_active=r.is_active, created_at=r.created_at, updated_at=r.updated_at,
+            id=r.id,
+            name=r.name,
+            trigger_event=r.trigger_event,
+            conditions_json=r.conditions_json,
+            actions_json=r.actions_json,
+            is_active=r.is_active,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
         )
         for r in rules
     ]
 
 
-@router.post("/rules", response_model=AutomationRuleResponse,
-             status_code=status.HTTP_201_CREATED,
-             summary="Create an automation rule")
+@router.post(
+    "/rules",
+    response_model=AutomationRuleResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an automation rule",
+)
 def create_rule(
     data: AutomationRuleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     rule = automation_service.create_rule(
-        db, current_user.organization_id, data.name,
-        data.trigger_event, data.conditions_json, data.actions_json, data.is_active,
+        db,
+        current_user.organization_id,
+        data.name,
+        data.trigger_event,
+        data.conditions_json,
+        data.actions_json,
+        data.is_active,
     )
     return AutomationRuleResponse(
-        id=rule.id, name=rule.name, trigger_event=rule.trigger_event,
-        conditions_json=rule.conditions_json, actions_json=rule.actions_json,
-        is_active=rule.is_active, created_at=rule.created_at, updated_at=rule.updated_at,
+        id=rule.id,
+        name=rule.name,
+        trigger_event=rule.trigger_event,
+        conditions_json=rule.conditions_json,
+        actions_json=rule.actions_json,
+        is_active=rule.is_active,
+        created_at=rule.created_at,
+        updated_at=rule.updated_at,
     )
 
 
-@router.patch("/rules/{rule_id}", response_model=AutomationRuleResponse,
-              summary="Update an automation rule")
+@router.patch(
+    "/rules/{rule_id}", response_model=AutomationRuleResponse, summary="Update an automation rule"
+)
 def update_rule(
     rule_id: uuid.UUID,
     data: AutomationRuleUpdate,
@@ -93,14 +116,20 @@ def update_rule(
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     rule = automation_service.update_rule(db, current_user.organization_id, rule_id, updates)
     return AutomationRuleResponse(
-        id=rule.id, name=rule.name, trigger_event=rule.trigger_event,
-        conditions_json=rule.conditions_json, actions_json=rule.actions_json,
-        is_active=rule.is_active, created_at=rule.created_at, updated_at=rule.updated_at,
+        id=rule.id,
+        name=rule.name,
+        trigger_event=rule.trigger_event,
+        conditions_json=rule.conditions_json,
+        actions_json=rule.actions_json,
+        is_active=rule.is_active,
+        created_at=rule.created_at,
+        updated_at=rule.updated_at,
     )
 
 
-@router.delete("/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT,
-               summary="Delete an automation rule")
+@router.delete(
+    "/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete an automation rule"
+)
 def delete_rule(
     rule_id: uuid.UUID,
     db: Session = Depends(get_db),

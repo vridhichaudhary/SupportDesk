@@ -6,6 +6,7 @@ Data access layer for Permissions, Roles, RolePermissions, and UserRoleAssignmen
 All queries that involve cross-entity lookups are kept here.
 No business logic lives in this layer.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -14,7 +15,7 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.models import Permission, Role, RolePermission, UserRole, UserRoleAssignment
+from src.models import Permission, Role, RolePermission, UserRoleAssignment
 
 
 class PermissionRepository:
@@ -53,9 +54,11 @@ class RoleRepository:
 
     def list_roles_for_org(self, db: Session, org_id: uuid.UUID) -> List[Role]:
         """Returns system roles + org custom roles."""
-        stmt = select(Role).where(
-            (Role.is_system.is_(True)) | (Role.organization_id == org_id)
-        ).order_by(Role.is_system.desc(), Role.name)
+        stmt = (
+            select(Role)
+            .where((Role.is_system.is_(True)) | (Role.organization_id == org_id))
+            .order_by(Role.is_system.desc(), Role.name)
+        )
         return list(db.execute(stmt).scalars().all())
 
     def get_by_id(self, db: Session, role_id: uuid.UUID) -> Optional[Role]:
@@ -106,9 +109,7 @@ class RolePermissionRepository:
 
     def get_for_role(self, db: Session, role_id: uuid.UUID) -> List[str]:
         """Returns list of codenames assigned to a role."""
-        stmt = select(RolePermission.permission_codename).where(
-            RolePermission.role_id == role_id
-        )
+        stmt = select(RolePermission.permission_codename).where(RolePermission.role_id == role_id)
         return list(db.execute(stmt).scalars().all())
 
     def grant(self, db: Session, role_id: uuid.UUID, codename: str) -> RolePermission:

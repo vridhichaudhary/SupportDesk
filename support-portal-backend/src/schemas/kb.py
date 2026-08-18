@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.models import KBArticleStatus, VisibilityLevel
 
-
 # ── Category Schemas ────────────────────────────────────────────────────────
+
 
 class KBCategoryBase(BaseModel):
     name: str = Field(..., max_length=255)
@@ -16,8 +16,10 @@ class KBCategoryBase(BaseModel):
     display_order: int = 0
     parent_id: Optional[uuid.UUID] = None
 
+
 class KBCategoryCreate(KBCategoryBase):
     pass
+
 
 class KBCategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
@@ -25,6 +27,7 @@ class KBCategoryUpdate(BaseModel):
     description: Optional[str] = None
     display_order: Optional[int] = None
     parent_id: Optional[uuid.UUID] = None
+
 
 class KBCategoryResponse(KBCategoryBase):
     id: uuid.UUID
@@ -36,6 +39,7 @@ class KBCategoryResponse(KBCategoryBase):
 
 
 # ── Article Version Schemas ─────────────────────────────────────────────────
+
 
 class KBArticleVersionResponse(BaseModel):
     id: uuid.UUID
@@ -53,6 +57,7 @@ class KBArticleVersionResponse(BaseModel):
 
 # ── Article Schemas ─────────────────────────────────────────────────────────
 
+
 class KBArticleBase(BaseModel):
     title: str = Field(..., max_length=255)
     slug: str = Field(..., max_length=255)
@@ -61,8 +66,10 @@ class KBArticleBase(BaseModel):
     category_id: Optional[uuid.UUID] = None
     visibility: VisibilityLevel = VisibilityLevel.INTERNAL
 
+
 class KBArticleCreate(KBArticleBase):
     pass
+
 
 class KBArticleUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=255)
@@ -73,8 +80,10 @@ class KBArticleUpdate(BaseModel):
     visibility: Optional[VisibilityLevel] = None
     edit_reason: Optional[str] = None
 
+
 class KBArticleWorkflowUpdate(BaseModel):
     status: KBArticleStatus
+
 
 class KBArticleResponse(KBArticleBase):
     id: uuid.UUID
@@ -92,6 +101,7 @@ class KBArticleResponse(KBArticleBase):
     published_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class KBArticleListResponse(BaseModel):
     items: List[KBArticleResponse]

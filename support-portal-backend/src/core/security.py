@@ -1,6 +1,9 @@
 import hashlib
+import hmac
 import os
 import re
+import secrets
+import string
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
@@ -127,13 +130,11 @@ def decode_access_token(token: str) -> Dict[str, Any]:
     except jwt.InvalidTokenError:
         raise AuthenticationException("Invalid authentication token") from None
 
+
 # -------------------------------------------------------------------
 # API Keys (Integration Platform)
 # -------------------------------------------------------------------
-import secrets
-import string
-import hmac
-import base64
+
 
 def generate_api_key() -> Tuple[str, str]:
     """
@@ -143,13 +144,15 @@ def generate_api_key() -> Tuple[str, str]:
     alphabet = string.ascii_letters + string.digits
     secret = "".join(secrets.choice(alphabet) for _ in range(48))
     plain_key = f"sd_live_{secret}"
-    hashed_key = hash_token(plain_key) # Reuse SHA-256 for fast/secure matching
+    hashed_key = hash_token(plain_key)  # Reuse SHA-256 for fast/secure matching
     return plain_key, hashed_key
+
 
 def verify_api_key(plain_key: str, hashed_key: str) -> bool:
     """Verifies an API key against its hash."""
     # Constant-time string comparison for security
     return secrets.compare_digest(hash_token(plain_key), hashed_key)
+
 
 # -------------------------------------------------------------------
 # Webhook Signatures
@@ -160,6 +163,7 @@ def generate_webhook_signature(payload: str, secret: str) -> str:
     """
     mac = hmac.new(secret.encode("utf-8"), msg=payload.encode("utf-8"), digestmod=hashlib.sha256)
     return f"sha256={mac.hexdigest()}"
+
 
 def verify_webhook_signature(payload: str, signature: str, secret: str) -> bool:
     """

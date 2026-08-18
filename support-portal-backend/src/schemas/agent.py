@@ -4,6 +4,7 @@ Agent Schemas
 Pydantic schemas for AgentProfile, Skills, Availability, Working Hours,
 and Presence data.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -13,7 +14,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.models import AgentStatus, ProficiencyLevel, SkillCategory
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Skill

@@ -12,7 +12,7 @@ No logic is duplicated here.
 """
 
 import redis as redis_lib
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.api.v1.health import HealthResponse, _raise_if_unhealthy

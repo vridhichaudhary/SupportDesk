@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, select
@@ -10,10 +10,10 @@ from src.models import (
     KBArticle,
     Organization,
     Team,
-    Ticket,
-    TicketThread,
     ThreadType,
+    Ticket,
     TicketStatus,
+    TicketThread,
     User,
 )
 from src.repositories.base import BaseRepository
@@ -112,7 +112,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         db: Session,
         db_obj: Organization,
     ) -> None:
-        db_obj.deleted_at = datetime.utcnow()
+        db_obj.deleted_at = datetime.now(timezone.utc)
         db.add(db_obj)
         db.commit()
 

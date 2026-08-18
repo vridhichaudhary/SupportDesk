@@ -13,10 +13,14 @@ class CustomerService(BaseService[Customer, CustomerCreate, CustomerUpdate]):
     def __init__(self):
         super().__init__(customer_repository)
 
-    def get_by_email(self, db: Session, email: str, organization_id: uuid.UUID) -> Optional[Customer]:
+    def get_by_email(
+        self, db: Session, email: str, organization_id: uuid.UUID
+    ) -> Optional[Customer]:
         return self.repository.get_by_email(db, email, organization_id)
 
-    def get_or_create(self, db: Session, email: str, organization_id: uuid.UUID, **kwargs) -> Customer:
+    def get_or_create(
+        self, db: Session, email: str, organization_id: uuid.UUID, **kwargs
+    ) -> Customer:
         return self.repository.get_or_create(db, email, organization_id, **kwargs)
 
 

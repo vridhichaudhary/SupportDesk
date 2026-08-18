@@ -1,13 +1,14 @@
-import pytest
 import json
+
 from src.core.security import (
-    generate_api_key, verify_api_key,
-    generate_webhook_signature, verify_webhook_signature,
-    hash_token
+    generate_api_key,
+    generate_webhook_signature,
+    verify_api_key,
+    verify_webhook_signature,
 )
 
-
 # ─── API Key Tests ────────────────────────────────────────────────────────────
+
 
 def test_generate_api_key_format():
     plain_key, hashed_key = generate_api_key()
@@ -39,6 +40,7 @@ def test_two_keys_are_unique():
 
 
 # ─── Webhook Signature Tests ──────────────────────────────────────────────────
+
 
 def test_webhook_signature_format():
     sig = generate_webhook_signature('{"test": "payload"}', "mysecret")

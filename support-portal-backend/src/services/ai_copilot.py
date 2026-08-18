@@ -1,14 +1,18 @@
 import uuid
-import structlog
-from typing import List, Optional, Dict, Any, Tuple
+from datetime import timezone
+from typing import List, Optional, Tuple
+
 import google.generativeai as genai
+import structlog
 from sqlalchemy.orm import Session
+
 from src.core.config import settings
-from src.models import AIChatSession, AIChatMessage, User
-from src.services.retrieval import retrieval_service
 from src.core.exceptions import ValidationException
+from src.models import AIChatMessage, AIChatSession, User
+from src.services.retrieval import retrieval_service
 
 logger = structlog.get_logger()
+
 
 class AICopilotService:
     def __init__(self):
@@ -19,36 +23,51 @@ class AICopilotService:
         else:
             self.model = None
 
-    def get_or_create_session(self, db: Session, user: User, title: str, session_id: Optional[uuid.UUID] = None) -> AIChatSession:
+    def get_or_create_session(
+        self, db: Session, user: User, title: str, session_id: Optional[uuid.UUID] = None
+    ) -> AIChatSession:
         if session_id:
-            session = db.query(AIChatSession).filter(
-                AIChatSession.id == session_id,
-                AIChatSession.organization_id == user.organization_id,
-                AIChatSession.user_id == user.id
-            ).first()
+            session = (
+                db.query(AIChatSession)
+                .filter(
+                    AIChatSession.id == session_id,
+                    AIChatSession.organization_id == user.organization_id,
+                    AIChatSession.user_id == user.id,
+                )
+                .first()
+            )
             if not session:
                 raise ValidationException("Chat session not found")
             return session
-            
-        session = AIChatSession(
-            organization_id=user.organization_id,
-            user_id=user.id,
-            title=title
-        )
+
+        session = AIChatSession(organization_id=user.organization_id, user_id=user.id, title=title)
         db.add(session)
         db.commit()
         db.refresh(session)
         return session
 
     def list_sessions(self, db: Session, user: User) -> List[AIChatSession]:
-        return db.query(AIChatSession).filter(
-            AIChatSession.user_id == user.id,
-            AIChatSession.organization_id == user.organization_id
-        ).order_by(AIChatSession.updated_at.desc()).limit(50).all()
+        return (
+            db.query(AIChatSession)
+            .filter(
+                AIChatSession.user_id == user.id,
+                AIChatSession.organization_id == user.organization_id,
+            )
+            .order_by(AIChatSession.updated_at.desc())
+            .limit(50)
+            .all()
+        )
 
-    def get_session_messages(self, db: Session, user: User, session_id: uuid.UUID) -> List[AIChatMessage]:
+    def get_session_messages(
+        self, db: Session, user: User, session_id: uuid.UUID
+    ) -> List[AIChatMessage]:
         session = self.get_or_create_session(db, user, title="", session_id=session_id)
-        return db.query(AIChatMessage).filter(AIChatMessage.session_id == session.id).order_by(AIChatMessage.created_at.asc()).all()
+        return (
+            db.query(AIChatMessage)
+            .filter(AIChatMessage.session_id == session.id)
+            .order_by(AIChatMessage.created_at.asc())
+            .all()
+        )
 
     def delete_session(self, db: Session, user: User, session_id: uuid.UUID) -> None:
         session = self.get_or_create_session(db, user, title="", session_id=session_id)
@@ -56,11 +75,7 @@ class AICopilotService:
         db.commit()
 
     def ask(
-        self,
-        db: Session,
-        user: User,
-        query: str,
-        session_id: Optional[uuid.UUID] = None
+        self, db: Session, user: User, query: str, session_id: Optional[uuid.UUID] = None
     ) -> Tuple[AIChatMessage, AIChatSession]:
         """
         Retrieves context, calls Gemini, and stores the interaction.
@@ -68,22 +83,18 @@ class AICopilotService:
         # Determine title
         title = query[:50] + "..." if len(query) > 50 else query
         session = self.get_or_create_session(db, user, title, session_id)
-        
+
         # Save user message
-        user_msg = AIChatMessage(
-            session_id=session.id,
-            role="user",
-            content=query
-        )
+        user_msg = AIChatMessage(session_id=session.id, role="user", content=query)
         db.add(user_msg)
-        
+
         if not self.model:
             # Fallback when no API key
             assistant_msg = AIChatMessage(
                 session_id=session.id,
                 role="assistant",
                 content="GEMINI_API_KEY is not configured. Please set it to use the AI Copilot.",
-                citations_json=[]
+                citations_json=[],
             )
             db.add(assistant_msg)
             db.commit()
@@ -92,33 +103,37 @@ class AICopilotService:
 
         # Retrieve context
         contexts = retrieval_service.search(db, user.organization_id, query, top_k=5)
-        
+
         if not contexts:
             assistant_msg = AIChatMessage(
                 session_id=session.id,
                 role="assistant",
                 content="I couldn't find enough information in the organization's knowledge base to answer this question.",
-                citations_json=[]
+                citations_json=[],
             )
             db.add(assistant_msg)
             db.commit()
             db.refresh(assistant_msg)
             return assistant_msg, session
-            
+
         # Build prompt
         context_text = ""
         citations = []
         for i, ctx in enumerate(contexts):
             ref_id = i + 1
-            context_text += f"\n\n--- Source [{ref_id}] ---\nTitle: {ctx['title']}\nContent: {ctx['content']}"
-            citations.append({
-                "ref_id": ref_id,
-                "title": ctx['title'] or "Untitled Document",
-                "source_type": ctx['source_type'],
-                "document_id": ctx['document_id'],
-                "kb_article_id": ctx['kb_article_id']
-            })
-            
+            context_text += (
+                f"\n\n--- Source [{ref_id}] ---\nTitle: {ctx['title']}\nContent: {ctx['content']}"
+            )
+            citations.append(
+                {
+                    "ref_id": ref_id,
+                    "title": ctx["title"] or "Untitled Document",
+                    "source_type": ctx["source_type"],
+                    "document_id": ctx["document_id"],
+                    "kb_article_id": ctx["kb_article_id"],
+                }
+            )
+
         prompt = f"""
 You are an Enterprise AI Copilot answering support questions based ONLY on the provided context.
 You must use the provided context to answer the user's question accurately.
@@ -143,21 +158,20 @@ Answer:"""
 
         # Save assistant message
         assistant_msg = AIChatMessage(
-            session_id=session.id,
-            role="assistant",
-            content=answer_text,
-            citations_json=citations
+            session_id=session.id, role="assistant", content=answer_text, citations_json=citations
         )
         db.add(assistant_msg)
-        
+
         # Touch session
         from datetime import datetime
-        session.updated_at = datetime.utcnow()
-        
+
+        session.updated_at = datetime.now(timezone.utc)
+
         db.commit()
         db.refresh(assistant_msg)
         db.refresh(session)
-        
+
         return assistant_msg, session
+
 
 ai_copilot_service = AICopilotService()

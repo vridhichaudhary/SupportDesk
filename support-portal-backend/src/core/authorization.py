@@ -27,17 +27,14 @@ Design notes:
 - If the user is not authenticated at all, raises 401 UNAUTHORIZED.
 - Tenant isolation is enforced by the permission engine's scope to (user_id, org_id).
 """
-from __future__ import annotations
 
-from functools import lru_cache
-from typing import Optional
+from __future__ import annotations
 
 import redis as redis_lib
 from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
-from src.core.config import settings
 from src.core.dependencies import get_current_user, get_db, get_redis
 from src.core.exceptions import AuthorizationException
 from src.core.permissions import permission_engine
@@ -79,8 +76,7 @@ def require_permission(codename: str):
         )
         if not allowed:
             raise AuthorizationException(
-                f"You do not have permission to perform this action. "
-                f"Required: '{codename}'"
+                f"You do not have permission to perform this action. Required: '{codename}'"
             )
         return current_user
 
@@ -143,9 +139,7 @@ def require_all_permissions(*codenames: str):
         )
         if not allowed:
             needed = ", ".join(f"'{c}'" for c in codenames)
-            raise AuthorizationException(
-                f"You need all of the following permissions: {needed}"
-            )
+            raise AuthorizationException(f"You need all of the following permissions: {needed}")
         return current_user
 
     return Depends(_dependency)
@@ -162,9 +156,7 @@ def require_role(role: UserRole):
 
     def _dependency(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role != role:
-            raise AuthorizationException(
-                f"This action requires the '{role.value}' role"
-            )
+            raise AuthorizationException(f"This action requires the '{role.value}' role")
         return current_user
 
     return Depends(_dependency)
@@ -180,9 +172,7 @@ def require_owner_or_admin():
 
     def _dependency(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in (UserRole.OWNER, UserRole.ADMIN):
-            raise AuthorizationException(
-                "This action requires Owner or Admin privileges"
-            )
+            raise AuthorizationException("This action requires Owner or Admin privileges")
         return current_user
 
     return Depends(_dependency)
@@ -206,7 +196,11 @@ def assert_same_org(actor: User, target_org_id) -> None:
     """
     import uuid as uuid_mod
 
-    target = target_org_id if isinstance(target_org_id, uuid_mod.UUID) else uuid_mod.UUID(str(target_org_id))
+    target = (
+        target_org_id
+        if isinstance(target_org_id, uuid_mod.UUID)
+        else uuid_mod.UUID(str(target_org_id))
+    )
     if actor.organization_id != target:
         # Return 403 (not 404) here because the caller already has the resource —
         # returning 404 in this position would be confusing. The caller can choose

@@ -1,4 +1,5 @@
 import uuid
+from datetime import timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -54,7 +55,7 @@ class UserRepository(BaseRepository[User, Any, Any]):
             AuthToken.token_hash == token_hash,
             AuthToken.token_type == token_type,
             AuthToken.is_used.is_(False),
-            AuthToken.expires_at > datetime.utcnow(),
+            AuthToken.expires_at > datetime.now(timezone.utc),
         )
         return db.execute(query).scalar_one_or_none()
 

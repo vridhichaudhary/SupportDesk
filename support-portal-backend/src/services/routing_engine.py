@@ -8,25 +8,34 @@ Pipeline:
   4. Select best team and department.
   5. Persist RoutingDecision, update Ticket, create AssignmentHistory.
 """
+
 import json
 import time
 import uuid
-import structlog
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple
-
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
+from typing import Any, Dict, List, Optional, Tuple
 
 import google.generativeai as genai
+import structlog
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from src.core.config import settings
-from src.core.database import SessionLocal
 from src.models import (
-    Ticket, TicketPriority, TicketCategory, TicketStatus,
-    User, Team, Department, AgentAvailability, AgentStatus, AgentSkill,
-    WorkingHours, AutomationRule, RoutingDecision, AssignmentHistory,
-    WorkflowExecution, ActionType, AuditLog
+    ActionType,
+    AgentStatus,
+    AssignmentHistory,
+    AuditLog,
+    AutomationRule,
+    Department,
+    RoutingDecision,
+    Team,
+    Ticket,
+    TicketCategory,
+    TicketPriority,
+    TicketStatus,
+    User,
+    WorkflowExecution,
 )
 
 logger = structlog.get_logger()
@@ -110,46 +119,29 @@ Return this exact JSON schema, with no extra text:
     # ------------------------------------------------------------------
     # Step 2: Rule Engine
     # ------------------------------------------------------------------
-    def evaluate_rules(self, db: Session, org_id: uuid.UUID, ticket: Ticket, classification: Dict) -> Dict[str, Any]:
+    def evaluate_rules(
+        self, db: Session, org_id: uuid.UUID, ticket: Ticket, classification: Dict
+    ) -> Dict[str, Any]:
         """
         Evaluate AutomationRules for the organization. Rules can override
         classification outputs. Returns a dict of override values.
         """
-        rules = db.query(AutomationRule).filter(
-            AutomationRule.organization_id == org_id,
-            AutomationRule.is_active == True,
-            AutomationRule.trigger_event == "TICKET_CREATED"
-        ).all()
+        rules = (
+            db.query(AutomationRule)
+            .filter(
+                AutomationRule.organization_id == org_id,
+                AutomationRule.is_active,
+                AutomationRule.trigger_event == "TICKET_CREATED",
+            )
+            .all()
+        )
 
         overrides: Dict[str, Any] = {}
         executed_rules: List[Tuple[AutomationRule, str]] = []
 
         for rule in rules:
             conditions = rule.conditions_json or {}
-            matched = True
-
-            for key, expected in conditions.items():
-                actual = None
-                if key == "category":
-                    actual = classification.get("category", "GENERAL")
-                elif key == "priority":
-                    actual = classification.get("priority", "MEDIUM")
-                elif key == "sentiment":
-                    actual = classification.get("sentiment", "NEUTRAL")
-                elif key == "customer_language":
-                    actual = ticket.customer.language if ticket.customer else "en"
-                elif key == "is_vip":
-                    actual = ticket.customer.is_vip if ticket.customer else False
-                elif key == "keyword_in_subject":
-                    actual = expected.lower() in ticket.subject.lower()
-                    expected = True
-                elif key == "keyword_in_body":
-                    actual = expected.lower() in ticket.body.lower()
-                    expected = True
-
-                if actual != expected:
-                    matched = False
-                    break
+            matched = self._match_conditions(conditions, classification, ticket)
 
             if matched:
                 actions = rule.actions_json or {}
@@ -164,14 +156,43 @@ Return this exact JSON schema, with no extra text:
                         overrides["department_id"] = uuid.UUID(action_val)
 
                 executed_rules.append((rule, "Rule matched and applied."))
-                logger.info("Automation rule matched", rule_name=rule.name, ticket_id=str(ticket.id))
+                logger.info(
+                    "Automation rule matched", rule_name=rule.name, ticket_id=str(ticket.id)
+                )
 
         return overrides, executed_rules
+
+    def _match_conditions(
+        self, conditions: Dict[str, Any], classification: Dict[str, Any], ticket: Ticket
+    ) -> bool:
+        for key, expected in conditions.items():
+            actual = None
+            if key == "category":
+                actual = classification.get("category", "GENERAL")
+            elif key == "priority":
+                actual = classification.get("priority", "MEDIUM")
+            elif key == "sentiment":
+                actual = classification.get("sentiment", "NEUTRAL")
+            elif key == "customer_language":
+                actual = ticket.customer.language if ticket.customer else "en"
+            elif key == "is_vip":
+                actual = ticket.customer.is_vip if ticket.customer else False
+            elif key == "keyword_in_subject":
+                actual = expected.lower() in ticket.subject.lower()
+                expected = True
+            elif key == "keyword_in_body":
+                actual = expected.lower() in ticket.body.lower()
+                expected = True
+            if actual != expected:
+                return False
+        return True
 
     # ------------------------------------------------------------------
     # Step 3: Agent Ranking
     # ------------------------------------------------------------------
-    def rank_agents(self, db: Session, org_id: uuid.UUID, category: str, team_id: Optional[uuid.UUID]) -> List[Dict]:
+    def rank_agents(
+        self, db: Session, org_id: uuid.UUID, category: str, team_id: Optional[uuid.UUID]
+    ) -> List[Dict]:
         """
         Rank available agents. Factors: availability, active load, skills matching category.
         Returns up to 5 best agents.
@@ -179,16 +200,21 @@ Return this exact JSON schema, with no extra text:
         query = db.query(User).filter(
             User.organization_id == org_id,
             User.role.in_(["AGENT", "ADMIN", "OWNER"]),
-            User.is_active == True
+            User.is_active,
         )
 
         if team_id:
             from src.models import team_members
-            agent_ids_in_team = db.execute(
-                __import__("sqlalchemy", fromlist=["select"]).select(
-                    team_members.c.user_id
-                ).where(team_members.c.team_id == team_id)
-            ).scalars().all()
+
+            agent_ids_in_team = (
+                db.execute(
+                    __import__("sqlalchemy", fromlist=["select"])
+                    .select(team_members.c.user_id)
+                    .where(team_members.c.team_id == team_id)
+                )
+                .scalars()
+                .all()
+            )
             if agent_ids_in_team:
                 query = query.filter(User.id.in_(agent_ids_in_team))
 
@@ -217,7 +243,6 @@ Return this exact JSON schema, with no extra text:
             }
             target_category = category_map.get(category, None)
             if target_category:
-                from src.models import SkillCategory, ProficiencyLevel
                 proficiency_weights = {
                     "BEGINNER": 5,
                     "INTERMEDIATE": 15,
@@ -229,21 +254,27 @@ Return this exact JSON schema, with no extra text:
                         score += proficiency_weights.get(agent_skill.proficiency_level.value, 5)
 
             # Active ticket load (lower is better)
-            from sqlalchemy import func
-            active_count = db.query(func.count(Ticket.id)).filter(
-                Ticket.assigned_user_id == agent.id,
-                Ticket.status.in_([TicketStatus.OPEN, TicketStatus.ASSIGNED])
-            ).scalar() or 0
+            active_count = (
+                db.query(func.count(Ticket.id))
+                .filter(
+                    Ticket.assigned_user_id == agent.id,
+                    Ticket.status.in_([TicketStatus.OPEN, TicketStatus.ASSIGNED]),
+                )
+                .scalar()
+                or 0
+            )
             score -= active_count * 5
 
-            ranked.append({
-                "agent_id": str(agent.id),
-                "agent_name": agent.name,
-                "agent_email": agent.email,
-                "score": round(score, 2),
-                "active_tickets": active_count,
-                "availability": avail.status.value if avail else "UNKNOWN",
-            })
+            ranked.append(
+                {
+                    "agent_id": str(agent.id),
+                    "agent_name": agent.name,
+                    "agent_email": agent.email,
+                    "score": round(score, 2),
+                    "active_tickets": active_count,
+                    "availability": avail.status.value if avail else "UNKNOWN",
+                }
+            )
 
         ranked.sort(key=lambda x: x["score"], reverse=True)
         return ranked[:5]
@@ -272,10 +303,14 @@ Return this exact JSON schema, with no extra text:
             }
             dept_name = category_dept_map.get(category)
             if dept_name:
-                dept = db.query(Department).filter(
-                    Department.organization_id == org_id,
-                    Department.name.ilike(f"%{dept_name}%")
-                ).first()
+                dept = (
+                    db.query(Department)
+                    .filter(
+                        Department.organization_id == org_id,
+                        Department.name.ilike(f"%{dept_name}%"),
+                    )
+                    .first()
+                )
                 if dept:
                     dept_id = dept.id
                     team = db.query(Team).filter(Team.department_id == dept.id).first()
@@ -334,27 +369,9 @@ Return this exact JSON schema, with no extra text:
         exec_time = end_ms - start_ms
 
         # 6. Apply to ticket
-        try:
-            category_enum = TicketCategory[category_str]
-        except KeyError:
-            category_enum = TicketCategory.GENERAL
-        try:
-            priority_enum = TicketPriority[priority_str]
-        except KeyError:
-            priority_enum = TicketPriority.MEDIUM
-
-        ticket.category = category_enum
-        ticket.priority = priority_enum
-        if best_agent_id:
-            ticket.assigned_user_id = best_agent_id
-            ticket.status = TicketStatus.ASSIGNED
-        if team_id:
-            ticket.assigned_team_id = team_id
-        if dept_id:
-            ticket.department_id = dept_id
-        if ticket.sla_due_at is None:
-            from datetime import timedelta
-            ticket.sla_due_at = datetime.utcnow() + timedelta(hours=sla_hours)
+        self._apply_route_to_ticket(
+            ticket, category_str, priority_str, best_agent_id, team_id, dept_id, sla_hours
+        )
 
         # 7. RoutingDecision
         decision = RoutingDecision(
@@ -376,54 +393,62 @@ Return this exact JSON schema, with no extra text:
 
         # 8. AssignmentHistory entries
         if best_agent_id:
-            db.add(AssignmentHistory(
-                organization_id=org_id,
-                ticket_id=ticket_id,
-                actor_id=None,
-                assignment_type="AGENT",
-                old_value_id=None,
-                new_value_id=best_agent_id,
-                reason=f"Auto-assigned by AI Routing Engine. Confidence: {confidence}%",
-                is_override=False,
-            ))
+            db.add(
+                AssignmentHistory(
+                    organization_id=org_id,
+                    ticket_id=ticket_id,
+                    actor_id=None,
+                    assignment_type="AGENT",
+                    old_value_id=None,
+                    new_value_id=best_agent_id,
+                    reason=f"Auto-assigned by AI Routing Engine. Confidence: {confidence}%",
+                    is_override=False,
+                )
+            )
         if team_id:
-            db.add(AssignmentHistory(
-                organization_id=org_id,
-                ticket_id=ticket_id,
-                actor_id=None,
-                assignment_type="TEAM",
-                old_value_id=None,
-                new_value_id=team_id,
-                reason=f"Auto-assigned by AI Routing Engine based on category: {category_str}",
-                is_override=False,
-            ))
+            db.add(
+                AssignmentHistory(
+                    organization_id=org_id,
+                    ticket_id=ticket_id,
+                    actor_id=None,
+                    assignment_type="TEAM",
+                    old_value_id=None,
+                    new_value_id=team_id,
+                    reason=f"Auto-assigned by AI Routing Engine based on category: {category_str}",
+                    is_override=False,
+                )
+            )
 
         # 9. Workflow executions for matched rules
         for rule, log_msg in executed_rules:
-            db.add(WorkflowExecution(
-                organization_id=org_id,
-                rule_id=rule.id,
-                ticket_id=ticket_id,
-                status="SUCCESS",
-                logs=log_msg,
-            ))
+            db.add(
+                WorkflowExecution(
+                    organization_id=org_id,
+                    rule_id=rule.id,
+                    ticket_id=ticket_id,
+                    status="SUCCESS",
+                    logs=log_msg,
+                )
+            )
 
         # 10. Audit Log
-        db.add(AuditLog(
-            organization_id=org_id,
-            actor_id=None,
-            action_type=ActionType.TICKET_ASSIGNED,
-            entity_type="Ticket",
-            entity_id=ticket_id,
-            changes_json={
-                "category": category_str,
-                "priority": priority_str,
-                "agent_id": str(best_agent_id) if best_agent_id else None,
-                "team_id": str(team_id) if team_id else None,
-                "confidence": confidence,
-                "routing_engine": "ai",
-            },
-        ))
+        db.add(
+            AuditLog(
+                organization_id=org_id,
+                actor_id=None,
+                action_type=ActionType.TICKET_ASSIGNED,
+                entity_type="Ticket",
+                entity_id=ticket_id,
+                changes_json={
+                    "category": category_str,
+                    "priority": priority_str,
+                    "agent_id": str(best_agent_id) if best_agent_id else None,
+                    "team_id": str(team_id) if team_id else None,
+                    "confidence": confidence,
+                    "routing_engine": "ai",
+                },
+            )
+        )
 
         db.commit()
         db.refresh(decision)
@@ -437,6 +462,39 @@ Return this exact JSON schema, with no extra text:
             exec_ms=exec_time,
         )
         return decision
+
+    def _apply_route_to_ticket(
+        self,
+        ticket: Ticket,
+        category_str: str,
+        priority_str: str,
+        best_agent_id: Optional[uuid.UUID],
+        team_id: Optional[uuid.UUID],
+        dept_id: Optional[uuid.UUID],
+        sla_hours: int,
+    ) -> None:
+        try:
+            category_enum = TicketCategory[category_str]
+        except KeyError:
+            category_enum = TicketCategory.GENERAL
+        try:
+            priority_enum = TicketPriority[priority_str]
+        except KeyError:
+            priority_enum = TicketPriority.MEDIUM
+
+        ticket.category = category_enum
+        ticket.priority = priority_enum
+        if best_agent_id:
+            ticket.assigned_user_id = best_agent_id
+            ticket.status = TicketStatus.ASSIGNED
+        if team_id:
+            ticket.assigned_team_id = team_id
+        if dept_id:
+            ticket.department_id = dept_id
+        if ticket.sla_due_at is None:
+            from datetime import timedelta, timezone
+
+            ticket.sla_due_at = datetime.now(timezone.utc) + timedelta(hours=sla_hours)
 
 
 routing_engine = RoutingEngine()

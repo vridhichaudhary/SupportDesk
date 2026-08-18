@@ -1,21 +1,23 @@
 """
 Routing API — Endpoints for the Smart Routing Engine.
 """
+
 import uuid
-from typing import List, Optional, Any, Dict
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
-from src.models import User, Ticket, RoutingDecision, AssignmentHistory
+from src.core.dependencies import get_current_user, get_db
+from src.models import AssignmentHistory, RoutingDecision, Ticket, User
 
 router = APIRouter(prefix="/routing", tags=["routing"])
 
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
+
 
 class AnalyzeRequest(BaseModel):
     ticket_id: uuid.UUID
@@ -63,8 +65,12 @@ class AssignmentHistoryResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
-@router.post("/analyze", response_model=RoutingDecisionResponse,
-             summary="Analyze a ticket with AI (no assignment)")
+
+@router.post(
+    "/analyze",
+    response_model=RoutingDecisionResponse,
+    summary="Analyze a ticket with AI (no assignment)",
+)
 def analyze_ticket(
     request: AnalyzeRequest,
     db: Session = Depends(get_db),
@@ -75,10 +81,15 @@ def analyze_ticket(
     Returns the predicted category, priority, suggested tags, SLA, and reasoning.
     """
     from src.services.routing_engine import routing_engine
-    ticket = db.query(Ticket).filter(
-        Ticket.id == request.ticket_id,
-        Ticket.organization_id == current_user.organization_id,
-    ).first()
+
+    ticket = (
+        db.query(Ticket)
+        .filter(
+            Ticket.id == request.ticket_id,
+            Ticket.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -86,6 +97,7 @@ def analyze_ticket(
 
     # Return a synthetic response without DB write
     from src.services.routing_engine import SLA_HOURS
+
     priority_str = classification.get("priority", "MEDIUM")
     return RoutingDecisionResponse(
         id=uuid.uuid4(),
@@ -101,12 +113,15 @@ def analyze_ticket(
         reasoning=classification.get("reasoning"),
         execution_time_ms=None,
         model_version="gemini-2.5-flash",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 
-@router.post("/assign", response_model=RoutingDecisionResponse,
-             summary="Trigger full AI routing pipeline for a ticket")
+@router.post(
+    "/assign",
+    response_model=RoutingDecisionResponse,
+    summary="Trigger full AI routing pipeline for a ticket",
+)
 def assign_ticket(
     request: AssignRequest,
     db: Session = Depends(get_db),
@@ -117,10 +132,15 @@ def assign_ticket(
     Will overwrite any existing routing decision.
     """
     from src.services.routing_engine import routing_engine
-    ticket = db.query(Ticket).filter(
-        Ticket.id == request.ticket_id,
-        Ticket.organization_id == current_user.organization_id,
-    ).first()
+
+    ticket = (
+        db.query(Ticket)
+        .filter(
+            Ticket.id == request.ticket_id,
+            Ticket.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -146,8 +166,9 @@ def assign_ticket(
     )
 
 
-@router.post("/override", status_code=status.HTTP_200_OK,
-             summary="Manual override of routing assignment")
+@router.post(
+    "/override", status_code=status.HTTP_200_OK, summary="Manual override of routing assignment"
+)
 def override_routing(
     request: OverrideRequest,
     db: Session = Depends(get_db),
@@ -157,10 +178,15 @@ def override_routing(
     Manager manually overrides AI assignment. Logs to AssignmentHistory with is_override=True.
     """
     from src.workers.routing_tasks import override_assignment_task
-    ticket = db.query(Ticket).filter(
-        Ticket.id == request.ticket_id,
-        Ticket.organization_id == current_user.organization_id,
-    ).first()
+
+    ticket = (
+        db.query(Ticket)
+        .filter(
+            Ticket.id == request.ticket_id,
+            Ticket.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -174,8 +200,11 @@ def override_routing(
     return {"message": "Override dispatched successfully", "ticket_id": str(request.ticket_id)}
 
 
-@router.get("/history", response_model=List[AssignmentHistoryResponse],
-            summary="Get assignment history for a ticket")
+@router.get(
+    "/history",
+    response_model=List[AssignmentHistoryResponse],
+    summary="Get assignment history for a ticket",
+)
 def get_routing_history(
     ticket_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -184,16 +213,23 @@ def get_routing_history(
     """
     Returns the complete assignment history for a ticket, including AI and manual entries.
     """
-    ticket = db.query(Ticket).filter(
-        Ticket.id == ticket_id,
-        Ticket.organization_id == current_user.organization_id,
-    ).first()
+    ticket = (
+        db.query(Ticket)
+        .filter(
+            Ticket.id == ticket_id,
+            Ticket.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    history = db.query(AssignmentHistory).filter(
-        AssignmentHistory.ticket_id == ticket_id
-    ).order_by(AssignmentHistory.created_at.asc()).all()
+    history = (
+        db.query(AssignmentHistory)
+        .filter(AssignmentHistory.ticket_id == ticket_id)
+        .order_by(AssignmentHistory.created_at.asc())
+        .all()
+    )
 
     return [
         AssignmentHistoryResponse(
@@ -211,8 +247,11 @@ def get_routing_history(
     ]
 
 
-@router.get("/decisions", response_model=List[RoutingDecisionResponse],
-            summary="Get recent routing decisions")
+@router.get(
+    "/decisions",
+    response_model=List[RoutingDecisionResponse],
+    summary="Get recent routing decisions",
+)
 def list_routing_decisions(
     limit: int = 20,
     db: Session = Depends(get_db),

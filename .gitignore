@@ -19,3 +19,7 @@ __pycache__/
 
 # Logs
 *.log
+
+# Test artifacts
+support-portal-backend/test.db
+*.db

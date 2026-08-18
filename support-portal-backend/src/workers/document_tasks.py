@@ -1,13 +1,14 @@
 import time
 import uuid
-import structlog
 from pathlib import Path
+
+import structlog
 
 from src.core.celery_app import celery_app
 from src.core.database import SessionLocal
-from src.models import Document, DocumentChunk, DocumentStatus, KnowledgeVector, KnowledgeSourceType
-from src.services.document_parser import document_parser
+from src.models import Document, DocumentChunk, DocumentStatus, KnowledgeSourceType, KnowledgeVector
 from src.services.document_chunker import document_chunker
+from src.services.document_parser import document_parser
 from src.services.embeddings import embedding_service
 
 logger = structlog.get_logger()
@@ -15,18 +16,19 @@ logger = structlog.get_logger()
 # We need the base dir to construct absolute path to the local file for parsing
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
 @celery_app.task(bind=True, max_retries=3)
 def process_document_task(self, document_id_str: str):
     """
     Background job to parse a document and extract chunks.
     """
     logger.info("Starting document processing", document_id=document_id_str)
-    
+
     db = SessionLocal()
     try:
         document_id = uuid.UUID(document_id_str)
         doc = db.query(Document).filter(Document.id == document_id).first()
-        
+
         if not doc:
             logger.error("Document not found for processing", document_id=document_id_str)
             return
@@ -46,13 +48,13 @@ def process_document_task(self, document_id_str: str):
 
         # 1. Extract text and metadata
         extracted_text, metadata = document_parser.extract(file_path, doc.mime_type)
-        
+
         # Merge metadata
         if metadata:
             current_meta = dict(doc.metadata_json)
             current_meta.update(metadata)
             doc.metadata_json = current_meta
-            
+
             if "page_count" in metadata:
                 doc.page_count = metadata["page_count"]
 
@@ -68,13 +70,15 @@ def process_document_task(self, document_id_str: str):
                 page_number=c["page_number"],
                 character_count=c["character_count"],
                 word_count=c["word_count"],
-                content_hash=c["content_hash"]
+                content_hash=c["content_hash"],
             )
             db.add(chunk)
-            db.flush() # flush to get chunk.id
-            
+            db.flush()  # flush to get chunk.id
+
             # Generate embedding
-            embedding = embedding_service.get_embedding(c["content"], task_type="retrieval_document")
+            embedding = embedding_service.get_embedding(
+                c["content"], task_type="retrieval_document"
+            )
             if embedding:
                 vector_entry = KnowledgeVector(
                     organization_id=doc.organization_id,
@@ -86,8 +90,8 @@ def process_document_task(self, document_id_str: str):
                     content=c["content"],
                     metadata_json={
                         "page_number": c["page_number"],
-                        "original_filename": doc.original_filename
-                    }
+                        "original_filename": doc.original_filename,
+                    },
                 )
                 db.add(vector_entry)
 
@@ -97,11 +101,13 @@ def process_document_task(self, document_id_str: str):
         current_meta["processing_time_seconds"] = round(end_time - start_time, 2)
         current_meta["total_chunks"] = len(chunks_data)
         doc.metadata_json = current_meta
-        
+
         doc.status = DocumentStatus.COMPLETED
         db.commit()
-        
-        logger.info("Document processing completed", document_id=document_id_str, chunks=len(chunks_data))
+
+        logger.info(
+            "Document processing completed", document_id=document_id_str, chunks=len(chunks_data)
+        )
 
     except Exception as e:
         logger.error("Document processing failed", error=str(e), document_id=document_id_str)
@@ -115,8 +121,7 @@ def process_document_task(self, document_id_str: str):
                 db.commit()
         except Exception as inner_e:
             logger.error("Failed to update document error status", error=str(inner_e))
-        
-        # Retry logic
-        raise self.retry(exc=e, countdown=60)
+
+        raise self.retry(exc=e, countdown=60) from e
     finally:
         db.close()

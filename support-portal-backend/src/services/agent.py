@@ -4,6 +4,7 @@ Agent Service
 Business logic for AgentProfile, Skills, Availability, and WorkingHours.
 Wraps repositories with validation, audit logging, and Presence Engine integration.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -43,7 +44,6 @@ from src.services.audit_log import audit_log_service
 
 
 class AgentService:
-
     def __init__(
         self,
         profile_repo: AgentProfileRepository,
@@ -62,9 +62,7 @@ class AgentService:
     # Agent Profile
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_profile(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[AgentProfile]:
+    def get_profile(self, db: Session, user_id: uuid.UUID) -> Optional[AgentProfile]:
         return self.profile_repo.get_by_user_id(db, user_id)
 
     def upsert_profile(
@@ -173,9 +171,7 @@ class AgentService:
             changes={"name": skill.name},
         )
 
-    def get_agent_skills(
-        self, db: Session, user_id: uuid.UUID
-    ) -> List[AgentSkill]:
+    def get_agent_skills(self, db: Session, user_id: uuid.UUID) -> List[AgentSkill]:
         return self.agent_skill_repo.list_for_agent(db, user_id)
 
     def assign_skill(
@@ -235,9 +231,7 @@ class AgentService:
     # Availability
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_availability(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[AgentAvailability]:
+    def get_availability(self, db: Session, user_id: uuid.UUID) -> Optional[AgentAvailability]:
         return self.availability_repo.get_by_user(db, user_id)
 
     def set_availability(
@@ -249,9 +243,7 @@ class AgentService:
         status: AgentStatus,
         expected_return: Optional[datetime] = None,
     ) -> AgentAvailability:
-        avail = self.availability_repo.upsert(
-            db, user_id, status, expected_return=expected_return
-        )
+        avail = self.availability_repo.upsert(db, user_id, status, expected_return=expected_return)
         db.commit()
         db.refresh(avail)
 
@@ -274,9 +266,7 @@ class AgentService:
         device_info: Optional[str] = None,
     ) -> Dict:
         # Update Redis presence (TTL refresh)
-        presence_engine.heartbeat(
-            redis_client, user_id, org_id, device_info=device_info
-        )
+        presence_engine.heartbeat(redis_client, user_id, org_id, device_info=device_info)
         # Return current status
         return presence_engine.get_status(redis_client, user_id)
 
@@ -284,9 +274,7 @@ class AgentService:
     # Working Hours
     # ─────────────────────────────────────────────────────────────────────
 
-    def get_working_hours(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[WorkingHours]:
+    def get_working_hours(self, db: Session, user_id: uuid.UUID) -> Optional[WorkingHours]:
         return self.wh_repo.get_by_user(db, user_id)
 
     def upsert_working_hours(

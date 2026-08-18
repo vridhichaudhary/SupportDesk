@@ -4,20 +4,20 @@ Customers API
 CRUD endpoints for Customer management.
 Secured by the RBAC Permission Engine.
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import List
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from src.core.authorization import require_permission, require_any_permission
+from src.core.authorization import require_permission
 from src.core.dependencies import get_db
 from src.models import User
-from src.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
+from src.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from src.services.customer import customer_service
-from src.utils.pagination import PaginationParams, PaginatedResult
+from src.utils.pagination import PaginatedResult
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -55,13 +55,18 @@ def list_customers(
     Return a paginated list of all customers in the organization.
     Requires `view_customers` permission.
     """
-    from src.models import Customer
-    from sqlalchemy import select, func
     from types import SimpleNamespace
 
-    query = select(Customer).where(
-        Customer.organization_id == actor.organization_id
-    ).offset(skip).limit(limit)
+    from sqlalchemy import func, select
+
+    from src.models import Customer
+
+    query = (
+        select(Customer)
+        .where(Customer.organization_id == actor.organization_id)
+        .offset(skip)
+        .limit(limit)
+    )
     count_query = select(func.count()).select_from(
         select(Customer).where(Customer.organization_id == actor.organization_id).subquery()
     )

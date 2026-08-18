@@ -14,24 +14,31 @@ class KBVersionRepository:
     def get_by_id(self, version_id: uuid.UUID) -> Optional[KBArticleVersion]:
         stmt = select(KBArticleVersion).where(KBArticleVersion.id == version_id)
         return self.db.execute(stmt).scalar_one_or_none()
-        
-    def get_by_version_number(self, article_id: uuid.UUID, version_number: int) -> Optional[KBArticleVersion]:
+
+    def get_by_version_number(
+        self, article_id: uuid.UUID, version_number: int
+    ) -> Optional[KBArticleVersion]:
         stmt = select(KBArticleVersion).where(
             KBArticleVersion.article_id == article_id,
-            KBArticleVersion.version_number == version_number
+            KBArticleVersion.version_number == version_number,
         )
         return self.db.execute(stmt).scalar_one_or_none()
 
     def list_by_article(self, article_id: uuid.UUID) -> List[KBArticleVersion]:
-        stmt = select(KBArticleVersion).where(
-            KBArticleVersion.article_id == article_id
-        ).order_by(KBArticleVersion.version_number.desc())
+        stmt = (
+            select(KBArticleVersion)
+            .where(KBArticleVersion.article_id == article_id)
+            .order_by(KBArticleVersion.version_number.desc())
+        )
         return list(self.db.execute(stmt).scalars().all())
 
     def get_latest_version(self, article_id: uuid.UUID) -> Optional[KBArticleVersion]:
-        stmt = select(KBArticleVersion).where(
-            KBArticleVersion.article_id == article_id
-        ).order_by(KBArticleVersion.version_number.desc()).limit(1)
+        stmt = (
+            select(KBArticleVersion)
+            .where(KBArticleVersion.article_id == article_id)
+            .order_by(KBArticleVersion.version_number.desc())
+            .limit(1)
+        )
         return self.db.execute(stmt).scalar_one_or_none()
 
     def create(self, version: KBArticleVersion) -> KBArticleVersion:

@@ -6,7 +6,10 @@ include = '\.pyi?$'
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = ["alembic"]
+exclude = [
+    "alembic",
+    "venv",
+]
 
 [tool.ruff.lint]
 select = [

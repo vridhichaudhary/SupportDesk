@@ -1,7 +1,7 @@
 import uuid
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from sqlalchemy import select, String, or_, desc, asc
+from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.orm import Session
 
 from src.models import Ticket
@@ -32,11 +32,11 @@ class TicketRepository(BaseRepository[Ticket, TicketCreate, TicketUpdate]):
         """
         import random
         import string
-        
+
         while True:
-            random_part = ''.join(random.choices(string.digits, k=6))
+            random_part = "".join(random.choices(string.digits, k=6))
             candidate = f"SUP-{random_part}"
-            
+
             # Check if it exists
             exists = db.execute(
                 select(self.model).where(self.model.ticket_number == candidate)
@@ -55,15 +55,15 @@ class TicketRepository(BaseRepository[Ticket, TicketCreate, TicketUpdate]):
         sort_order: str = "desc",
     ) -> PaginatedResult[Ticket]:
         stmt = select(self.model).where(
-            self.model.organization_id == organization_id,
-            self.model.deleted_at.is_(None)
+            self.model.organization_id == organization_id, self.model.deleted_at.is_(None)
         )
-        
+
         # Free-text search
         if query:
             search_term = f"%{query}%"
             # Join with customer to search by email as well (needs proper join)
             from src.models import Customer
+
             stmt = stmt.outerjoin(Customer, self.model.customer_id == Customer.id)
             stmt = stmt.where(
                 or_(
@@ -72,29 +72,30 @@ class TicketRepository(BaseRepository[Ticket, TicketCreate, TicketUpdate]):
                     Customer.email.ilike(search_term),
                 )
             )
-            
+
         # Apply standard filters
         if filters:
             for key, value in filters.items():
                 if hasattr(self.model, key) and value is not None:
                     stmt = stmt.where(getattr(self.model, key) == value)
-                    
+
         # Apply Sorting
         order_col = getattr(self.model, sort_by, self.model.created_at)
         if sort_order == "desc":
             stmt = stmt.order_by(desc(order_col))
         else:
             stmt = stmt.order_by(asc(order_col))
-            
+
         # Total count
         from sqlalchemy import func
+
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = db.execute(count_stmt).scalar_one()
-        
+
         # Paginate
         stmt = stmt.offset(pagination.offset).limit(pagination.limit)
         items = db.execute(stmt).scalars().all()
-        
+
         return PaginatedResult.create(items=list(items), total=total, params=pagination)
 
 

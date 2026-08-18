@@ -1,18 +1,18 @@
-import uuid
 import secrets
-from typing import List, Any
-from datetime import datetime
+import uuid
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
-from src.models import User, UserRole, WebhookEndpoint, WebhookDelivery
+from src.core.dependencies import get_current_user, get_db
+from src.models import User, UserRole, WebhookDelivery, WebhookEndpoint
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
+
 
 class WebhookEndpointCreate(BaseModel):
     url: HttpUrl
@@ -27,7 +27,7 @@ class WebhookEndpointResponse(BaseModel):
     subscribed_events: List[str]
     is_active: bool
     created_at: Any
-    hmac_secret: str # Shown for configuration
+    hmac_secret: str  # Shown for configuration
 
 
 class WebhookDeliveryResponse(BaseModel):
@@ -43,6 +43,7 @@ class WebhookDeliveryResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=List[WebhookEndpointResponse])
 def list_webhook_endpoints(
     db: Session = Depends(get_db),
@@ -50,12 +51,17 @@ def list_webhook_endpoints(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    endpoints = db.query(WebhookEndpoint).filter(
-        WebhookEndpoint.organization_id == current_user.organization_id,
-        WebhookEndpoint.is_active == True
-    ).order_by(WebhookEndpoint.created_at.desc()).all()
-    
+
+    endpoints = (
+        db.query(WebhookEndpoint)
+        .filter(
+            WebhookEndpoint.organization_id == current_user.organization_id,
+            WebhookEndpoint.is_active,
+        )
+        .order_by(WebhookEndpoint.created_at.desc())
+        .all()
+    )
+
     return endpoints
 
 
@@ -67,21 +73,21 @@ def create_webhook_endpoint(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
+
     secret = "whsec_" + secrets.token_hex(24)
-    
+
     endpoint = WebhookEndpoint(
         organization_id=current_user.organization_id,
         url=str(data.url),
         description=data.description,
         subscribed_events=data.subscribed_events,
-        hmac_secret=secret
+        hmac_secret=secret,
     )
-    
+
     db.add(endpoint)
     db.commit()
     db.refresh(endpoint)
-    
+
     return endpoint
 
 
@@ -93,15 +99,19 @@ def delete_webhook_endpoint(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    endpoint = db.query(WebhookEndpoint).filter(
-        WebhookEndpoint.id == endpoint_id,
-        WebhookEndpoint.organization_id == current_user.organization_id
-    ).first()
-    
+
+    endpoint = (
+        db.query(WebhookEndpoint)
+        .filter(
+            WebhookEndpoint.id == endpoint_id,
+            WebhookEndpoint.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+
     if not endpoint:
         raise HTTPException(status_code=404, detail="Webhook Endpoint not found")
-        
+
     endpoint.is_active = False
     db.commit()
     return None
@@ -116,18 +126,26 @@ def list_webhook_deliveries(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
+
     # Verify ownership
-    endpoint = db.query(WebhookEndpoint).filter(
-        WebhookEndpoint.id == endpoint_id,
-        WebhookEndpoint.organization_id == current_user.organization_id
-    ).first()
-    
+    endpoint = (
+        db.query(WebhookEndpoint)
+        .filter(
+            WebhookEndpoint.id == endpoint_id,
+            WebhookEndpoint.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+
     if not endpoint:
         raise HTTPException(status_code=404, detail="Webhook Endpoint not found")
-        
-    deliveries = db.query(WebhookDelivery).filter(
-        WebhookDelivery.endpoint_id == endpoint_id
-    ).order_by(WebhookDelivery.created_at.desc()).limit(limit).all()
-    
+
+    deliveries = (
+        db.query(WebhookDelivery)
+        .filter(WebhookDelivery.endpoint_id == endpoint_id)
+        .order_by(WebhookDelivery.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
     return deliveries

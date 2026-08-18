@@ -1,4 +1,5 @@
 from typing import Set
+
 from src.models import TicketStatus
 
 # The definitive list of valid transitions between ticket states.
@@ -61,6 +62,6 @@ def is_valid_transition(current_status: TicketStatus, new_status: TicketStatus) 
     """
     if current_status == new_status:
         return True
-        
+
     allowed_next_states = VALID_TRANSITIONS.get(current_status, set())
     return new_status in allowed_next_states

@@ -3,14 +3,14 @@ RBAC Pydantic Schemas
 =====================
 Request / Response models for the Permission & Role Management API.
 """
+
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Permission Schemas

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -113,7 +113,7 @@ class UserService(BaseService[User, Any, Any]):
 
     def delete_account(self, db: Session, user: User) -> None:
         user.is_active = False
-        user.deleted_at = datetime.utcnow()
+        user.deleted_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
 

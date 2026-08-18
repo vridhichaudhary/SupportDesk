@@ -12,11 +12,12 @@ Key concepts:
 No business logic should contain ``if role == "Admin"``.
 All authorization decisions must flow through this module.
 """
+
 from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 
 import redis as redis_lib
@@ -306,9 +307,7 @@ PERMISSION_REGISTRY: List[PermissionDefinition] = [
 ]
 
 # Fast lookup set — codename → PermissionDefinition
-_PERMISSION_MAP: Dict[str, PermissionDefinition] = {
-    p.codename: p for p in PERMISSION_REGISTRY
-}
+_PERMISSION_MAP: Dict[str, PermissionDefinition] = {p.codename: p for p in PERMISSION_REGISTRY}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Default Permission Matrix
@@ -422,9 +421,7 @@ class PermissionEngine:
 
     # ── Cache Operations ─────────────────────────────────────────────────
 
-    def _read_cache(
-        self, redis_client: redis_lib.Redis, user_id: uuid.UUID
-    ) -> Optional[Set[str]]:
+    def _read_cache(self, redis_client: redis_lib.Redis, user_id: uuid.UUID) -> Optional[Set[str]]:
         if redis_client is None:
             return None
         try:
@@ -572,9 +569,7 @@ class PermissionEngine:
         perms = self.resolve_permissions(db, redis_client, user_id, user_role, org_id)
         return set(codenames).issubset(perms)
 
-    def get_permission_matrix(
-        self, db: Session, org_id: uuid.UUID
-    ) -> Dict[str, List[str]]:
+    def get_permission_matrix(self, db: Session, org_id: uuid.UUID) -> Dict[str, List[str]]:
         """
         Returns a mapping of role_name → [codenames] for all roles in the org.
         Includes system roles + any org-scoped custom roles.
@@ -587,9 +582,7 @@ class PermissionEngine:
             stmt = (
                 select(Role.name, RolePermission.permission_codename)
                 .join(RolePermission, RolePermission.role_id == Role.id)
-                .where(
-                    (Role.organization_id == org_id) | (Role.is_system.is_(True))
-                )
+                .where((Role.organization_id == org_id) | (Role.is_system.is_(True)))
             )
             rows = db.execute(stmt).all()
             matrix: Dict[str, List[str]] = {}

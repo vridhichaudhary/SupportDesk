@@ -16,15 +16,15 @@ Metadata emitted:
 import socket
 import time
 from datetime import datetime, timezone
-import psutil
 
+import psutil
 import redis as redis_lib
 import structlog
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.core.config import settings
 from src.core.celery_app import celery_app
+from src.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -104,7 +104,7 @@ class HealthService:
         """
         return HealthResult(
             is_live=True,
-            is_ready=True,   # liveness doesn't gate readiness
+            is_ready=True,  # liveness doesn't gate readiness
             database="not_checked",
             redis="not_checked",
             celery="not_checked",
@@ -131,7 +131,9 @@ class HealthService:
         redis_status = self._ping_redis(redis_client)
         celery_status = self._ping_celery()
 
-        is_ready = db_status == "healthy" and redis_status == "healthy" and celery_status == "healthy"
+        is_ready = (
+            db_status == "healthy" and redis_status == "healthy" and celery_status == "healthy"
+        )
 
         return HealthResult(
             is_live=True,
@@ -159,7 +161,7 @@ class HealthService:
         except Exception as exc:
             logger.warning("Redis health check failed", error=str(exc))
             return "unhealthy"
-            
+
     def _ping_celery(self) -> str:
         try:
             # Send a ping task to celery workers (with a timeout)

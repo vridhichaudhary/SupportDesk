@@ -1,3 +1,5 @@
+from datetime import timezone
+
 """
 Agent Repository
 ================
@@ -5,6 +7,7 @@ Data access layer for AgentProfile, Skill, AgentSkill,
 AgentAvailability, and WorkingHours models.
 No business logic. Tenant-isolated by organization_id where applicable.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -24,17 +27,13 @@ from src.models import (
     WorkingHours,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # AgentProfile
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class AgentProfileRepository:
-
-    def get_by_user_id(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[AgentProfile]:
+    def get_by_user_id(self, db: Session, user_id: uuid.UUID) -> Optional[AgentProfile]:
         stmt = select(AgentProfile).where(AgentProfile.user_id == user_id)
         return db.execute(stmt).scalar_one_or_none()
 
@@ -103,21 +102,12 @@ class AgentProfileRepository:
 
 
 class SkillRepository:
-
-    def get(
-        self, db: Session, skill_id: uuid.UUID, org_id: uuid.UUID
-    ) -> Optional[Skill]:
-        stmt = select(Skill).where(
-            Skill.id == skill_id, Skill.organization_id == org_id
-        )
+    def get(self, db: Session, skill_id: uuid.UUID, org_id: uuid.UUID) -> Optional[Skill]:
+        stmt = select(Skill).where(Skill.id == skill_id, Skill.organization_id == org_id)
         return db.execute(stmt).scalar_one_or_none()
 
-    def get_by_name(
-        self, db: Session, name: str, org_id: uuid.UUID
-    ) -> Optional[Skill]:
-        stmt = select(Skill).where(
-            Skill.name == name, Skill.organization_id == org_id
-        )
+    def get_by_name(self, db: Session, name: str, org_id: uuid.UUID) -> Optional[Skill]:
+        stmt = select(Skill).where(Skill.name == name, Skill.organization_id == org_id)
         return db.execute(stmt).scalar_one_or_none()
 
     def list_for_org(
@@ -164,10 +154,7 @@ class SkillRepository:
 
 
 class AgentSkillRepository:
-
-    def get(
-        self, db: Session, user_id: uuid.UUID, skill_id: uuid.UUID
-    ) -> Optional[AgentSkill]:
+    def get(self, db: Session, user_id: uuid.UUID, skill_id: uuid.UUID) -> Optional[AgentSkill]:
         stmt = select(AgentSkill).where(
             AgentSkill.user_id == user_id,
             AgentSkill.skill_id == skill_id,
@@ -238,13 +225,8 @@ class AgentSkillRepository:
 
 
 class AgentAvailabilityRepository:
-
-    def get_by_user(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[AgentAvailability]:
-        stmt = select(AgentAvailability).where(
-            AgentAvailability.user_id == user_id
-        )
+    def get_by_user(self, db: Session, user_id: uuid.UUID) -> Optional[AgentAvailability]:
+        stmt = select(AgentAvailability).where(AgentAvailability.user_id == user_id)
         return db.execute(stmt).scalar_one_or_none()
 
     def upsert(
@@ -259,7 +241,7 @@ class AgentAvailabilityRepository:
         avail = self.get_by_user(db, user_id)
         if avail:
             avail.status = status
-            avail.since = datetime.utcnow()
+            avail.since = datetime.now(timezone.utc)
             avail.expected_return = expected_return
         else:
             avail = AgentAvailability(
@@ -279,10 +261,7 @@ class AgentAvailabilityRepository:
 
 
 class WorkingHoursRepository:
-
-    def get_by_user(
-        self, db: Session, user_id: uuid.UUID
-    ) -> Optional[WorkingHours]:
+    def get_by_user(self, db: Session, user_id: uuid.UUID) -> Optional[WorkingHours]:
         stmt = select(WorkingHours).where(WorkingHours.user_id == user_id)
         return db.execute(stmt).scalar_one_or_none()
 

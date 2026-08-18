@@ -1,19 +1,19 @@
 import uuid
-from typing import List, Optional, Any
-from datetime import datetime
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_db, get_current_user
+from src.core.dependencies import get_current_user, get_db
 from src.core.security import generate_api_key
-from src.models import User, UserRole, APIKey
+from src.models import APIKey, User, UserRole
 
 router = APIRouter(prefix="/api-keys", tags=["api_keys"])
 
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
+
 
 class APIKeyCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -35,6 +35,7 @@ class APIKeyResponse(BaseModel):
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=List[APIKeyResponse], summary="List all API keys")
 def list_api_keys(
     db: Session = Depends(get_db),
@@ -42,16 +43,23 @@ def list_api_keys(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    keys = db.query(APIKey).filter(
-        APIKey.organization_id == current_user.organization_id,
-        APIKey.is_active == True
-    ).order_by(APIKey.created_at.desc()).all()
-    
+
+    keys = (
+        db.query(APIKey)
+        .filter(APIKey.organization_id == current_user.organization_id, APIKey.is_active)
+        .order_by(APIKey.created_at.desc())
+        .all()
+    )
+
     return keys
 
 
-@router.post("", response_model=APIKeyResponse, status_code=status.HTTP_201_CREATED, summary="Create an API key")
+@router.post(
+    "",
+    response_model=APIKeyResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an API key",
+)
 def create_api_key(
     data: APIKeyCreate,
     db: Session = Depends(get_db),
@@ -59,23 +67,23 @@ def create_api_key(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
+
     plain_key, hashed_key = generate_api_key()
-    prefix = plain_key[:12] # e.g. sd_live_XXXX
-    
+    prefix = plain_key[:12]  # e.g. sd_live_XXXX
+
     key_record = APIKey(
         organization_id=current_user.organization_id,
         name=data.name,
         prefix=prefix,
         hashed_secret=hashed_key,
         scopes=data.scopes,
-        created_by_id=current_user.id
+        created_by_id=current_user.id,
     )
-    
+
     db.add(key_record)
     db.commit()
     db.refresh(key_record)
-    
+
     # Inject plain_key into response once
     response = APIKeyResponse(
         id=key_record.id,
@@ -86,7 +94,7 @@ def create_api_key(
         last_used_at=key_record.last_used_at,
         created_at=key_record.created_at,
         is_active=key_record.is_active,
-        plain_key=plain_key
+        plain_key=plain_key,
     )
     return response
 
@@ -99,15 +107,16 @@ def revoke_api_key(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-        
-    key_record = db.query(APIKey).filter(
-        APIKey.id == key_id,
-        APIKey.organization_id == current_user.organization_id
-    ).first()
-    
+
+    key_record = (
+        db.query(APIKey)
+        .filter(APIKey.id == key_id, APIKey.organization_id == current_user.organization_id)
+        .first()
+    )
+
     if not key_record:
         raise HTTPException(status_code=404, detail="API Key not found")
-        
+
     key_record.is_active = False
     db.commit()
     return None

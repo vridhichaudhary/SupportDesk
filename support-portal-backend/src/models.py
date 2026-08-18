@@ -2,6 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -17,8 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import relationship, backref
-from pgvector.sqlalchemy import Vector
+from sqlalchemy.orm import backref, relationship
 
 from src.core.database import Base
 
@@ -50,6 +50,7 @@ class TicketPriority(enum.Enum):
     URGENT = "URGENT"
     CRITICAL = "CRITICAL"
 
+
 class TicketCategory(enum.Enum):
     BILLING = "BILLING"
     TECHNICAL = "TECHNICAL"
@@ -73,7 +74,6 @@ class ThreadType(enum.Enum):
     AGENT_REPLY = "AGENT_REPLY"
     INTERNAL_NOTE = "INTERNAL_NOTE"
     SYSTEM_EVENT = "SYSTEM_EVENT"
-
 
 
 class UserRole(enum.Enum):
@@ -246,7 +246,9 @@ class Organization(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     users = relationship("User", back_populates="organization", cascade="all, delete-orphan")
-    departments = relationship("Department", back_populates="organization", cascade="all, delete-orphan")
+    departments = relationship(
+        "Department", back_populates="organization", cascade="all, delete-orphan"
+    )
     teams = relationship("Team", back_populates="organization", cascade="all, delete-orphan")
     customers = relationship(
         "Customer", back_populates="organization", cascade="all, delete-orphan"
@@ -285,8 +287,12 @@ class User(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     organization = relationship("Organization", back_populates="users")
-    agent_profile = relationship("AgentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    team_memberships = relationship("TeamMember", back_populates="user", cascade="all, delete-orphan")
+    agent_profile = relationship(
+        "AgentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    team_memberships = relationship(
+        "TeamMember", back_populates="user", cascade="all, delete-orphan"
+    )
     teams = relationship("Team", secondary="team_members", back_populates="members", viewonly=True)
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     auth_tokens = relationship("AuthToken", back_populates="user", cascade="all, delete-orphan")
@@ -352,8 +358,10 @@ class Department(Base):
     description = Column(Text, nullable=True)
     color = Column(String(7), nullable=True)
     status = Column(Enum(DepartmentStatus), default=DepartmentStatus.ACTIVE, nullable=False)
-    manager_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    manager_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)
@@ -387,7 +395,7 @@ class Team(Base):
     current_capacity = Column(Integer, default=0, nullable=False)
     default_sla = Column(Integer, nullable=True)
     business_hours = Column(JSONType, nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)
@@ -402,17 +410,13 @@ class Team(Base):
 
 class TeamMember(Base):
     __tablename__ = "team_members"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(
-        UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
-    )
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     is_primary = Column(Boolean, default=False, nullable=False)
     joined_at = Column(DateTime, default=datetime.utcnow)
-    
+
     team = relationship("Team", back_populates="memberships")
     user = relationship("User", back_populates="team_memberships")
 
@@ -425,7 +429,7 @@ class TeamMember(Base):
 
 class AgentProfile(Base):
     __tablename__ = "agent_profiles"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
@@ -438,16 +442,16 @@ class AgentProfile(Base):
     current_active_tickets = Column(Integer, default=0, nullable=False)
     max_daily_tickets = Column(Integer, default=50, nullable=False)
     current_daily_tickets = Column(Integer, default=0, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     user = relationship("User", back_populates="agent_profile")
 
 
 class Skill(Base):
     __tablename__ = "skills"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
@@ -455,9 +459,9 @@ class Skill(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     category = Column(Enum(SkillCategory), default=SkillCategory.OTHER, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     __table_args__ = (
         UniqueConstraint("organization_id", "name", name="uq_skill_org_name"),
         Index("ix_skill_organization", "organization_id"),
@@ -466,32 +470,30 @@ class Skill(Base):
 
 class AgentSkill(Base):
     __tablename__ = "agent_skills"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     skill_id = Column(
         UUID(as_uuid=True), ForeignKey("skills.id", ondelete="CASCADE"), nullable=False
     )
-    proficiency_level = Column(Enum(ProficiencyLevel), default=ProficiencyLevel.BEGINNER, nullable=False)
+    proficiency_level = Column(
+        Enum(ProficiencyLevel), default=ProficiencyLevel.BEGINNER, nullable=False
+    )
     years_of_experience = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     user = relationship("User", backref="skills")
     skill = relationship("Skill")
-    
-    __table_args__ = (
-        UniqueConstraint("user_id", "skill_id", name="uq_agent_skill"),
-    )
+
+    __table_args__ = (UniqueConstraint("user_id", "skill_id", name="uq_agent_skill"),)
 
 
 class AgentAvailability(Base):
     __tablename__ = "agent_availabilities"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
@@ -499,29 +501,29 @@ class AgentAvailability(Base):
     status = Column(Enum(AgentStatus), default=AgentStatus.OFFLINE, nullable=False)
     since = Column(DateTime, default=datetime.utcnow, nullable=False)
     expected_return = Column(DateTime, nullable=True)
-    
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     user = relationship("User", backref="availability")
 
 
 class WorkingHours(Base):
     __tablename__ = "working_hours"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
     )
     timezone = Column(String(50), default="UTC", nullable=False)
-    shifts = Column(JSONType, nullable=True) 
-    working_days = Column(JSONType, nullable=False) 
-    start_time = Column(String(5), nullable=False) 
-    end_time = Column(String(5), nullable=False) 
+    shifts = Column(JSONType, nullable=True)
+    working_days = Column(JSONType, nullable=False)
+    start_time = Column(String(5), nullable=False)
+    end_time = Column(String(5), nullable=False)
     lunch_break_start = Column(String(5), nullable=True)
     lunch_break_end = Column(String(5), nullable=True)
-    
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     user = relationship("User", backref="working_hours")
 
 
@@ -605,9 +607,15 @@ class Ticket(Base):
     merged_into = relationship("Ticket", remote_side=[id])
 
     threads = relationship("TicketThread", back_populates="ticket", cascade="all, delete-orphan")
-    timeline_events = relationship("TicketTimeline", back_populates="ticket", cascade="all, delete-orphan")
-    attachments = relationship("TicketAttachment", back_populates="ticket", cascade="all, delete-orphan")
-    ai_suggestions = relationship("AISuggestion", back_populates="ticket", cascade="all, delete-orphan")
+    timeline_events = relationship(
+        "TicketTimeline", back_populates="ticket", cascade="all, delete-orphan"
+    )
+    attachments = relationship(
+        "TicketAttachment", back_populates="ticket", cascade="all, delete-orphan"
+    )
+    ai_suggestions = relationship(
+        "AISuggestion", back_populates="ticket", cascade="all, delete-orphan"
+    )
     tags = relationship("Tag", secondary=ticket_tags, back_populates="tickets")
 
     __table_args__ = (
@@ -698,7 +706,10 @@ class TicketMerge(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     source_ticket_id = Column(
-        UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, unique=True
+        UUID(as_uuid=True),
+        ForeignKey("tickets.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
     target_ticket_id = Column(
         UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
@@ -737,15 +748,32 @@ class Tag(Base):
 kb_article_tags = Table(
     "kb_article_tags",
     Base.metadata,
-    Column("article_id", UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "article_id",
+        UUID(as_uuid=True),
+        ForeignKey("kb_articles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "tag_id", UUID(as_uuid=True), ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
 
 kb_related_articles = Table(
     "kb_related_articles",
     Base.metadata,
-    Column("article_id", UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), primary_key=True),
-    Column("related_article_id", UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "article_id",
+        UUID(as_uuid=True),
+        ForeignKey("kb_articles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "related_article_id",
+        UUID(as_uuid=True),
+        ForeignKey("kb_articles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -753,8 +781,12 @@ class KBCategory(Base):
     __tablename__ = "kb_categories"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    parent_id = Column(UUID(as_uuid=True), ForeignKey("kb_categories.id", ondelete="SET NULL"), nullable=True)
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    parent_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_categories.id", ondelete="SET NULL"), nullable=True
+    )
     name = Column(String(255), nullable=False)
     slug = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
@@ -778,24 +810,29 @@ class KBCategory(Base):
 
 # Document Intelligence Pipeline Models
 
+
 class Document(Base):
     __tablename__ = "documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    uploader_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    uploader_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     title = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=False)
     file_url = Column(String(1024), nullable=False)
     mime_type = Column(String(100), nullable=False)
     file_size = Column(Integer, nullable=False)  # in bytes
     page_count = Column(Integer, nullable=True)
-    
+
     status = Column(Enum(DocumentStatus), nullable=False, default=DocumentStatus.UPLOADED)
     error_message = Column(Text, nullable=True)
     metadata_json = Column(JSONType, default=dict, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)
@@ -804,26 +841,26 @@ class Document(Base):
     uploader = relationship("User")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        Index("ix_documents_org_status", "organization_id", "status"),
-    )
+    __table_args__ = (Index("ix_documents_org_status", "organization_id", "status"),)
 
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
-    
+    document_id = Column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False
+    )
+
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
     section_title = Column(String(512), nullable=True)
     page_number = Column(Integer, nullable=True)
-    
+
     character_count = Column(Integer, nullable=False)
     word_count = Column(Integer, nullable=False)
     content_hash = Column(String(64), nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     document = relationship("Document", back_populates="chunks")
@@ -838,26 +875,34 @@ class KBArticle(Base):
     __tablename__ = "kb_articles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("kb_categories.id", ondelete="SET NULL"), nullable=True)
-    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    organization_id = Column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    category_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_categories.id", ondelete="SET NULL"), nullable=True
+    )
+    author_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    reviewer_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     title = Column(String(255), nullable=False)
     slug = Column(String(255), nullable=False)
     summary = Column(Text, nullable=True)
     content = Column(Text, nullable=False)
     rendered_html = Column(Text, nullable=True)
-    
+
     status = Column(Enum(KBArticleStatus), nullable=False, default=KBArticleStatus.DRAFT)
     visibility = Column(Enum(VisibilityLevel), nullable=False, default=VisibilityLevel.INTERNAL)
     version = Column(Integer, default=1, nullable=False)
-    
+
     reading_time_minutes = Column(Integer, default=0)
     views = Column(Integer, default=0)
     helpful_count = Column(Integer, default=0)
     not_helpful_count = Column(Integer, default=0)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = Column(DateTime, nullable=True)
@@ -867,17 +912,21 @@ class KBArticle(Base):
     category = relationship("KBCategory", back_populates="articles")
     author = relationship("User", foreign_keys=[author_id])
     reviewer = relationship("User", foreign_keys=[reviewer_id])
-    
+
     tags = relationship("Tag", secondary=kb_article_tags)
     related_to = relationship(
         "KBArticle",
         secondary=kb_related_articles,
-        primaryjoin=id==kb_related_articles.c.article_id,
-        secondaryjoin=id==kb_related_articles.c.related_article_id,
-        backref="related_from"
+        primaryjoin=id == kb_related_articles.c.article_id,
+        secondaryjoin=id == kb_related_articles.c.related_article_id,
+        backref="related_from",
     )
-    versions = relationship("KBArticleVersion", back_populates="article", cascade="all, delete-orphan")
-    attachments = relationship("KBAttachment", back_populates="article", cascade="all, delete-orphan")
+    versions = relationship(
+        "KBArticleVersion", back_populates="article", cascade="all, delete-orphan"
+    )
+    attachments = relationship(
+        "KBAttachment", back_populates="article", cascade="all, delete-orphan"
+    )
     analytics = relationship("KBAnalytics", back_populates="article", cascade="all, delete-orphan")
 
     __table_args__ = (
@@ -890,37 +939,43 @@ class KBArticleVersion(Base):
     __tablename__ = "kb_article_versions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
-    editor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    article_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False
+    )
+    editor_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     version_number = Column(Integer, nullable=False)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
     edit_reason = Column(String(255), nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="versions")
     editor = relationship("User")
 
-    __table_args__ = (
-        Index("ix_kb_version_article", "article_id"),
-    )
+    __table_args__ = (Index("ix_kb_version_article", "article_id"),)
 
 
 class KBAttachment(Base):
     __tablename__ = "kb_attachments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
-    uploader_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    article_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False
+    )
+    uploader_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     filename = Column(String(255), nullable=False)
     file_url = Column(String(1024), nullable=False)
     size = Column(Integer, nullable=False)
     mime_type = Column(String(100), nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="attachments")
@@ -931,25 +986,27 @@ class KBAnalytics(Base):
     __tablename__ = "kb_analytics"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
+    article_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False
+    )
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     session_id = Column(String(255), nullable=True)
     event_type = Column(String(50), nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     article = relationship("KBArticle", back_populates="analytics")
 
-    __table_args__ = (
-        Index("ix_kb_analytics_article", "article_id"),
-    )
+    __table_args__ = (Index("ix_kb_analytics_article", "article_id"),)
 
 
 class KBMetadata(Base):
     __tablename__ = "kb_metadata"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False)
+    article_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False
+    )
     vector_id = Column(UUID(as_uuid=True), nullable=True)
     chunk_count = Column(Integer, default=0)
     last_indexed_at = Column(DateTime, nullable=True)
@@ -1038,7 +1095,9 @@ class Permission(Base):
     module = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    role_permissions = relationship("RolePermission", back_populates="permission", cascade="all, delete-orphan")
+    role_permissions = relationship(
+        "RolePermission", back_populates="permission", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (Index("ix_permission_codename", "codename"),)
 
@@ -1065,8 +1124,12 @@ class Role(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     organization = relationship("Organization")
-    permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
-    assignments = relationship("UserRoleAssignment", back_populates="role", cascade="all, delete-orphan")
+    permissions = relationship(
+        "RolePermission", back_populates="role", cascade="all, delete-orphan"
+    )
+    assignments = relationship(
+        "UserRoleAssignment", back_populates="role", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("organization_id", "name", name="uq_role_org_name"),
@@ -1104,15 +1167,11 @@ class UserRoleAssignment(Base):
     __tablename__ = "user_role_assignments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    role_id = Column(
-        UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
-    )
+    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
     assigned_by_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
@@ -1147,20 +1206,26 @@ class KnowledgeVector(Base):
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    
+
     # We use 768 dimensions for Gemini Embeddings
     embedding = Column(Vector(768), nullable=False)
-    
+
     source_type = Column(Enum(KnowledgeSourceType), nullable=False)
-    
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=True)
-    chunk_id = Column(UUID(as_uuid=True), ForeignKey("document_chunks.id", ondelete="CASCADE"), nullable=True)
-    knowledge_article_id = Column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=True)
-    
+
+    document_id = Column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=True
+    )
+    chunk_id = Column(
+        UUID(as_uuid=True), ForeignKey("document_chunks.id", ondelete="CASCADE"), nullable=True
+    )
+    knowledge_article_id = Column(
+        UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=True
+    )
+
     title = Column(String(512), nullable=True)
     content = Column(Text, nullable=False)
     metadata_json = Column(JSONType, default=dict, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("Organization")
@@ -1168,9 +1233,7 @@ class KnowledgeVector(Base):
     chunk = relationship("DocumentChunk")
     knowledge_article = relationship("KBArticle")
 
-    __table_args__ = (
-        Index("ix_knowledge_vector_org", "organization_id"),
-    )
+    __table_args__ = (Index("ix_knowledge_vector_org", "organization_id"),)
 
 
 class AIChatSession(Base):
@@ -1184,9 +1247,7 @@ class AIChatSession(Base):
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -1195,9 +1256,7 @@ class AIChatSession(Base):
     user = relationship("User")
     messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        Index("ix_ai_chat_session_org_user", "organization_id", "user_id"),
-    )
+    __table_args__ = (Index("ix_ai_chat_session_org_user", "organization_id", "user_id"),)
 
 
 class AIChatMessage(Base):
@@ -1214,22 +1273,21 @@ class AIChatMessage(Base):
     # e.g., 'user' or 'model'
     role = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
-    
+
     # Storing citations as JSON (URLs, titles, snippet context)
     citations_json = Column(JSONType, nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("AIChatSession", back_populates="messages")
 
-    __table_args__ = (
-        Index("ix_ai_chat_message_session", "session_id"),
-    )
+    __table_args__ = (Index("ix_ai_chat_message_session", "session_id"),)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Routing & Workflow Models
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class RoutingDecision(Base):
     __tablename__ = "routing_decisions"
@@ -1241,21 +1299,27 @@ class RoutingDecision(Base):
     ticket_id = Column(
         UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
     )
-    
+
     predicted_category = Column(String(100), nullable=True)
     predicted_priority = Column(String(100), nullable=True)
-    assigned_department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
-    assigned_team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
-    assigned_agent_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    
+    assigned_department_id = Column(
+        UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
+    )
+    assigned_team_id = Column(
+        UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True
+    )
+    assigned_agent_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
     suggested_tags_json = Column(JSONType, nullable=True)
     suggested_sla_hours = Column(Integer, nullable=True)
-    
-    confidence_score = Column(Integer, nullable=True) # 0-100
+
+    confidence_score = Column(Integer, nullable=True)  # 0-100
     reasoning = Column(Text, nullable=True)
     execution_time_ms = Column(Integer, nullable=True)
     model_version = Column(String(100), nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("Organization")
@@ -1283,7 +1347,7 @@ class WorkflowExecution(Base):
     ticket_id = Column(
         UUID(as_uuid=True), ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False
     )
-    status = Column(String(50), nullable=False, default="SUCCESS") # SUCCESS, FAILED
+    status = Column(String(50), nullable=False, default="SUCCESS")  # SUCCESS, FAILED
     logs = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -1309,29 +1373,28 @@ class AssignmentHistory(Base):
     )
     actor_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    ) # NULL if automated
-    
-    assignment_type = Column(String(50), nullable=False) # e.g., 'AGENT', 'TEAM', 'DEPARTMENT'
+    )  # NULL if automated
+
+    assignment_type = Column(String(50), nullable=False)  # e.g., 'AGENT', 'TEAM', 'DEPARTMENT'
     old_value_id = Column(UUID(as_uuid=True), nullable=True)
     new_value_id = Column(UUID(as_uuid=True), nullable=True)
-    
+
     reason = Column(Text, nullable=True)
     is_override = Column(Boolean, default=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("Organization")
     ticket = relationship("Ticket")
     actor = relationship("User")
 
-    __table_args__ = (
-        Index("ix_assignment_history_ticket", "ticket_id"),
-    )
+    __table_args__ = (Index("ix_assignment_history_ticket", "ticket_id"),)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Analytics & Dashboard Models
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class AnalyticsSnapshot(Base):
     __tablename__ = "analytics_snapshots"
@@ -1340,24 +1403,24 @@ class AnalyticsSnapshot(Base):
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    date = Column(DateTime, nullable=False) # e.g. 2026-08-05 00:00:00
-    
+    date = Column(DateTime, nullable=False)  # e.g. 2026-08-05 00:00:00
+
     total_tickets = Column(Integer, default=0)
     open_tickets = Column(Integer, default=0)
     resolved_tickets = Column(Integer, default=0)
-    
+
     avg_first_response_time_minutes = Column(Integer, nullable=True)
     avg_resolution_time_minutes = Column(Integer, nullable=True)
-    
+
     sla_compliance_percent = Column(Integer, nullable=True)
     csat_score = Column(Integer, nullable=True)
-    
+
     ai_resolution_rate_percent = Column(Integer, nullable=True)
     automation_success_rate_percent = Column(Integer, nullable=True)
     knowledge_articles_used = Column(Integer, default=0)
-    
-    metrics_json = Column(JSONType, nullable=True) # Catch-all for extra daily metrics
-    
+
+    metrics_json = Column(JSONType, nullable=True)  # Catch-all for extra daily metrics
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -1373,12 +1436,14 @@ class KPIHistory(Base):
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    target_type = Column(String(50), nullable=False) # 'AGENT', 'TEAM', 'DEPARTMENT', 'ORGANIZATION'
+    target_type = Column(
+        String(50), nullable=False
+    )  # 'AGENT', 'TEAM', 'DEPARTMENT', 'ORGANIZATION'
     target_id = Column(UUID(as_uuid=True), nullable=True)
-    
-    kpi_name = Column(String(100), nullable=False) # e.g. 'RESOLUTION_TIME', 'CSAT'
+
+    kpi_name = Column(String(100), nullable=False)  # e.g. 'RESOLUTION_TIME', 'CSAT'
     kpi_value = Column(String(255), nullable=False)
-    
+
     date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -1398,7 +1463,7 @@ class DashboardCache(Base):
     cache_key = Column(String(255), nullable=False)
     payload_json = Column(JSONType, nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1407,9 +1472,11 @@ class DashboardCache(Base):
         Index("ix_dashboard_cache_expires", "expires_at"),
     )
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Integrations, Webhooks & API Keys Models
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class APIKey(Base):
     __tablename__ = "api_keys"
@@ -1419,17 +1486,17 @@ class APIKey(Base):
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     name = Column(String(255), nullable=False)
-    prefix = Column(String(10), nullable=False) # e.g. 'sd_live_...'
+    prefix = Column(String(10), nullable=False)  # e.g. 'sd_live_...'
     hashed_secret = Column(String(255), nullable=False)
     scopes = Column(JSONType, nullable=False, default=list)
-    
+
     expires_at = Column(DateTime, nullable=True)
     last_used_at = Column(DateTime, nullable=True)
     created_by_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     is_active = Column(Boolean, default=True, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1449,16 +1516,16 @@ class WebhookEndpoint(Base):
     url = Column(String(1024), nullable=False)
     hmac_secret = Column(String(255), nullable=False)
     description = Column(String(255), nullable=True)
-    
-    subscribed_events = Column(JSONType, nullable=False, default=list) # e.g. ['ticket.created', 'ticket.updated']
+
+    subscribed_events = Column(
+        JSONType, nullable=False, default=list
+    )  # e.g. ['ticket.created', 'ticket.updated']
     is_active = Column(Boolean, default=True, nullable=False)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (
-        Index("ix_webhook_endpoint_organization", "organization_id"),
-    )
+    __table_args__ = (Index("ix_webhook_endpoint_organization", "organization_id"),)
 
 
 class WebhookDelivery(Base):
@@ -1470,16 +1537,18 @@ class WebhookDelivery(Base):
     )
     event_id = Column(String(255), nullable=False)
     event_type = Column(String(100), nullable=False)
-    
+
     payload_json = Column(JSONType, nullable=False)
-    
-    delivery_status = Column(String(50), nullable=False, default="PENDING") # PENDING, SUCCESS, FAILED
+
+    delivery_status = Column(
+        String(50), nullable=False, default="PENDING"
+    )  # PENDING, SUCCESS, FAILED
     status_code = Column(Integer, nullable=True)
     response_body = Column(Text, nullable=True)
-    
+
     retry_count = Column(Integer, default=0, nullable=False)
     next_retry_at = Column(DateTime, nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1496,11 +1565,11 @@ class Integration(Base):
     organization_id = Column(
         UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
-    provider = Column(String(100), nullable=False) # 'SLACK', 'MSTEAMS', 'JIRA', 'GITHUB', 'EMAIL'
+    provider = Column(String(100), nullable=False)  # 'SLACK', 'MSTEAMS', 'JIRA', 'GITHUB', 'EMAIL'
     is_active = Column(Boolean, default=False, nullable=False)
-    
+
     config_json = Column(JSONType, nullable=False, default=dict)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1519,13 +1588,12 @@ class EventLog(Base):
     event_type = Column(String(100), nullable=False)
     target_id = Column(String(255), nullable=True)
     actor_id = Column(UUID(as_uuid=True), nullable=True)
-    
+
     payload_json = Column(JSONType, nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
         Index("ix_event_log_organization", "organization_id"),
         Index("ix_event_log_type", "event_type"),
     )
-

@@ -1,12 +1,15 @@
 """
 AutomationRule CRUD service.
 """
+
 import uuid
+from typing import Any, Dict, List
+
 import structlog
-from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from src.models import AutomationRule
+
 from src.core.exceptions import NotFoundException
+from src.models import AutomationRule
 
 logger = structlog.get_logger()
 
@@ -21,8 +24,14 @@ class AutomationService:
         )
 
     def create_rule(
-        self, db: Session, org_id: uuid.UUID, name: str, trigger_event: str,
-        conditions_json: Dict, actions_json: Dict, is_active: bool = True
+        self,
+        db: Session,
+        org_id: uuid.UUID,
+        name: str,
+        trigger_event: str,
+        conditions_json: Dict,
+        actions_json: Dict,
+        is_active: bool = True,
     ) -> AutomationRule:
         rule = AutomationRule(
             organization_id=org_id,
@@ -41,9 +50,11 @@ class AutomationService:
     def update_rule(
         self, db: Session, org_id: uuid.UUID, rule_id: uuid.UUID, updates: Dict[str, Any]
     ) -> AutomationRule:
-        rule = db.query(AutomationRule).filter(
-            AutomationRule.id == rule_id, AutomationRule.organization_id == org_id
-        ).first()
+        rule = (
+            db.query(AutomationRule)
+            .filter(AutomationRule.id == rule_id, AutomationRule.organization_id == org_id)
+            .first()
+        )
         if not rule:
             raise NotFoundException("Automation rule not found")
         for k, v in updates.items():
@@ -54,9 +65,11 @@ class AutomationService:
         return rule
 
     def delete_rule(self, db: Session, org_id: uuid.UUID, rule_id: uuid.UUID) -> None:
-        rule = db.query(AutomationRule).filter(
-            AutomationRule.id == rule_id, AutomationRule.organization_id == org_id
-        ).first()
+        rule = (
+            db.query(AutomationRule)
+            .filter(AutomationRule.id == rule_id, AutomationRule.organization_id == org_id)
+            .first()
+        )
         if not rule:
             raise NotFoundException("Automation rule not found")
         db.delete(rule)

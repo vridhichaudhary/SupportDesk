@@ -1,8 +1,9 @@
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
-import pypdf
 import docx
+import pypdf
+
 
 class DocumentParser:
     """
@@ -37,15 +38,15 @@ class DocumentParser:
             if reader.metadata:
                 metadata["title"] = reader.metadata.title
                 metadata["author"] = reader.metadata.author
-            
+
             for i, page in enumerate(reader.pages):
                 page_text = page.extract_text()
                 if page_text:
-                    # Keep track of pages for chunking if we want to be advanced, 
+                    # Keep track of pages for chunking if we want to be advanced,
                     # but for now we just append a page marker.
-                    text_parts.append(f"\n\n--- PAGE {i+1} ---\n\n")
+                    text_parts.append(f"\n\n--- PAGE {i + 1} ---\n\n")
                     text_parts.append(page_text)
-                    
+
         return "".join(text_parts), metadata
 
     @classmethod
@@ -55,11 +56,11 @@ class DocumentParser:
         if doc.core_properties:
             metadata["title"] = doc.core_properties.title
             metadata["author"] = doc.core_properties.author
-        
+
         text_parts = []
         for p in doc.paragraphs:
             text_parts.append(p.text)
-            
+
         return "\n".join(text_parts), metadata
 
     @classmethod
@@ -67,5 +68,6 @@ class DocumentParser:
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read()
         return text, {}
+
 
 document_parser = DocumentParser()
