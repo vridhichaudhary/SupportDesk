@@ -29,17 +29,20 @@ FROM python:3.13-slim AS production
 WORKDIR /app
 
 # Runtime system dependencies only
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade system pip and setuptools to fix vulnerabilities in the base image
-RUN pip install --no-cache-dir --upgrade pip setuptools msgpack
-
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Remove pip from both environments and setuptools from system Python
+# This eliminates vulnerabilities in pip's vendored dependencies (e.g., msgpack 1.1.2 in bom.cdx.json)
+# We keep the explicitly installed msgpack>=1.2.1 and setuptools>=78.1.1 in the venv
+RUN /opt/venv/bin/pip uninstall -y pip \
+    && /usr/local/bin/pip uninstall -y pip setuptools
 
 # Create non-root user
 RUN groupadd --gid 1001 appgroup \

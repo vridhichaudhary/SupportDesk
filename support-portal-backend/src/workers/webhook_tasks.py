@@ -115,7 +115,9 @@ def execute_webhook_delivery(self, delivery_id_str: str):
                 delivery.delivery_status = "PENDING"
                 delivery.retry_count += 1
                 backoff = 2**self.request.retries
-                delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(seconds=backoff * 10)
+                delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(
+                    seconds=backoff * 10
+                )
                 raise self.retry(exc=e, countdown=backoff * 10) from e
 
         finally:
