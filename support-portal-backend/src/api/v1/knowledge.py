@@ -42,7 +42,7 @@ def list_categories(db: Session = Depends(get_db), current_user: User = Depends(
     )  # In production we pass redis client, passing None since permission engine gracefully handles it
 
     service = KBCategoryService(db)
-    return service.list_categories(current_user.organization_id)
+    return service.list_categories(current_user.organization_id)  # type: ignore[arg-type]
 
 
 @router.post("/categories", response_model=KBCategoryResponse, status_code=status.HTTP_201_CREATED)
@@ -62,7 +62,7 @@ def create_category(
     )
 
     service = KBCategoryService(db)
-    return service.create_category(data.model_dump(), current_user.organization_id)
+    return service.create_category(data.model_dump(), current_user.organization_id)  # type: ignore[arg-type]
 
 
 @router.put("/categories/{category_id}", response_model=KBCategoryResponse)
@@ -84,7 +84,7 @@ def update_category(
 
     service = KBCategoryService(db)
     return service.update_category(
-        category_id, data.model_dump(exclude_unset=True), current_user.organization_id
+        category_id, data.model_dump(exclude_unset=True), current_user.organization_id  # type: ignore[arg-type]
     )
 
 
@@ -124,7 +124,7 @@ def list_articles(
         actual_status = KBArticleStatus.PUBLISHED
 
     items, total = service.search_articles(
-        current_user.organization_id,
+        current_user.organization_id,  # type: ignore[arg-type]
         query,
         category_id,
         actual_status,
@@ -157,7 +157,7 @@ def get_article(
     )
 
     service = KBArticleService(db)
-    return service.get_article(article_id, current_user.organization_id)
+    return service.get_article(article_id, current_user.organization_id)  # type: ignore[arg-type]
 
 
 @router.post("/articles", response_model=KBArticleResponse, status_code=status.HTTP_201_CREATED)
@@ -178,7 +178,7 @@ def create_article(
     )
 
     service = KBArticleService(db)
-    return service.create_article(data.model_dump(), current_user.organization_id, current_user.id)
+    return service.create_article(data.model_dump(), current_user.organization_id, current_user.id)  # type: ignore[arg-type]
 
 
 @router.put("/articles/{article_id}", response_model=KBArticleResponse)
@@ -203,8 +203,8 @@ def update_article(
     return service.update_article(
         article_id,
         data.model_dump(exclude_unset=True),
-        current_user.organization_id,
-        current_user.id,
+        current_user.organization_id,  # type: ignore[arg-type]
+        current_user.id,  # type: ignore[arg-type]
         data.edit_reason,
     )
 
@@ -229,7 +229,7 @@ def transition_article(
 
     service = KBArticleService(db)
     return service.transition_status(
-        article_id, current_user.organization_id, data.status, current_user.id
+        article_id, current_user.organization_id, data.status, current_user.id  # type: ignore[arg-type]
     )
 
 
@@ -251,7 +251,7 @@ def delete_article(
     )
 
     service = KBArticleService(db)
-    service.delete_article(article_id, current_user.organization_id)
+    service.delete_article(article_id, current_user.organization_id)  # type: ignore[arg-type]
     return None
 
 
@@ -276,7 +276,7 @@ def get_article_versions(
     )
 
     # We just need to verify the article belongs to the org
-    KBArticleService(db).get_article(article_id, current_user.organization_id)
+    KBArticleService(db).get_article(article_id, current_user.organization_id)  # type: ignore[arg-type]
 
     from src.repositories.kb_version import KBVersionRepository
 
@@ -304,7 +304,7 @@ def restore_article_version(
 
     service = KBArticleService(db)
     return service.restore_version(
-        article_id, version, current_user.organization_id, current_user.id
+        article_id, version, current_user.organization_id, current_user.id  # type: ignore[arg-type]
     )
 
 
@@ -319,7 +319,7 @@ def record_article_view(
 ):
     """Record a view for an article"""
     service = KBArticleService(db)
-    service.increment_view(article_id, current_user.organization_id)
+    service.increment_view(article_id, current_user.organization_id)  # type: ignore[arg-type]
     return None
 
 
@@ -332,5 +332,5 @@ def vote_article(
 ):
     """Vote on an article"""
     service = KBArticleService(db)
-    service.vote_helpful(article_id, current_user.organization_id, helpful)
+    service.vote_helpful(article_id, current_user.organization_id, helpful)  # type: ignore[arg-type]
     return None

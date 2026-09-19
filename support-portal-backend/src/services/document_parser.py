@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 import docx
 import pypdf
@@ -29,9 +29,9 @@ class DocumentParser:
             raise ValueError(f"Unsupported mime type for parsing: {mime_type}")
 
     @classmethod
-    def _extract_pdf(cls, file_path: str) -> Tuple[str, Dict]:
+    def _extract_pdf(cls, file_path: str) -> Tuple[str, Dict[str, Any]]:
         text_parts = []
-        metadata = {}
+        metadata: Dict[str, Any] = {}
         with open(file_path, "rb") as f:
             reader = pypdf.PdfReader(f)
             metadata["page_count"] = len(reader.pages)

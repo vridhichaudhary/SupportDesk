@@ -44,7 +44,7 @@ def list_teams(
 ):
     result = team_service.list_teams(
         db,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         department_id=department_id,
         skip=skip,
         limit=limit,
@@ -65,7 +65,7 @@ def create_team(
 ):
     return team_service.create_team(
         db,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         name=body.name,
         description=body.description,
@@ -84,7 +84,7 @@ def get_team(
     actor: User = require_permission("view_teams"),
     db: Session = Depends(get_db),
 ):
-    return team_service.get_or_404(db, team_id, actor.organization_id)
+    return team_service.get_or_404(db, team_id, actor.organization_id)  # type: ignore[arg-type]
 
 
 @router.patch("/{team_id}", response_model=TeamResponse, summary="Update a team")
@@ -97,7 +97,7 @@ def update_team(
     return team_service.update_team(
         db,
         team_id=team_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         name=body.name,
         description=body.description,
@@ -121,7 +121,7 @@ def delete_team(
     actor: User = require_permission("manage_teams"),
     db: Session = Depends(get_db),
 ):
-    team_service.delete_team(db, team_id=team_id, org_id=actor.organization_id, actor=actor)
+    team_service.delete_team(db, team_id=team_id, org_id=actor.organization_id, actor=actor)  # type: ignore[arg-type]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ def list_team_members(
     actor: User = require_permission("view_teams"),
     db: Session = Depends(get_db),
 ):
-    return team_service.get_team_members(db, team_id, actor.organization_id, skip=skip, limit=limit)
+    return team_service.get_team_members(db, team_id, actor.organization_id, skip=skip, limit=limit)  # type: ignore[arg-type]
 
 
 @router.post(
@@ -158,7 +158,7 @@ def add_team_member(
     membership = team_service.add_member(
         db,
         team_id=team_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         user_id=body.user_id,
         actor=actor,
         is_primary=body.is_primary,
@@ -180,7 +180,7 @@ def remove_team_member(
     team_service.remove_member(
         db,
         team_id=team_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         user_id=user_id,
         actor=actor,
     )

@@ -34,7 +34,7 @@ def process_document_task(self, document_id_str: str):
             return
 
         # Update status to processing
-        doc.status = DocumentStatus.PROCESSING
+        doc.status = DocumentStatus.PROCESSING  # type: ignore[assignment]
         db.commit()
 
         start_time = time.time()
@@ -47,13 +47,13 @@ def process_document_task(self, document_id_str: str):
         file_path = str(BASE_DIR / relative_path)
 
         # 1. Extract text and metadata
-        extracted_text, metadata = document_parser.extract(file_path, doc.mime_type)
+        extracted_text, metadata = document_parser.extract(file_path, doc.mime_type)  # type: ignore[arg-type]
 
         # Merge metadata
         if metadata:
             current_meta = dict(doc.metadata_json)
             current_meta.update(metadata)
-            doc.metadata_json = current_meta
+            doc.metadata_json = current_meta  # type: ignore[assignment]
 
             if "page_count" in metadata:
                 doc.page_count = metadata["page_count"]
@@ -100,9 +100,9 @@ def process_document_task(self, document_id_str: str):
         current_meta = dict(doc.metadata_json)
         current_meta["processing_time_seconds"] = round(end_time - start_time, 2)
         current_meta["total_chunks"] = len(chunks_data)
-        doc.metadata_json = current_meta
+        doc.metadata_json = current_meta  # type: ignore[assignment]
 
-        doc.status = DocumentStatus.COMPLETED
+        doc.status = DocumentStatus.COMPLETED  # type: ignore[assignment]
         db.commit()
 
         logger.info(
@@ -116,8 +116,8 @@ def process_document_task(self, document_id_str: str):
         try:
             doc = db.query(Document).filter(Document.id == uuid.UUID(document_id_str)).first()
             if doc:
-                doc.status = DocumentStatus.FAILED
-                doc.error_message = str(e)
+                doc.status = DocumentStatus.FAILED  # type: ignore[assignment]
+                doc.error_message = str(e)  # type: ignore[assignment]
                 db.commit()
         except Exception as inner_e:
             logger.error("Failed to update document error status", error=str(inner_e))

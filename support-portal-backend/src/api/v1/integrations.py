@@ -65,8 +65,8 @@ def configure_integration(
     )
 
     if integration:
-        integration.config_json = data.config_json
-        integration.is_active = True
+        integration.config_json = data.config_json  # type: ignore[assignment]
+        integration.is_active = True  # type: ignore[assignment]
     else:
         integration = Integration(
             organization_id=current_user.organization_id,

@@ -17,7 +17,7 @@ def get_executive_dashboard(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized for executive dashboard")
-    return analytics_service.get_executive_dashboard(db, current_user.organization_id, days=days)
+    return analytics_service.get_executive_dashboard(db, current_user.organization_id, days=days)  # type: ignore[arg-type]
 
 
 @router.get("/manager")
@@ -28,7 +28,7 @@ def get_manager_dashboard(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized for manager dashboard")
-    return analytics_service.get_manager_dashboard(db, current_user.organization_id, days=days)
+    return analytics_service.get_manager_dashboard(db, current_user.organization_id, days=days)  # type: ignore[arg-type]
 
 
 @router.get("/agent")
@@ -38,7 +38,7 @@ def get_agent_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     return analytics_service.get_agent_dashboard(
-        db, current_user.organization_id, current_user.id, days=days
+        db, current_user.organization_id, current_user.id, days=days  # type: ignore[arg-type]
     )
 
 
@@ -48,7 +48,7 @@ def get_trends(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return analytics_service.get_trends(db, current_user.organization_id, days=days)
+    return analytics_service.get_trends(db, current_user.organization_id, days=days)  # type: ignore[arg-type]
 
 
 @router.get("/export", response_class=PlainTextResponse)
@@ -59,7 +59,7 @@ def export_analytics(
 ):
     if current_user.role not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized for exports")
-    csv_data = analytics_service.export_csv(db, current_user.organization_id, type)
+    csv_data = analytics_service.export_csv(db, current_user.organization_id, type)  # type: ignore[arg-type]
     return PlainTextResponse(
         content=csv_data,
         media_type="text/csv",

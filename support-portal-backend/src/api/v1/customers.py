@@ -37,7 +37,7 @@ def create_customer(
     Create a new customer record within the organization.
     Requires `manage_customers` permission.
     """
-    return customer_service.create(db, obj_in=body, organization_id=actor.organization_id)
+    return customer_service.create(db, obj_in=body, organization_id=actor.organization_id)  # type: ignore[arg-type]
 
 
 @router.get(
@@ -90,7 +90,7 @@ def get_customer(
     """
     Retrieve a single customer by ID. Requires `view_customers` permission.
     """
-    return customer_service.get_or_404(db, id=customer_id, organization_id=actor.organization_id)
+    return customer_service.get_or_404(db, id=customer_id, organization_id=actor.organization_id)  # type: ignore[arg-type]
 
 
 @router.patch(
@@ -108,5 +108,5 @@ def update_customer(
     Update customer profile fields. Requires `manage_customers` permission.
     """
     return customer_service.update(
-        db, id=customer_id, obj_in=body, organization_id=actor.organization_id
+        db, id=customer_id, obj_in=body, organization_id=actor.organization_id  # type: ignore[arg-type]
     )

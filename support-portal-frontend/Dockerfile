@@ -34,7 +34,8 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 
-RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+RUN apk update && apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 

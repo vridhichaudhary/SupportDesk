@@ -102,7 +102,7 @@ class AICopilotService:
             return assistant_msg, session
 
         # Retrieve context
-        contexts = retrieval_service.search(db, user.organization_id, query, top_k=5)
+        contexts = retrieval_service.search(db, user.organization_id, query, top_k=5)  # type: ignore[arg-type]
 
         if not contexts:
             assistant_msg = AIChatMessage(
@@ -165,7 +165,7 @@ Answer:"""
         # Touch session
         from datetime import datetime
 
-        session.updated_at = datetime.now(timezone.utc)
+        session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
         db.commit()
         db.refresh(assistant_msg)

@@ -76,14 +76,14 @@ def execute_webhook_delivery(self, delivery_id_str: str):
             db.query(WebhookEndpoint).filter(WebhookEndpoint.id == delivery.endpoint_id).first()
         )
         if not endpoint or not endpoint.is_active:
-            delivery.delivery_status = "FAILED"
-            delivery.response_body = "Endpoint deleted or deactivated"
+            delivery.delivery_status = "FAILED"  # type: ignore[assignment]
+            delivery.response_body = "Endpoint deleted or deactivated"  # type: ignore[assignment]
             db.commit()
             return
 
         # Prepare payload and signature
         payload_str = json.dumps(delivery.payload_json)
-        signature = generate_webhook_signature(payload_str, endpoint.hmac_secret)
+        signature = generate_webhook_signature(payload_str, endpoint.hmac_secret)  # type: ignore[arg-type]
 
         headers = {
             "Content-Type": "application/json",
@@ -95,27 +95,27 @@ def execute_webhook_delivery(self, delivery_id_str: str):
 
         try:
             response = requests.post(
-                endpoint.url, data=payload_str, headers=headers, timeout=TIMEOUT_SECONDS
+                endpoint.url, data=payload_str, headers=headers, timeout=TIMEOUT_SECONDS  # type: ignore[arg-type]
             )
-            delivery.status_code = response.status_code
-            delivery.response_body = response.text[:1000]  # Truncate large responses
+            delivery.status_code = response.status_code  # type: ignore[assignment]
+            delivery.response_body = response.text[:1000]  # Truncate large responses  # type: ignore[assignment]
 
             if 200 <= response.status_code < 300:
-                delivery.delivery_status = "SUCCESS"
+                delivery.delivery_status = "SUCCESS"  # type: ignore[assignment]
             else:
                 raise Exception(f"HTTP {response.status_code}")
 
         except Exception as e:
-            delivery.status_code = delivery.status_code or 0
-            delivery.response_body = str(e)
+            delivery.status_code = delivery.status_code or 0  # type: ignore[assignment]
+            delivery.response_body = str(e)  # type: ignore[assignment]
 
             if self.request.retries >= self.max_retries:
-                delivery.delivery_status = "FAILED"
+                delivery.delivery_status = "FAILED"  # type: ignore[assignment]
             else:
-                delivery.delivery_status = "PENDING"
-                delivery.retry_count += 1
+                delivery.delivery_status = "PENDING"  # type: ignore[assignment]
+                delivery.retry_count += 1  # type: ignore[assignment]
                 backoff = 2**self.request.retries
-                delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(
+                delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(  # type: ignore[assignment]
                     seconds=backoff * 10
                 )
                 raise self.retry(exc=e, countdown=backoff * 10) from e

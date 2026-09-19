@@ -88,8 +88,8 @@ def override_assignment_task(
                     is_override=True,
                 )
             )
-            ticket.assigned_user_id = new_agent
-            ticket.status = TicketStatus.ASSIGNED
+            ticket.assigned_user_id = new_agent  # type: ignore[assignment]
+            ticket.status = TicketStatus.ASSIGNED  # type: ignore[assignment]
 
         if team_id_str:
             new_team = _uuid.UUID(team_id_str)
@@ -105,7 +105,7 @@ def override_assignment_task(
                     is_override=True,
                 )
             )
-            ticket.assigned_team_id = new_team
+            ticket.assigned_team_id = new_team  # type: ignore[assignment]
 
         db.add(
             AuditLog(

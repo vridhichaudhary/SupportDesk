@@ -23,7 +23,7 @@ def aggregate_daily_analytics_task():
 
         for org in orgs:
             # Reusing the service for the 1 day scope
-            exec_data = analytics_service.get_executive_dashboard(db, org.id, days=1)
+            exec_data = analytics_service.get_executive_dashboard(db, org.id, days=1)  # type: ignore[arg-type]
 
             snapshot = AnalyticsSnapshot(
                 organization_id=org.id,

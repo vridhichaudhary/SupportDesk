@@ -30,7 +30,7 @@ class UserService(BaseService[User, Any, Any]):
             setattr(user, field, value)
 
         if payload.first_name or payload.last_name:
-            user.display_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+            user.display_name = f"{user.first_name or ''} {user.last_name or ''}".strip()  # type: ignore[assignment]
 
         db.add(user)
         db.commit()
@@ -54,7 +54,7 @@ class UserService(BaseService[User, Any, Any]):
         if "notification_preferences" in data and data["notification_preferences"] is not None:
             current = dict(user.notification_preferences or {})
             current.update(data["notification_preferences"])
-            user.notification_preferences = current
+            user.notification_preferences = current  # type: ignore[assignment]
             del data["notification_preferences"]
 
         for field, value in data.items():
@@ -70,10 +70,10 @@ class UserService(BaseService[User, Any, Any]):
     ) -> User:
         # Delete old avatar if stored
         if user.avatar_url:
-            storage_provider.delete_file(user.avatar_url)
+            storage_provider.delete_file(user.avatar_url)  # type: ignore[arg-type]
 
         avatar_url = storage_provider.upload_file(file_content, filename, content_type)
-        user.avatar_url = avatar_url
+        user.avatar_url = avatar_url  # type: ignore[assignment]
 
         db.add(user)
         db.commit()
@@ -93,11 +93,11 @@ class UserService(BaseService[User, Any, Any]):
     def change_password(
         self, db: Session, user: User, current_password: str, new_password: str
     ) -> None:
-        if not verify_password(current_password, user.password_hash):
+        if not verify_password(current_password, user.password_hash):  # type: ignore[arg-type]
             raise ValidationException("Incorrect current password")
 
         validate_password_complexity(new_password)
-        user.password_hash = hash_password(new_password)
+        user.password_hash = hash_password(new_password)  # type: ignore[assignment]
 
         db.add(user)
         db.commit()
@@ -112,8 +112,8 @@ class UserService(BaseService[User, Any, Any]):
         )
 
     def delete_account(self, db: Session, user: User) -> None:
-        user.is_active = False
-        user.deleted_at = datetime.now(timezone.utc)
+        user.is_active = False  # type: ignore[assignment]
+        user.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         db.add(user)
         db.commit()
 

@@ -114,23 +114,23 @@ class TeamRepository:
         status: Optional[TeamStatus] = None,
     ) -> Team:
         if name is not None:
-            team.name = name
+            team.name = name  # type: ignore[assignment]
         if description is not None:
-            team.description = description
+            team.description = description  # type: ignore[assignment]
         if department_id is not None:
-            team.department_id = department_id
+            team.department_id = department_id  # type: ignore[assignment]
         if avatar_url is not None:
-            team.avatar_url = avatar_url
+            team.avatar_url = avatar_url  # type: ignore[assignment]
         if color is not None:
-            team.color = color
+            team.color = color  # type: ignore[assignment]
         if max_capacity is not None:
-            team.max_capacity = max_capacity
+            team.max_capacity = max_capacity  # type: ignore[assignment]
         if default_sla is not None:
-            team.default_sla = default_sla
+            team.default_sla = default_sla  # type: ignore[assignment]
         if business_hours is not None:
-            team.business_hours = business_hours
+            team.business_hours = business_hours  # type: ignore[assignment]
         if status is not None:
-            team.status = status
+            team.status = status  # type: ignore[assignment]
         db.add(team)
         db.flush()
         return team
@@ -141,7 +141,7 @@ class TeamRepository:
             TeamMember.team_id == team.id,
         )
         count = len(list(db.execute(stmt).scalars().all()))
-        team.current_capacity = count
+        team.current_capacity = count  # type: ignore[assignment]
         db.add(team)
         db.flush()
         return team
@@ -149,8 +149,8 @@ class TeamRepository:
     def soft_delete(self, db: Session, team: Team) -> None:
         from datetime import datetime
 
-        team.deleted_at = datetime.now(timezone.utc)
-        team.status = TeamStatus.DELETED
+        team.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        team.status = TeamStatus.DELETED  # type: ignore[assignment]
         db.add(team)
         db.flush()
 
@@ -216,7 +216,7 @@ class TeamMemberRepository:
         """Sets one member as primary, clears primary flag from all others."""
         all_members = self.list_team_members(db, team_id)
         for m in all_members:
-            m.is_primary = m.user_id == user_id
+            m.is_primary = m.user_id == user_id  # type: ignore[assignment]
             db.add(m)
         db.flush()
 

@@ -33,7 +33,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
-  output: "standalone",
+  output: process.env.VERCEL ? undefined : "standalone",
   async headers() {
     return [
       {

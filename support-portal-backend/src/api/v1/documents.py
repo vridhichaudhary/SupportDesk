@@ -245,8 +245,8 @@ def retry_document_processing(
     # Clear existing chunks
     db.query(DocumentChunk).filter(DocumentChunk.document_id == document_id).delete()
 
-    doc.status = DocumentStatus.QUEUED
-    doc.error_message = None
+    doc.status = DocumentStatus.QUEUED  # type: ignore[assignment]
+    doc.error_message = None  # type: ignore[assignment]
     db.commit()
     db.refresh(doc)
 
@@ -292,7 +292,7 @@ def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Delete file from storage
-    document_storage_provider.delete_file(doc.file_url)
+    document_storage_provider.delete_file(doc.file_url)  # type: ignore[arg-type]
 
     # Delete DB record (cascade will handle chunks)
     db.delete(doc)

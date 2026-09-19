@@ -100,7 +100,7 @@ class KBArticleService:
                 setattr(article, k, v)
 
         if content_changed:
-            article.version += 1
+            article.version += 1  # type: ignore[assignment]
             self._snapshot_version(article, editor_id, edit_reason or "Content updated")
 
         return self.repo.update(article)
@@ -118,15 +118,15 @@ class KBArticleService:
         # e.g., only IN_REVIEW can become APPROVED, only APPROVED can become PUBLISHED
 
         if new_status == KBArticleStatus.PUBLISHED and article.status != KBArticleStatus.PUBLISHED:
-            article.published_at = datetime.now(timezone.utc)
+            article.published_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
-        article.status = new_status
+        article.status = new_status  # type: ignore[assignment]
         return self.repo.update(article)
 
     def delete_article(self, article_id: uuid.UUID, org_id: uuid.UUID) -> None:
         article = self.get_article(article_id, org_id)
         # Soft delete
-        article.deleted_at = datetime.now(timezone.utc)
+        article.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         self.repo.update(article)
 
     def restore_version(
@@ -143,7 +143,7 @@ class KBArticleService:
         article.title = version_record.title
         article.content = version_record.content
         article.summary = version_record.summary
-        article.version += 1
+        article.version += 1  # type: ignore[assignment]
 
         self.repo.update(article)
         self._snapshot_version(article, editor_id, f"Restored from version {version_number}")
@@ -169,7 +169,7 @@ class KBArticleService:
     def vote_helpful(self, article_id: uuid.UUID, org_id: uuid.UUID, helpful: bool) -> None:
         article = self.get_article(article_id, org_id)
         if helpful:
-            article.helpful_count += 1
+            article.helpful_count += 1  # type: ignore[assignment]
         else:
-            article.not_helpful_count += 1
+            article.not_helpful_count += 1  # type: ignore[assignment]
         self.repo.update(article)

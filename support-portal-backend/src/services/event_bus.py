@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -17,8 +17,8 @@ class EventBus:
         organization_id: uuid.UUID,
         event_type: str,
         payload: Dict[str, Any],
-        target_id: str = None,
-        actor_id: uuid.UUID = None,
+        target_id: Optional[str] = None,
+        actor_id: Optional[uuid.UUID] = None,
     ) -> EventLog:
         # 1. Persist the event for audit logging
         event_log = EventLog(

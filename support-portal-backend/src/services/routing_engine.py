@@ -120,8 +120,8 @@ Return this exact JSON schema, with no extra text:
     # Step 2: Rule Engine
     # ------------------------------------------------------------------
     def evaluate_rules(
-        self, db: Session, org_id: uuid.UUID, ticket: Ticket, classification: Dict
-    ) -> Dict[str, Any]:
+        self, db: Session, org_id: uuid.UUID, ticket: Ticket, classification: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[Tuple[AutomationRule, str]]]:
         """
         Evaluate AutomationRules for the organization. Rules can override
         classification outputs. Returns a dict of override values.
@@ -141,7 +141,7 @@ Return this exact JSON schema, with no extra text:
 
         for rule in rules:
             conditions = rule.conditions_json or {}
-            matched = self._match_conditions(conditions, classification, ticket)
+            matched = self._match_conditions(conditions, classification, ticket)  # type: ignore[arg-type]
 
             if matched:
                 actions = rule.actions_json or {}
@@ -204,13 +204,13 @@ Return this exact JSON schema, with no extra text:
         )
 
         if team_id:
-            from src.models import team_members
+            from sqlalchemy import select
+            from src.models import TeamMember
 
             agent_ids_in_team = (
                 db.execute(
-                    __import__("sqlalchemy", fromlist=["select"])
-                    .select(team_members.c.user_id)
-                    .where(team_members.c.team_id == team_id)
+                    select(TeamMember.user_id)
+                    .where(TeamMember.team_id == team_id)
                 )
                 .scalars()
                 .all()
@@ -283,7 +283,7 @@ Return this exact JSON schema, with no extra text:
     # Step 4: Team & Department Selection
     # ------------------------------------------------------------------
     def select_team_and_department(
-        self, db: Session, org_id: uuid.UUID, category: str, rule_overrides: Dict
+        self, db: Session, org_id: uuid.UUID, category: str, rule_overrides: Dict[str, Any]
     ) -> Tuple[Optional[uuid.UUID], Optional[uuid.UUID]]:
         """
         Find the best team for a given category. Rule overrides take precedence.
@@ -339,7 +339,7 @@ Return this exact JSON schema, with no extra text:
         org_id = ticket.organization_id
 
         # 1. Classify
-        classification = self.classify_ticket(ticket.subject, ticket.body)
+        classification = self.classify_ticket(str(ticket.subject), str(ticket.body))
         category_str = classification.get("category", "GENERAL")
         priority_str = classification.get("priority", "MEDIUM")
         confidence = classification.get("confidence", 0)
@@ -347,7 +347,7 @@ Return this exact JSON schema, with no extra text:
         suggested_tags = classification.get("suggested_tags", [])
 
         # 2. Rules (override classification)
-        rule_overrides, executed_rules = self.evaluate_rules(db, org_id, ticket, classification)
+        rule_overrides, executed_rules = self.evaluate_rules(db, org_id, ticket, classification)  # type: ignore[arg-type]
         if "category" in rule_overrides:
             category_str = rule_overrides["category"]
             reasoning += " [Rule Override: Category]"
@@ -356,10 +356,10 @@ Return this exact JSON schema, with no extra text:
             reasoning += " [Rule Override: Priority]"
 
         # 3. Team/Department
-        team_id, dept_id = self.select_team_and_department(db, org_id, category_str, rule_overrides)
+        team_id, dept_id = self.select_team_and_department(db, org_id, category_str, rule_overrides)  # type: ignore[arg-type]
 
         # 4. Agent ranking
-        top_agents = self.rank_agents(db, org_id, category_str, team_id)
+        top_agents = self.rank_agents(db, org_id, category_str, team_id)  # type: ignore[arg-type]
         best_agent_id = uuid.UUID(top_agents[0]["agent_id"]) if top_agents else None
 
         # 5. SLA prediction
@@ -482,15 +482,15 @@ Return this exact JSON schema, with no extra text:
         except KeyError:
             priority_enum = TicketPriority.MEDIUM
 
-        ticket.category = category_enum
-        ticket.priority = priority_enum
+        ticket.category = category_enum  # type: ignore[assignment]
+        ticket.priority = priority_enum  # type: ignore[assignment]
         if best_agent_id:
-            ticket.assigned_user_id = best_agent_id
-            ticket.status = TicketStatus.ASSIGNED
+            ticket.assigned_user_id = best_agent_id  # type: ignore[assignment]
+            ticket.status = TicketStatus.ASSIGNED  # type: ignore[assignment]
         if team_id:
-            ticket.assigned_team_id = team_id
+            ticket.assigned_team_id = team_id  # type: ignore[assignment]
         if dept_id:
-            ticket.department_id = dept_id
+            ticket.department_id = dept_id  # type: ignore[assignment]
         if ticket.sla_due_at is None:
             from datetime import timedelta, timezone
 

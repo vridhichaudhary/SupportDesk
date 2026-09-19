@@ -77,7 +77,7 @@ class AuthService:
 
         # 3. Create Session & Tokens
         session_id = uuid.uuid4()
-        raw_refresh, refresh_hash, expire = create_refresh_token(user.id, org.id, session_id)
+        raw_refresh, refresh_hash, expire = create_refresh_token(user.id, org.id, session_id)  # type: ignore[arg-type]
 
         user_session = UserSession(
             id=session_id,
@@ -90,20 +90,20 @@ class AuthService:
         db.add(user_session)
         db.commit()
 
-        access_token = create_access_token(user.id, org.id, user.role.value)
+        access_token = create_access_token(user.id, org.id, user.role.value)  # type: ignore[arg-type]
 
         # 4. Generate Verification Token & Send Email
         verification_raw = generate_opaque_token()
         ver_hash = hash_token(verification_raw)
         user_repository.create_auth_token(
             db=db,
-            user_id=user.id,
+            user_id=user.id,  # type: ignore[arg-type]
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
-            user.email, user.display_name or user.first_name, verification_raw
+            user.email, user.display_name or user.first_name, verification_raw  # type: ignore[arg-type]
         )
 
         # 5. Audit Log
@@ -164,7 +164,7 @@ class AuthService:
 
         # 3. Create Session & Tokens
         session_id = uuid.uuid4()
-        raw_refresh, refresh_hash, expire = create_refresh_token(user.id, org.id, session_id)
+        raw_refresh, refresh_hash, expire = create_refresh_token(user.id, org.id, session_id)  # type: ignore[arg-type]
 
         user_session = UserSession(
             id=session_id,
@@ -177,20 +177,20 @@ class AuthService:
         db.add(user_session)
         db.commit()
 
-        access_token = create_access_token(user.id, org.id, user.role.value)
+        access_token = create_access_token(user.id, org.id, user.role.value)  # type: ignore[arg-type]
 
         # 4. Generate Verification Token & Send Email
         verification_raw = generate_opaque_token()
         ver_hash = hash_token(verification_raw)
         user_repository.create_auth_token(
             db=db,
-            user_id=user.id,
+            user_id=user.id,  # type: ignore[arg-type]
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
-            user.email, user.display_name or user.first_name, verification_raw
+            user.email, user.display_name or user.first_name, verification_raw  # type: ignore[arg-type]
         )
 
         return user, org, access_token, raw_refresh
@@ -219,25 +219,25 @@ class AuthService:
                 "Your account has been deactivated. Please contact support."
             )
 
-        if not verify_password(password, user.password_hash):
-            user.failed_login_attempts += 1
+        if not verify_password(password, user.password_hash):  # type: ignore[arg-type]
+            user.failed_login_attempts += 1  # type: ignore[assignment]
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)  # type: ignore[assignment]
             db.add(user)
             db.commit()
             raise AuthenticationException("Invalid email or password")
 
         # Reset failed attempts on success
-        user.failed_login_attempts = 0
-        user.locked_until = None
-        user.last_login_at = datetime.now(timezone.utc)
+        user.failed_login_attempts = 0  # type: ignore[assignment]
+        user.locked_until = None  # type: ignore[assignment]
+        user.last_login_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         db.add(user)
         db.commit()
 
         # Session & Tokens
         session_id = uuid.uuid4()
         raw_refresh, refresh_hash, expire = create_refresh_token(
-            user.id, user.organization_id, session_id
+            user.id, user.organization_id, session_id  # type: ignore[arg-type]
         )
 
         user_session = UserSession(
@@ -252,7 +252,7 @@ class AuthService:
         db.add(user_session)
         db.commit()
 
-        access_token = create_access_token(user.id, user.organization_id, user.role.value)
+        access_token = create_access_token(user.id, user.organization_id, user.role.value)  # type: ignore[arg-type]
 
         audit_log_service.log_action(
             db=db,
@@ -273,18 +273,18 @@ class AuthService:
             raise AuthenticationException("Invalid or revoked refresh token")
 
         # Revoke old token/session (Rotation)
-        session.is_revoked = True
+        session.is_revoked = True  # type: ignore[assignment]
         db.add(session)
         db.commit()
 
-        user = user_repository.get_by_id(db, session.user_id)
+        user = user_repository.get_by_id(db, session.user_id)  # type: ignore[arg-type]
         if not user or not user.is_active:
             raise AuthenticationException("User account inactive or not found")
 
         # Issue new session and refresh token
         new_session_id = uuid.uuid4()
         new_raw_refresh, new_refresh_hash, expire = create_refresh_token(
-            user.id, user.organization_id, new_session_id
+            user.id, user.organization_id, new_session_id  # type: ignore[arg-type]
         )
 
         new_session = UserSession(
@@ -299,7 +299,7 @@ class AuthService:
         db.add(new_session)
         db.commit()
 
-        new_access_token = create_access_token(user.id, user.organization_id, user.role.value)
+        new_access_token = create_access_token(user.id, user.organization_id, user.role.value)  # type: ignore[arg-type]
         return new_access_token, new_raw_refresh
 
     # ── Logout ──────────────────────────────────────────────────────────────
@@ -308,7 +308,7 @@ class AuthService:
             token_hash = hash_token(raw_refresh_token)
             session = session_repository.get_by_token_hash(db, token_hash)
             if session:
-                session.is_revoked = True
+                session.is_revoked = True  # type: ignore[assignment]
                 db.add(session)
                 db.commit()
 
@@ -335,10 +335,10 @@ class AuthService:
         if not auth_token:
             raise ValidationException("Invalid or expired email verification token")
 
-        auth_token.is_used = True
-        user = user_repository.get_by_id(db, auth_token.user_id)
+        auth_token.is_used = True  # type: ignore[assignment]
+        user = user_repository.get_by_id(db, auth_token.user_id)  # type: ignore[arg-type]
         if user:
-            user.is_email_verified = True
+            user.is_email_verified = True  # type: ignore[assignment]
             db.add(user)
 
         db.add(auth_token)
@@ -353,13 +353,13 @@ class AuthService:
         ver_hash = hash_token(verification_raw)
         user_repository.create_auth_token(
             db=db,
-            user_id=user.id,
+            user_id=user.id,  # type: ignore[arg-type]
             token_hash=ver_hash,
             token_type=AuthTokenType.EMAIL_VERIFICATION,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
         )
         email_service.send_verification_email(
-            user.email, user.display_name or user.first_name, verification_raw
+            user.email, user.display_name or user.first_name, verification_raw  # type: ignore[arg-type]
         )
 
     # ── Password Reset Flow ─────────────────────────────────────────────────
@@ -372,13 +372,13 @@ class AuthService:
         reset_hash = hash_token(reset_raw)
         user_repository.create_auth_token(
             db=db,
-            user_id=user.id,
+            user_id=user.id,  # type: ignore[arg-type]
             token_hash=reset_hash,
             token_type=AuthTokenType.PASSWORD_RESET,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         )
         email_service.send_password_reset_email(
-            user.email, user.display_name or user.first_name, reset_raw
+            user.email, user.display_name or user.first_name, reset_raw  # type: ignore[arg-type]
         )
 
     def reset_password(self, db: Session, raw_token: str, new_password: str) -> None:
@@ -389,18 +389,18 @@ class AuthService:
 
         validate_password_complexity(new_password)
 
-        user = user_repository.get_by_id(db, auth_token.user_id)
+        user = user_repository.get_by_id(db, auth_token.user_id)  # type: ignore[arg-type]
         if not user:
             raise ResourceConflictException("Associated user account not found")
 
-        auth_token.is_used = True
-        user.password_hash = hash_password(new_password)
+        auth_token.is_used = True  # type: ignore[assignment]
+        user.password_hash = hash_password(new_password)  # type: ignore[assignment]
         db.add(auth_token)
         db.add(user)
         db.commit()
 
         # Revoke all active sessions on password reset
-        session_repository.revoke_all_user_sessions(db, user.id)
+        session_repository.revoke_all_user_sessions(db, user.id)  # type: ignore[arg-type]
 
     # ── OAuth Handler ───────────────────────────────────────────────────────
     async def handle_oauth_login(
@@ -442,7 +442,7 @@ class AuthService:
         # Issue Session & Tokens
         session_id = uuid.uuid4()
         raw_refresh, refresh_hash, expire = create_refresh_token(
-            user.id, user.organization_id, session_id
+            user.id, user.organization_id, session_id  # type: ignore[arg-type]
         )
 
         user_session = UserSession(
@@ -456,7 +456,7 @@ class AuthService:
         db.add(user_session)
         db.commit()
 
-        access_token = create_access_token(user.id, user.organization_id, user.role.value)
+        access_token = create_access_token(user.id, user.organization_id, user.role.value)  # type: ignore[arg-type]
         return user, access_token, raw_refresh
 
 

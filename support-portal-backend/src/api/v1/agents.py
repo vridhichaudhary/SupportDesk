@@ -56,7 +56,7 @@ def list_skills(
 
     cat = SkillCategory(category) if category else None
     return agent_service.list_org_skills(
-        db, actor.organization_id, category=cat, skip=skip, limit=limit
+        db, actor.organization_id, category=cat, skip=skip, limit=limit  # type: ignore[arg-type]
     )
 
 
@@ -73,7 +73,7 @@ def create_skill(
 ):
     return agent_service.create_skill(
         db,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         name=body.name,
         description=body.description,
@@ -91,7 +91,7 @@ def delete_skill(
     actor: User = require_permission("manage_skills"),
     db: Session = Depends(get_db),
 ):
-    agent_service.delete_skill(db, skill_id=skill_id, org_id=actor.organization_id, actor=actor)
+    agent_service.delete_skill(db, skill_id=skill_id, org_id=actor.organization_id, actor=actor)  # type: ignore[arg-type]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ def get_my_profile(
     actor: User = require_permission("view_agent_profiles"),
     db: Session = Depends(get_db),
 ):
-    profile = agent_service.get_profile(db, actor.id)
+    profile = agent_service.get_profile(db, actor.id)  # type: ignore[arg-type]
     if not profile:
         raise NotFoundException("Agent profile not found. Contact your admin.")
     return profile
@@ -118,8 +118,8 @@ def update_my_profile(
 ):
     return agent_service.upsert_profile(
         db,
-        user_id=actor.id,
-        org_id=actor.organization_id,
+        user_id=actor.id,  # type: ignore[arg-type]
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         **body.model_dump(exclude_none=True),
     )
@@ -133,7 +133,7 @@ def heartbeat(
     redis=Depends(get_redis),
 ):
     data = agent_service.heartbeat(
-        db, redis, actor.id, actor.organization_id, device_info=body.device_info
+        db, redis, actor.id, actor.organization_id, device_info=body.device_info  # type: ignore[arg-type]
     )
     return PresenceResponse(**data)
 
@@ -143,7 +143,7 @@ def get_my_availability(
     actor: User = require_permission("view_agent_profiles"),
     db: Session = Depends(get_db),
 ):
-    avail = agent_service.get_availability(db, actor.id)
+    avail = agent_service.get_availability(db, actor.id)  # type: ignore[arg-type]
     if not avail:
         raise NotFoundException("No availability record yet. Update it first.")
     return avail
@@ -159,8 +159,8 @@ def set_my_availability(
     return agent_service.set_availability(
         db,
         redis,
-        user_id=actor.id,
-        org_id=actor.organization_id,
+        user_id=actor.id,  # type: ignore[arg-type]
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         status=body.status,
         expected_return=body.expected_return,
     )
@@ -173,7 +173,7 @@ def get_my_working_hours(
     actor: User = require_permission("view_agent_profiles"),
     db: Session = Depends(get_db),
 ):
-    wh = agent_service.get_working_hours(db, actor.id)
+    wh = agent_service.get_working_hours(db, actor.id)  # type: ignore[arg-type]
     if not wh:
         raise NotFoundException("No working hours set yet.")
     return wh
@@ -189,8 +189,8 @@ def update_my_working_hours(
 ):
     return agent_service.upsert_working_hours(
         db,
-        user_id=actor.id,
-        org_id=actor.organization_id,
+        user_id=actor.id,  # type: ignore[arg-type]
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         **body.model_dump(),
     )
@@ -205,7 +205,7 @@ def list_my_skills(
     actor: User = require_permission("view_agent_profiles"),
     db: Session = Depends(get_db),
 ):
-    return agent_service.get_agent_skills(db, actor.id)
+    return agent_service.get_agent_skills(db, actor.id)  # type: ignore[arg-type]
 
 
 @router.post(
@@ -221,9 +221,9 @@ def assign_my_skill(
 ):
     return agent_service.assign_skill(
         db,
-        user_id=actor.id,
+        user_id=actor.id,  # type: ignore[arg-type]
         skill_id=body.skill_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         proficiency_level=body.proficiency_level,
         years_of_experience=body.years_of_experience,
@@ -240,7 +240,7 @@ def remove_my_skill(
     actor: User = require_permission("manage_skills"),
     db: Session = Depends(get_db),
 ):
-    agent_service.remove_skill(db, actor.id, skill_id, actor.organization_id, actor)
+    agent_service.remove_skill(db, actor.id, skill_id, actor.organization_id, actor)  # type: ignore[arg-type]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -280,7 +280,7 @@ def update_agent_profile(
     return agent_service.upsert_profile(
         db,
         user_id=agent_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         **body.model_dump(exclude_none=True),
     )

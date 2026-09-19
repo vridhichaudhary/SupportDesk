@@ -16,15 +16,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install Linting Tools
+          cache: 'pip'
+          cache-dependency-path: ./support-portal-backend/requirements.txt
+      - name: Install Dependencies and Tools
+        working-directory: ./support-portal-backend
         run: |
+          pip install -r requirements.txt
           pip install ruff black mypy
       - name: Run Ruff
-        run: ruff check ./support-portal-backend
+        working-directory: ./support-portal-backend
+        run: ruff check .
       - name: Run Black
-        run: black --check ./support-portal-backend
+        working-directory: ./support-portal-backend
+        run: black --check .
       - name: Run MyPy
-        run: mypy ./support-portal-backend/src
+        working-directory: ./support-portal-backend
+        run: mypy src
 
   lint-frontend:
     name: Lint Frontend

@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from sqlalchemy.orm import Session
 
@@ -7,16 +7,20 @@ from src.models import ActionType
 from src.repositories.audit_log import audit_log_repository
 from src.schemas.audit_log import AuditLogCreate
 
+# UUIDLike accepts both native uuid.UUID and SQLAlchemy 1.4 Column[UUID] values.
+# Callers pass model attribute values (Column-typed) which are actual UUIDs at runtime.
+UUIDLike = Union[uuid.UUID, Any]
+
 
 class AuditLogService:
     def log_action(
         self,
         db: Session,
-        organization_id: uuid.UUID,
+        organization_id: UUIDLike,
         action_type: ActionType,
         entity_type: str,
-        entity_id: uuid.UUID,
-        actor_id: Optional[uuid.UUID] = None,
+        entity_id: UUIDLike,
+        actor_id: Optional[UUIDLike] = None,
         changes: Optional[Dict[str, Any]] = None,
     ) -> None:
         """

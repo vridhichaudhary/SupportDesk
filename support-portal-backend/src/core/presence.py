@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import redis as redis_lib
 import structlog
@@ -53,8 +53,10 @@ def _serialize(
     )
 
 
-def _deserialize(raw: str) -> Dict:
+def _deserialize(raw: Union[str, bytes, Any]) -> Dict[str, Any]:
     try:
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
         return json.loads(raw)
     except Exception:
         return {}

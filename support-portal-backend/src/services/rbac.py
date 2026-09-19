@@ -102,7 +102,7 @@ class RBACService:
         # Grant initial permissions
         for codename in initial_permissions or []:
             if permission_repo.get_by_codename(db, codename):
-                role_permission_repo.grant(db, role.id, codename)
+                role_permission_repo.grant(db, role.id, codename)  # type: ignore[arg-type]
 
         db.commit()
         db.refresh(role)
@@ -151,7 +151,7 @@ class RBACService:
             db, actor.organization_id, role_id
         )
         for assignment in assignments:
-            permission_engine.invalidate_cache(redis_client, assignment.user_id)
+            permission_engine.invalidate_cache(redis_client, assignment.user_id)  # type: ignore[arg-type]
 
         role_repo.delete(db, role)
         db.commit()
@@ -374,7 +374,7 @@ class RBACService:
         """Invalidates the permission cache for every user assigned the given role."""
         assignments = user_role_assignment_repo.get_users_by_role(db, org_id, role_id)
         for assignment in assignments:
-            permission_engine.invalidate_cache(redis_client, assignment.user_id)
+            permission_engine.invalidate_cache(redis_client, assignment.user_id)  # type: ignore[arg-type]
 
 
 def _sync_user_role_enum(db: Session, user, role: Role) -> None:

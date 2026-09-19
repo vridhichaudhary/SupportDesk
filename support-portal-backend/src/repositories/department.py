@@ -92,15 +92,15 @@ class DepartmentRepository:
         status: Optional[DepartmentStatus] = None,
     ) -> Department:
         if name is not None:
-            dept.name = name
+            dept.name = name  # type: ignore[assignment]
         if description is not None:
-            dept.description = description
+            dept.description = description  # type: ignore[assignment]
         if color is not None:
-            dept.color = color
+            dept.color = color  # type: ignore[assignment]
         if manager_id is not None:
-            dept.manager_id = manager_id
+            dept.manager_id = manager_id  # type: ignore[assignment]
         if status is not None:
-            dept.status = status
+            dept.status = status  # type: ignore[assignment]
         db.add(dept)
         db.flush()
         return dept
@@ -108,8 +108,8 @@ class DepartmentRepository:
     def soft_delete(self, db: Session, dept: Department) -> None:
         from datetime import datetime
 
-        dept.deleted_at = datetime.now(timezone.utc)
-        dept.status = DepartmentStatus.DELETED
+        dept.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        dept.status = DepartmentStatus.DELETED  # type: ignore[assignment]
         db.add(dept)
         db.flush()
 

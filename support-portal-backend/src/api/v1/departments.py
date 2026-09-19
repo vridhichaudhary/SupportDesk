@@ -34,7 +34,7 @@ def list_departments(
     db: Session = Depends(get_db),
 ):
     result = department_service.list_departments(
-        db, org_id=actor.organization_id, skip=skip, limit=limit
+        db, org_id=actor.organization_id, skip=skip, limit=limit  # type: ignore[arg-type]
     )
     return DepartmentListResponse(**result)
 
@@ -52,7 +52,7 @@ def create_department(
 ):
     dept = department_service.create_department(
         db,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         name=body.name,
         description=body.description,
@@ -68,7 +68,7 @@ def get_department(
     actor: User = require_permission("view_organization"),
     db: Session = Depends(get_db),
 ):
-    return department_service.get_or_404(db, department_id, actor.organization_id)
+    return department_service.get_or_404(db, department_id, actor.organization_id)  # type: ignore[arg-type]
 
 
 @router.patch("/{department_id}", response_model=DepartmentResponse, summary="Update a department")
@@ -81,7 +81,7 @@ def update_department(
     return department_service.update_department(
         db,
         department_id=department_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
         name=body.name,
         description=body.description,
@@ -104,6 +104,6 @@ def delete_department(
     department_service.delete_department(
         db,
         department_id=department_id,
-        org_id=actor.organization_id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
         actor=actor,
     )

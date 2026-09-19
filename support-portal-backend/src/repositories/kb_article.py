@@ -125,5 +125,5 @@ class KBArticleRepository:
         stmt = select(KBArticle).where(KBArticle.id == article_id)
         article = self.db.execute(stmt).scalar_one_or_none()
         if article:
-            article.views += 1
+            article.views += 1  # type: ignore[assignment]
             self.db.flush()

@@ -28,11 +28,11 @@ class OrganizationSettings(BaseModel):
 
 class OrganizationBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
-    industry: Optional[str] = Field(None, max_length=255)
-    domain: Optional[str] = Field(None, max_length=255)
+    industry: Optional[str] = Field(default=None, max_length=255)
+    domain: Optional[str] = Field(default=None, max_length=255)
     timezone: str = "UTC"
     support_email: Optional[EmailStr] = None
-    support_phone: Optional[str] = Field(None, max_length=50)
+    support_phone: Optional[str] = Field(default=None, max_length=50)
     website: Optional[HttpUrl] = None
     address: Optional[str] = None
     logo_url: Optional[HttpUrl] = None

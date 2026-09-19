@@ -199,7 +199,7 @@ def logout(
     token_str = (
         payload.refresh_token if payload and payload.refresh_token else None
     ) or refresh_token_cookie
-    auth_service.logout(db, token_str or "", current_user.id)
+    auth_service.logout(db, token_str or "", current_user.id)  # type: ignore[arg-type]
     response.delete_cookie(key="refresh_token")
     return SuccessResponse(data={"message": "Logged out successfully"})
 
@@ -294,7 +294,7 @@ def list_sessions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[List[UserSessionResponse]]:
-    sessions = session_repository.get_user_sessions(db, current_user.id)
+    sessions = session_repository.get_user_sessions(db, current_user.id)  # type: ignore[arg-type]
     return SuccessResponse(data=[UserSessionResponse.model_validate(s) for s in sessions])
 
 
@@ -307,7 +307,7 @@ def revoke_all_sessions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[dict]:
-    auth_service.revoke_all_sessions(db, current_user.id)
+    auth_service.revoke_all_sessions(db, current_user.id)  # type: ignore[arg-type]
     return SuccessResponse(data={"message": "All sessions revoked successfully"})
 
 

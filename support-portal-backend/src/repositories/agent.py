@@ -82,7 +82,7 @@ class AgentProfileRepository:
         profile = self.get_by_user_id(db, user_id)
         if profile:
             profile.current_active_tickets = min(
-                profile.current_active_tickets + 1, profile.max_concurrent_tickets
+                profile.current_active_tickets + 1, profile.max_concurrent_tickets  # type: ignore[arg-type]
             )
             db.add(profile)
             db.flush()
@@ -90,7 +90,7 @@ class AgentProfileRepository:
     def decrement_active_tickets(self, db: Session, user_id: uuid.UUID) -> None:
         profile = self.get_by_user_id(db, user_id)
         if profile:
-            profile.current_active_tickets = max(profile.current_active_tickets - 1, 0)
+            profile.current_active_tickets = max(profile.current_active_tickets - 1, 0)  # type: ignore[arg-type]
             db.add(profile)
             db.flush()
 
@@ -194,9 +194,9 @@ class AgentSkillRepository:
     ) -> AgentSkill:
         existing = self.get(db, user_id, skill_id)
         if existing:
-            existing.proficiency_level = proficiency_level
-            existing.years_of_experience = years_of_experience
-            existing.is_active = True
+            existing.proficiency_level = proficiency_level  # type: ignore[assignment]
+            existing.years_of_experience = years_of_experience  # type: ignore[assignment]
+            existing.is_active = True  # type: ignore[assignment]
             db.add(existing)
             db.flush()
             return existing
@@ -213,7 +213,7 @@ class AgentSkillRepository:
         return agent_skill
 
     def remove(self, db: Session, agent_skill: AgentSkill) -> None:
-        agent_skill.is_active = False
+        agent_skill.is_active = False  # type: ignore[assignment]
         db.add(agent_skill)
         db.flush()
 
@@ -239,8 +239,8 @@ class AgentAvailabilityRepository:
 
         avail = self.get_by_user(db, user_id)
         if avail:
-            avail.status = status
-            avail.since = datetime.now(timezone.utc)
+            avail.status = status  # type: ignore[assignment]
+            avail.since = datetime.now(timezone.utc)  # type: ignore[assignment]
             avail.expected_return = expected_return
         else:
             avail = AgentAvailability(
@@ -278,13 +278,13 @@ class WorkingHoursRepository:
     ) -> WorkingHours:
         wh = self.get_by_user(db, user_id)
         if wh:
-            wh.timezone = timezone
-            wh.working_days = working_days
-            wh.start_time = start_time
-            wh.end_time = end_time
-            wh.shifts = shifts
-            wh.lunch_break_start = lunch_break_start
-            wh.lunch_break_end = lunch_break_end
+            wh.timezone = timezone  # type: ignore[assignment]
+            wh.working_days = working_days  # type: ignore[assignment]
+            wh.start_time = start_time  # type: ignore[assignment]
+            wh.end_time = end_time  # type: ignore[assignment]
+            wh.shifts = shifts  # type: ignore[assignment]
+            wh.lunch_break_start = lunch_break_start  # type: ignore[assignment]
+            wh.lunch_break_end = lunch_break_end  # type: ignore[assignment]
         else:
             wh = WorkingHours(
                 id=uuid.uuid4(),

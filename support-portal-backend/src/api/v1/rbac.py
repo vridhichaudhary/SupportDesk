@@ -105,7 +105,7 @@ def get_permission_matrix(
     actor: User = require_permission("manage_roles"),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[PermissionMatrixResponse]:
-    matrix = rbac_service.get_permission_matrix(db, actor.organization_id)
+    matrix = rbac_service.get_permission_matrix(db, actor.organization_id)  # type: ignore[arg-type]
     return SuccessResponse(
         data=PermissionMatrixResponse(
             matrix=matrix,
@@ -128,20 +128,20 @@ def list_roles(
     actor: User = require_permission("manage_roles"),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[List[RoleResponse]]:
-    roles = rbac_service.list_roles(db, actor.organization_id)
+    roles = rbac_service.list_roles(db, actor.organization_id)  # type: ignore[arg-type]
     result = []
     for role in roles:
-        codenames = role_permission_repo.get_for_role(db, role.id)
+        codenames = role_permission_repo.get_for_role(db, role.id)  # type: ignore[arg-type]
         result.append(
             RoleResponse(
-                id=role.id,
-                name=role.name,
-                description=role.description,
-                is_system=role.is_system,
-                is_custom=role.is_custom,
-                organization_id=role.organization_id,
+                id=role.id,  # type: ignore[arg-type]
+                name=role.name,  # type: ignore[arg-type]
+                description=role.description,  # type: ignore[arg-type]
+                is_system=role.is_system,  # type: ignore[arg-type]
+                is_custom=role.is_custom,  # type: ignore[arg-type]
+                organization_id=role.organization_id,  # type: ignore[arg-type]
                 permissions=codenames,
-                created_at=role.created_at,
+                created_at=role.created_at,  # type: ignore[arg-type]
             )
         )
     return SuccessResponse(data=result)
@@ -167,17 +167,17 @@ def create_role(
         description=payload.description,
         initial_permissions=payload.initial_permissions,
     )
-    codenames = role_permission_repo.get_for_role(db, role.id)
+    codenames = role_permission_repo.get_for_role(db, role.id)  # type: ignore[arg-type]
     return SuccessResponse(
         data=RoleResponse(
-            id=role.id,
-            name=role.name,
-            description=role.description,
-            is_system=role.is_system,
-            is_custom=role.is_custom,
-            organization_id=role.organization_id,
+            id=role.id,  # type: ignore[arg-type]
+            name=role.name,  # type: ignore[arg-type]
+            description=role.description,  # type: ignore[arg-type]
+            is_system=role.is_system,  # type: ignore[arg-type]
+            is_custom=role.is_custom,  # type: ignore[arg-type]
+            organization_id=role.organization_id,  # type: ignore[arg-type]
             permissions=codenames,
-            created_at=role.created_at,
+            created_at=role.created_at,  # type: ignore[arg-type]
         )
     )
 
@@ -192,18 +192,18 @@ def get_role(
     actor: User = require_permission("manage_roles"),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[RoleResponse]:
-    role = rbac_service.get_role(db, role_id, actor.organization_id)
-    codenames = role_permission_repo.get_for_role(db, role.id)
+    role = rbac_service.get_role(db, role_id, actor.organization_id)  # type: ignore[arg-type]
+    codenames = role_permission_repo.get_for_role(db, role.id)  # type: ignore[arg-type]
     return SuccessResponse(
         data=RoleResponse(
-            id=role.id,
-            name=role.name,
-            description=role.description,
-            is_system=role.is_system,
-            is_custom=role.is_custom,
-            organization_id=role.organization_id,
+            id=role.id,  # type: ignore[arg-type]
+            name=role.name,  # type: ignore[arg-type]
+            description=role.description,  # type: ignore[arg-type]
+            is_system=role.is_system,  # type: ignore[arg-type]
+            is_custom=role.is_custom,  # type: ignore[arg-type]
+            organization_id=role.organization_id,  # type: ignore[arg-type]
             permissions=codenames,
-            created_at=role.created_at,
+            created_at=role.created_at,  # type: ignore[arg-type]
         )
     )
 
@@ -226,17 +226,17 @@ def update_role(
         name=payload.name,
         description=payload.description,
     )
-    codenames = role_permission_repo.get_for_role(db, role.id)
+    codenames = role_permission_repo.get_for_role(db, role.id)  # type: ignore[arg-type]
     return SuccessResponse(
         data=RoleResponse(
-            id=role.id,
-            name=role.name,
-            description=role.description,
-            is_system=role.is_system,
-            is_custom=role.is_custom,
-            organization_id=role.organization_id,
+            id=role.id,  # type: ignore[arg-type]
+            name=role.name,  # type: ignore[arg-type]
+            description=role.description,  # type: ignore[arg-type]
+            is_system=role.is_system,  # type: ignore[arg-type]
+            is_custom=role.is_custom,  # type: ignore[arg-type]
+            organization_id=role.organization_id,  # type: ignore[arg-type]
             permissions=codenames,
-            created_at=role.created_at,
+            created_at=role.created_at,  # type: ignore[arg-type]
         )
     )
 
@@ -382,12 +382,12 @@ def get_my_permissions(
     redis_client: redis_lib.Redis = Depends(get_redis),
 ) -> SuccessResponse[UserPermissionsResponse]:
     perms = rbac_service.get_user_permissions(
-        db, redis_client, current_user.id, current_user.role, current_user.organization_id
+        db, redis_client, current_user.id, current_user.role, current_user.organization_id  # type: ignore[arg-type]
     )
     sorted_perms = sorted(perms)
     return SuccessResponse(
         data=UserPermissionsResponse(
-            user_id=current_user.id,
+            user_id=current_user.id,  # type: ignore[arg-type]
             role=current_user.role.value,
             permissions=sorted_perms,
             total=len(sorted_perms),
@@ -412,12 +412,12 @@ def get_user_permissions(
         raise NotFoundException("User not found")
 
     perms = rbac_service.get_user_permissions(
-        db, redis_client, target_user.id, target_user.role, target_user.organization_id
+        db, redis_client, target_user.id, target_user.role, target_user.organization_id  # type: ignore[arg-type]
     )
     sorted_perms = sorted(perms)
     return SuccessResponse(
         data=UserPermissionsResponse(
-            user_id=target_user.id,
+            user_id=target_user.id,  # type: ignore[arg-type]
             role=target_user.role.value,
             permissions=sorted_perms,
             total=len(sorted_perms),

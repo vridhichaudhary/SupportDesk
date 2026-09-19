@@ -92,9 +92,9 @@ class RoleRepository:
         description: Optional[str] = None,
     ) -> Role:
         if name is not None:
-            role.name = name
+            role.name = name  # type: ignore[assignment]
         if description is not None:
-            role.description = description
+            role.description = description  # type: ignore[assignment]
         db.add(role)
         db.flush()
         return role
@@ -165,8 +165,8 @@ class UserRoleAssignmentRepository:
         """
         existing = self.get_for_user(db, user_id, org_id)
         if existing:
-            existing.role_id = role_id
-            existing.assigned_by_id = assigned_by_id
+            existing.role_id = role_id  # type: ignore[assignment]
+            existing.assigned_by_id = assigned_by_id  # type: ignore[assignment]
             db.add(existing)
             db.flush()
             return existing

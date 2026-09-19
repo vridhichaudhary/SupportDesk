@@ -72,7 +72,7 @@ class OrganizationService(BaseService[Organization, OrganizationCreate, Organiza
 
         current = dict(org.settings or {})
         current.update(settings_in.model_dump(exclude_unset=True))
-        org.settings = current
+        org.settings = current  # type: ignore[assignment]
         db.add(org)
         db.commit()
         db.refresh(org)

@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 import redis as redis_lib
 import structlog
@@ -463,10 +463,10 @@ class PermissionEngine:
     def resolve_permissions(
         self,
         db: Session,
-        redis_client: redis_lib.Redis,
-        user_id: uuid.UUID,
-        user_role: UserRole,
-        org_id: uuid.UUID,
+        redis_client: Union[redis_lib.Redis, Any],
+        user_id: Union[uuid.UUID, Any],
+        user_role: Union[UserRole, Any],
+        org_id: Union[uuid.UUID, Any],
     ) -> Set[str]:
         """
         Returns the full effective permission set for a user.
@@ -533,10 +533,10 @@ class PermissionEngine:
     def has_permission(
         self,
         db: Session,
-        redis_client: redis_lib.Redis,
-        user_id: uuid.UUID,
-        user_role: UserRole,
-        org_id: uuid.UUID,
+        redis_client: Union[redis_lib.Redis, Any],
+        user_id: Union[uuid.UUID, Any],
+        user_role: Union[UserRole, Any],
+        org_id: Union[uuid.UUID, Any],
         codename: str,
     ) -> bool:
         """Returns True if the user holds the named permission."""
@@ -546,10 +546,10 @@ class PermissionEngine:
     def has_any_permission(
         self,
         db: Session,
-        redis_client: redis_lib.Redis,
-        user_id: uuid.UUID,
-        user_role: UserRole,
-        org_id: uuid.UUID,
+        redis_client: Union[redis_lib.Redis, Any],
+        user_id: Union[uuid.UUID, Any],
+        user_role: Union[UserRole, Any],
+        org_id: Union[uuid.UUID, Any],
         *codenames: str,
     ) -> bool:
         """Returns True if the user holds AT LEAST ONE of the named permissions."""
@@ -559,10 +559,10 @@ class PermissionEngine:
     def has_all_permissions(
         self,
         db: Session,
-        redis_client: redis_lib.Redis,
-        user_id: uuid.UUID,
-        user_role: UserRole,
-        org_id: uuid.UUID,
+        redis_client: Union[redis_lib.Redis, Any],
+        user_id: Union[uuid.UUID, Any],
+        user_role: Union[UserRole, Any],
+        org_id: Union[uuid.UUID, Any],
         *codenames: str,
     ) -> bool:
         """Returns True if the user holds ALL of the named permissions."""

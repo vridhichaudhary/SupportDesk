@@ -86,14 +86,14 @@ def create_api_key(
 
     # Inject plain_key into response once
     response = APIKeyResponse(
-        id=key_record.id,
-        name=key_record.name,
-        prefix=key_record.prefix,
-        scopes=key_record.scopes,
+        id=key_record.id,  # type: ignore[arg-type]
+        name=key_record.name,  # type: ignore[arg-type]
+        prefix=key_record.prefix,  # type: ignore[arg-type]
+        scopes=key_record.scopes,  # type: ignore[arg-type]
         expires_at=key_record.expires_at,
         last_used_at=key_record.last_used_at,
         created_at=key_record.created_at,
-        is_active=key_record.is_active,
+        is_active=key_record.is_active,  # type: ignore[arg-type]
         plain_key=plain_key,
     )
     return response
@@ -117,6 +117,6 @@ def revoke_api_key(
     if not key_record:
         raise HTTPException(status_code=404, detail="API Key not found")
 
-    key_record.is_active = False
+    key_record.is_active = False  # type: ignore[assignment]
     db.commit()
     return None

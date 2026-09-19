@@ -112,7 +112,7 @@ def delete_webhook_endpoint(
     if not endpoint:
         raise HTTPException(status_code=404, detail="Webhook Endpoint not found")
 
-    endpoint.is_active = False
+    endpoint.is_active = False  # type: ignore[assignment]
     db.commit()
     return None
 

@@ -112,7 +112,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         db: Session,
         db_obj: Organization,
     ) -> None:
-        db_obj.deleted_at = datetime.now(timezone.utc)
+        db_obj.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         db.add(db_obj)
         db.commit()
 

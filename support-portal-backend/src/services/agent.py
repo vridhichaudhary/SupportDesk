@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import redis as redis_lib
 from sqlalchemy.orm import Session
@@ -78,7 +78,7 @@ class AgentService:
         max_concurrent_tickets: Optional[int] = None,
         max_daily_tickets: Optional[int] = None,
     ) -> AgentProfile:
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
         if agent_code is not None:
             kwargs["agent_code"] = agent_code
         if employee_id is not None:

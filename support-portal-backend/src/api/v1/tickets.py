@@ -18,6 +18,8 @@ from src.core.dependencies import get_db
 from src.core.exceptions import ValidationException
 from src.models import Customer, User, UserRole
 from src.repositories.thread import thread_repository
+from src.repositories.ticket import ticket_repository
+from src.utils.pagination import PaginatedResult, PaginationParams
 from src.schemas.ticket import (
     BulkAssignRequest,
     BulkStatusRequest,
@@ -58,7 +60,7 @@ def create_ticket(
     """
     # Auto-generate ticket number if not provided
     if not body.ticket_number:
-        body.ticket_number = ticket_service.repository.generate_ticket_number(
+        body.ticket_number = ticket_repository.generate_ticket_number(
             db, actor.organization_id
         )
 
@@ -66,10 +68,10 @@ def create_ticket(
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer:
             raise HTTPException(status_code=403, detail="Customer record not found")
-        body.customer_id = customer.id
+        body.customer_id = customer.id  # type: ignore[assignment]
 
     return ticket_service.create_ticket(
-        db, obj_in=body, organization_id=actor.organization_id, actor_id=actor.id
+        db, obj_in=body, organization_id=actor.organization_id, actor_id=actor.id  # type: ignore[arg-type]
     )
 
 
@@ -113,12 +115,12 @@ def list_tickets(
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer:
-            return PaginatedResult(items=[], total=0, page=1, size=limit, pages=1)
+            return PaginatedResult(items=[], total=0, offset=skip, limit=limit, has_next=False)
         filters["customer_id"] = customer.id
 
-    pagination = SimpleNamespace(offset=skip, limit=limit)
-    return ticket_service.repository.search(
-        db, actor.organization_id, pagination, query=q, filters=filters
+    pagination = PaginationParams(offset=skip, limit=limit)
+    return ticket_repository.search(
+        db, actor.organization_id, pagination, query=q, filters=filters  # type: ignore[arg-type]
     )
 
 
@@ -136,7 +138,7 @@ def get_ticket(
     Retrieve a single ticket with its full conversation thread and timeline.
     Requires `view_tickets` permission.
     """
-    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # type: ignore[arg-type]
 
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
@@ -167,7 +169,7 @@ def update_ticket(
     Requires `reply_tickets` permission.
     """
     return ticket_service.update(
-        db, id=ticket_id, obj_in=body, organization_id=actor.organization_id
+        db, id=ticket_id, obj_in=body, organization_id=actor.organization_id  # type: ignore[arg-type]
     )
 
 
@@ -184,7 +186,7 @@ def delete_ticket(
     """
     Soft-deletes a ticket. Requires `delete_tickets` permission.
     """
-    ticket_service.delete(db, id=ticket_id, organization_id=actor.organization_id)
+    ticket_service.delete(db, id=ticket_id, organization_id=actor.organization_id)  # type: ignore[arg-type]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -211,8 +213,8 @@ def assign_ticket(
     return ticket_service.assign_ticket(
         db,
         ticket_id=ticket_id,
-        org_id=actor.organization_id,
-        actor_id=actor.id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
+        actor_id=actor.id,  # type: ignore[arg-type]
         assigned_user_id=body.assigned_user_id,
         assigned_team_id=body.assigned_team_id,
     )
@@ -237,8 +239,8 @@ def update_ticket_status(
         return ticket_service.update_status(
             db,
             ticket_id=ticket_id,
-            org_id=actor.organization_id,
-            actor_id=actor.id,
+            org_id=actor.organization_id,  # type: ignore[arg-type]
+            actor_id=actor.id,  # type: ignore[arg-type]
             new_status=body.status,
         )
     except ValidationException as e:
@@ -261,7 +263,7 @@ def reply_to_ticket(
     Set `is_internal: true` for notes only visible to agents.
     Requires `reply_tickets` permission.
     """
-    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # type: ignore[arg-type]
 
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
@@ -275,8 +277,8 @@ def reply_to_ticket(
     return ticket_service.reply(
         db,
         ticket_id=ticket_id,
-        org_id=actor.organization_id,
-        actor_id=actor.id,
+        org_id=actor.organization_id,  # type: ignore[arg-type]
+        actor_id=actor.id,  # type: ignore[arg-type]
         body=body.body,
         is_internal=is_internal,
     )
@@ -297,7 +299,7 @@ def get_thread(
     Set `include_internal=false` to exclude internal notes.
     Requires `view_tickets` permission.
     """
-    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # type: ignore[arg-type]
 
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
@@ -324,7 +326,7 @@ def get_timeline(
 
     from src.models import TicketTimeline
 
-    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)
+    ticket = ticket_service.get_or_404(db, ticket_id, actor.organization_id)  # type: ignore[arg-type]
 
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
@@ -354,7 +356,7 @@ def get_timeline(
 )
 def merge_tickets(
     source_ticket_id: uuid.UUID = Query(..., description="The ticket to merge (will be closed)"),
-    body: TicketMergeRequest = None,
+    body: TicketMergeRequest = None,  # type: ignore[assignment]
     actor: User = require_permission("merge_tickets"),
     db: Session = Depends(get_db),
 ):
@@ -368,8 +370,8 @@ def merge_tickets(
             db,
             source_id=source_ticket_id,
             target_id=body.target_ticket_id,
-            org_id=actor.organization_id,
-            actor_id=actor.id,
+            org_id=actor.organization_id,  # type: ignore[arg-type]
+            actor_id=actor.id,  # type: ignore[arg-type]
         )
     except ValidationException as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
@@ -399,8 +401,8 @@ def bulk_assign(
             t = ticket_service.assign_ticket(
                 db,
                 ticket_id=ticket_id,
-                org_id=actor.organization_id,
-                actor_id=actor.id,
+                org_id=actor.organization_id,  # type: ignore[arg-type]
+                actor_id=actor.id,  # type: ignore[arg-type]
                 assigned_user_id=body.assigned_user_id,
                 assigned_team_id=body.assigned_team_id,
             )
@@ -432,8 +434,8 @@ def bulk_status_update(
             t = ticket_service.update_status(
                 db,
                 ticket_id=ticket_id,
-                org_id=actor.organization_id,
-                actor_id=actor.id,
+                org_id=actor.organization_id,  # type: ignore[arg-type]
+                actor_id=actor.id,  # type: ignore[arg-type]
                 new_status=body.status,
             )
             results.append(

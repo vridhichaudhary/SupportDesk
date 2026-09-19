@@ -70,7 +70,7 @@ def ask_ai(
     citations_data = msg.citations_json or []
     citations = [Citation(**c) for c in citations_data]
 
-    return AskResponse(session_id=session.id, answer=msg.content, citations=citations)
+    return AskResponse(session_id=session.id, answer=msg.content, citations=citations)  # type: ignore[arg-type]
 
 
 @router.get(
@@ -85,7 +85,7 @@ def list_sessions(
     sessions = ai_copilot_service.list_sessions(db, current_user)
     return [
         ChatSessionResponse(
-            id=s.id, title=s.title, created_at=s.created_at, updated_at=s.updated_at
+            id=s.id, title=s.title, created_at=s.created_at, updated_at=s.updated_at  # type: ignore[arg-type]
         )
         for s in sessions
     ]
@@ -104,9 +104,9 @@ def get_session_messages(
     messages = ai_copilot_service.get_session_messages(db, current_user, session_id)
     return [
         ChatMessageResponse(
-            id=m.id,
-            role=m.role,
-            content=m.content,
+            id=m.id,  # type: ignore[arg-type]
+            role=m.role,  # type: ignore[arg-type]
+            content=m.content,  # type: ignore[arg-type]
             citations=[Citation(**c) for c in (m.citations_json or [])],
             created_at=m.created_at,
         )

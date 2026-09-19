@@ -128,7 +128,7 @@ def get_api_key(
         raise AuthenticationException("Invalid API Key")
 
     # Verify exact secret
-    if not verify_api_key(token, api_key_record.hashed_secret):
+    if not verify_api_key(token, api_key_record.hashed_secret):  # type: ignore[arg-type]
         raise AuthenticationException("Invalid API Key")
 
     # Verify Expiration
@@ -136,7 +136,7 @@ def get_api_key(
         raise AuthenticationException("API Key expired")
 
     # Update last used (we can defer this to a background task in high scale, but for now it's fine)
-    api_key_record.last_used_at = datetime.now(timezone.utc)
+    api_key_record.last_used_at = datetime.now(timezone.utc)  # type: ignore[assignment]
     db.commit()
 
     return api_key_record

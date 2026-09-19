@@ -98,11 +98,11 @@ def generate_demo_data():
             # Assign randomly
             if status != TicketStatus.NEW and agent_ids[0]:
                 ticket.assigned_user_id = random.choice(agent_ids)
-                ticket.assigned_team_id = random.choice(team_ids)
+                ticket.assigned_team_id = random.choice(team_ids)  # type: ignore[arg-type]
 
             if status == TicketStatus.RESOLVED:
                 resolution_hours = random.randint(1, 48)
-                ticket.resolved_at = created_at + timedelta(hours=resolution_hours)
+                ticket.resolved_at = created_at + timedelta(hours=resolution_hours)  # type: ignore[assignment]
 
             db.add(ticket)
             tickets.append(ticket)

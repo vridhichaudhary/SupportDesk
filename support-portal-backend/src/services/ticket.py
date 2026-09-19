@@ -68,13 +68,13 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
     ) -> Ticket:
         # Generate ticket number if not provided
         if not obj_in.ticket_number:
-            obj_in.ticket_number = self.repository.generate_ticket_number(db, organization_id)
+            obj_in.ticket_number = ticket_repository.generate_ticket_number(db, organization_id)
 
         ticket = self.repository.create(db, obj_in, organization_id)
 
         # Initial Thread Message
         thread_in = ThreadCreate(
-            ticket_id=ticket.id,
+            ticket_id=ticket.id,  # type: ignore[arg-type]
             thread_type=ThreadType.CUSTOMER_REPLY,
             body=obj_in.body,
             sender_user_id=obj_in.created_by_id,
@@ -82,13 +82,13 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
         thread_repository.create(db, thread_in, organization_id)
 
         # Timeline and Audit
-        self._create_timeline_event(db, ticket.id, "TICKET_CREATED", actor_user_id=actor_id)
+        self._create_timeline_event(db, ticket.id, "TICKET_CREATED", actor_user_id=actor_id)  # type: ignore[arg-type]
         self._log_audit(
             db,
             organization_id,
             actor_id,
             ActionType.TICKET_CREATED,
-            ticket.id,
+            ticket.id,  # type: ignore[arg-type]
             {"status": ticket.status.value},
         )
 
@@ -138,14 +138,14 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
         old_user = str(ticket.assigned_user_id)
         old_team = str(ticket.assigned_team_id)
 
-        ticket.assigned_user_id = assigned_user_id
-        ticket.assigned_team_id = assigned_team_id
+        ticket.assigned_user_id = assigned_user_id  # type: ignore[assignment]
+        ticket.assigned_team_id = assigned_team_id  # type: ignore[assignment]
 
         # State transition to ASSIGNED if currently NEW or OPEN
         if ticket.status in [TicketStatus.NEW, TicketStatus.OPEN] and (
             assigned_user_id or assigned_team_id
         ):
-            ticket.status = TicketStatus.ASSIGNED
+            ticket.status = TicketStatus.ASSIGNED  # type: ignore[assignment]
 
         db.add(ticket)
 
@@ -156,8 +156,8 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
             "old_team": old_team,
             "new_team": str(assigned_team_id),
         }
-        self._create_timeline_event(db, ticket.id, "TICKET_ASSIGNED", actor_id, changes)
-        self._log_audit(db, org_id, actor_id, ActionType.TICKET_ASSIGNED, ticket.id, changes)
+        self._create_timeline_event(db, ticket.id, "TICKET_ASSIGNED", actor_id, changes)  # type: ignore[arg-type]
+        self._log_audit(db, org_id, actor_id, ActionType.TICKET_ASSIGNED, ticket.id, changes)  # type: ignore[arg-type]
 
         db.commit()
         db.refresh(ticket)
@@ -173,24 +173,24 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
     ) -> Ticket:
         ticket = self.get_or_404(db, ticket_id, org_id)
 
-        if not is_valid_transition(ticket.status, new_status):
+        if not is_valid_transition(ticket.status, new_status):  # type: ignore[arg-type]
             raise ValidationException(
                 f"Invalid state transition from {ticket.status.value} to {new_status.value}"
             )
 
         old_status = ticket.status
-        ticket.status = new_status
+        ticket.status = new_status  # type: ignore[assignment]
 
         if new_status == TicketStatus.RESOLVED:
-            ticket.resolved_at = datetime.now(timezone.utc)
+            ticket.resolved_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         elif new_status == TicketStatus.CLOSED:
-            ticket.closed_at = datetime.now(timezone.utc)
+            ticket.closed_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
         db.add(ticket)
 
         changes = {"old_status": old_status.value, "new_status": new_status.value}
-        self._create_timeline_event(db, ticket.id, "TICKET_STATUS_CHANGED", actor_id, changes)
-        self._log_audit(db, org_id, actor_id, ActionType.TICKET_STATUS_CHANGED, ticket.id, changes)
+        self._create_timeline_event(db, ticket.id, "TICKET_STATUS_CHANGED", actor_id, changes)  # type: ignore[arg-type]
+        self._log_audit(db, org_id, actor_id, ActionType.TICKET_STATUS_CHANGED, ticket.id, changes)  # type: ignore[arg-type]
 
         db.commit()
         db.refresh(ticket)
@@ -209,7 +209,7 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
 
         thread_type = ThreadType.INTERNAL_NOTE if is_internal else ThreadType.AGENT_REPLY
         thread_in = ThreadCreate(
-            ticket_id=ticket.id, thread_type=thread_type, body=body, sender_user_id=actor_id
+            ticket_id=ticket.id, thread_type=thread_type, body=body, sender_user_id=actor_id  # type: ignore[arg-type]
         )
         thread_repository.create(db, thread_in, org_id)
 
@@ -219,10 +219,10 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
             TicketStatus.REOPENED,
         ]:
             # Auto transition to pending customer
-            self.update_status(db, ticket.id, org_id, actor_id, TicketStatus.PENDING_CUSTOMER)
+            self.update_status(db, ticket.id, org_id, actor_id, TicketStatus.PENDING_CUSTOMER)  # type: ignore[arg-type]
 
         self._create_timeline_event(
-            db, ticket.id, "REPLY_ADDED", actor_id, {"is_internal": is_internal}
+            db, ticket.id, "REPLY_ADDED", actor_id, {"is_internal": is_internal}  # type: ignore[arg-type]
         )
         db.refresh(ticket)
         return ticket
@@ -247,9 +247,9 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
         db.add(merge_record)
 
         # Soft delete source
-        source_ticket.deleted_at = datetime.now(timezone.utc)
-        source_ticket.merged_into_id = target_id
-        source_ticket.status = TicketStatus.CLOSED
+        source_ticket.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        source_ticket.merged_into_id = target_id  # type: ignore[assignment]
+        source_ticket.status = TicketStatus.CLOSED  # type: ignore[assignment]
         db.add(source_ticket)
 
         # Move threads
@@ -262,10 +262,10 @@ class TicketService(BaseService[Ticket, TicketCreate, TicketUpdate]):
         )
 
         self._create_timeline_event(
-            db, target_ticket.id, "TICKET_MERGED_IN", actor_id, {"source_id": str(source_id)}
+            db, target_ticket.id, "TICKET_MERGED_IN", actor_id, {"source_id": str(source_id)}  # type: ignore[arg-type]
         )
         self._create_timeline_event(
-            db, source_ticket.id, "TICKET_MERGED_OUT", actor_id, {"target_id": str(target_id)}
+            db, source_ticket.id, "TICKET_MERGED_OUT", actor_id, {"target_id": str(target_id)}  # type: ignore[arg-type]
         )
 
         db.commit()

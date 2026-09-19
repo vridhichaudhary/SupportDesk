@@ -135,7 +135,7 @@ class AnalyticsService:
             .filter(
                 Ticket.organization_id == org_id,
                 Ticket.status == TicketStatus.NEW,
-                Ticket.assigned_user_id is None,
+                Ticket.assigned_user_id is None,  # type: ignore[arg-type]
             )
             .scalar()
             or 0
@@ -232,7 +232,7 @@ class AnalyticsService:
             .all()
         )
 
-        trends = {}
+        trends: Dict[str, int] = {}
         for t in tickets:
             date_str = t[0].strftime("%Y-%m-%d")
             trends[date_str] = trends.get(date_str, 0) + 1
