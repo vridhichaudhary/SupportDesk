@@ -145,7 +145,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         logger.exception("Unhandled exception", exc_info=exc)
-        return JSONResponse(
+        resp = JSONResponse(
             status_code=500,
             content=ErrorResponse(
                 error=ErrorDetail(
@@ -153,6 +153,15 @@ def create_app() -> FastAPI:
                 )
             ).model_dump(),
         )
+        # NOTE: Starlette's exception-handling layer sits outside CORSMiddleware,
+        # so responses built here never get CORS headers added automatically.
+        # Without this, every unhandled 500 shows up in the browser as a CORS
+        # error, masking the real failure. Attach the headers by hand.
+        origin = request.headers.get("origin")
+        if origin and origin in settings.BACKEND_CORS_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
 
     # Static Files Mount for Avatars
     os.makedirs("static/uploads/avatars", exist_ok=True)

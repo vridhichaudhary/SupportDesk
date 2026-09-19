@@ -70,6 +70,12 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "FRONTEND_URL must point to a production frontend in production environment"
                 )
+        # Always trust FRONTEND_URL for CORS, even if BACKEND_CORS_ORIGINS
+        # wasn't (re)configured after FRONTEND_URL was set — this is what
+        # actually blocked login/signup in production: BACKEND_CORS_ORIGINS
+        # still only listed the localhost defaults.
+        if self.FRONTEND_URL not in self.BACKEND_CORS_ORIGINS:
+            self.BACKEND_CORS_ORIGINS = [*self.BACKEND_CORS_ORIGINS, self.FRONTEND_URL]
         return self
 
 

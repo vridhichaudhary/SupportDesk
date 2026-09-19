@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+from urllib.parse import urlencode
 
 import httpx
 import structlog
@@ -35,15 +36,24 @@ class GoogleOAuthProvider:
         self.redirect_uri = os.getenv(
             "GOOGLE_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/google"
         )
+        if settings.ENVIRONMENT == "production" and "localhost" in self.redirect_uri:
+            logger.warning(
+                "Google OAuth redirect_uri points at localhost in production — "
+                "set GOOGLE_REDIRECT_URI (or FRONTEND_URL) and register the exact "
+                "URL in the Google Cloud Console's Authorized redirect URIs.",
+                redirect_uri=self.redirect_uri,
+            )
 
     def get_authorization_url(self, state: str) -> str:
         base_url = "https://accounts.google.com/o/oauth2/v2/auth"
-        params = (
-            f"?response_type=code&client_id={self.client_id}"
-            f"&redirect_uri={self.redirect_uri}&scope=openid%20email%20profile"
-            f"&state={state}"
-        )
-        return f"{base_url}{params}"
+        params = {
+            "response_type": "code",
+            "client_id": self.client_id,
+            "redirect_uri": self.redirect_uri,
+            "scope": "openid email profile",
+            "state": state,
+        }
+        return f"{base_url}?{urlencode(params)}"
 
     async def get_user_info(self, code: str) -> OAuthUserInfo:
         # Mock / Development mode fallback if no valid real secrets
@@ -98,11 +108,23 @@ class GitHubOAuthProvider:
         self.redirect_uri = os.getenv(
             "GITHUB_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/github"
         )
+        if settings.ENVIRONMENT == "production" and "localhost" in self.redirect_uri:
+            logger.warning(
+                "GitHub OAuth redirect_uri points at localhost in production — "
+                "set GITHUB_REDIRECT_URI (or FRONTEND_URL) and register the exact "
+                "URL as the Authorization callback URL in the GitHub OAuth App settings.",
+                redirect_uri=self.redirect_uri,
+            )
 
     def get_authorization_url(self, state: str) -> str:
         base_url = "https://github.com/login/oauth/authorize"
-        params = f"?client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=user:email&state={state}"
-        return f"{base_url}{params}"
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": self.redirect_uri,
+            "scope": "user:email",
+            "state": state,
+        }
+        return f"{base_url}?{urlencode(params)}"
 
     async def get_user_info(self, code: str) -> OAuthUserInfo:
         if self.client_id == "mock-github-client-id":
