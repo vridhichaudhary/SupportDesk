@@ -205,13 +205,11 @@ Return this exact JSON schema, with no extra text:
 
         if team_id:
             from sqlalchemy import select
+
             from src.models import TeamMember
 
             agent_ids_in_team = (
-                db.execute(
-                    select(TeamMember.user_id)
-                    .where(TeamMember.team_id == team_id)
-                )
+                db.execute(select(TeamMember.user_id).where(TeamMember.team_id == team_id))
                 .scalars()
                 .all()
             )

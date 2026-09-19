@@ -19,7 +19,6 @@ from src.core.exceptions import ValidationException
 from src.models import Customer, User, UserRole
 from src.repositories.thread import thread_repository
 from src.repositories.ticket import ticket_repository
-from src.utils.pagination import PaginatedResult, PaginationParams
 from src.schemas.ticket import (
     BulkAssignRequest,
     BulkStatusRequest,
@@ -33,7 +32,7 @@ from src.schemas.ticket import (
     TicketUpdate,
 )
 from src.services.ticket import ticket_service
-from src.utils.pagination import PaginatedResult
+from src.utils.pagination import PaginatedResult, PaginationParams
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -60,9 +59,7 @@ def create_ticket(
     """
     # Auto-generate ticket number if not provided
     if not body.ticket_number:
-        body.ticket_number = ticket_repository.generate_ticket_number(
-            db, actor.organization_id
-        )
+        body.ticket_number = ticket_repository.generate_ticket_number(db, actor.organization_id)
 
     if actor.role == UserRole.CUSTOMER:
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
@@ -98,7 +95,6 @@ def list_tickets(
     Paginated ticket list with free-text search and column filters.
     Requires `view_tickets` permission.
     """
-    from types import SimpleNamespace
 
     filters: dict = {}
     if status_filter:

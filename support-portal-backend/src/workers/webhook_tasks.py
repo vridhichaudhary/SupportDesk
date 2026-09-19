@@ -98,7 +98,9 @@ def execute_webhook_delivery(self, delivery_id_str: str):
                 endpoint.url, data=payload_str, headers=headers, timeout=TIMEOUT_SECONDS  # type: ignore[arg-type]
             )
             delivery.status_code = response.status_code  # type: ignore[assignment]
-            delivery.response_body = response.text[:1000]  # Truncate large responses  # type: ignore[assignment]
+            delivery.response_body = response.text[
+                :1000
+            ]  # Truncate large responses  # type: ignore[assignment]
 
             if 200 <= response.status_code < 300:
                 delivery.delivery_status = "SUCCESS"  # type: ignore[assignment]
