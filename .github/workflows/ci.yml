@@ -101,6 +101,7 @@ jobs:
           SECRET_KEY: test-secret-for-ci-only-32-characters-long
           ENVIRONMENT: testing
           TESTING: 1
+          GEMINI_API_KEY: "ci-dummy-key-for-test"
         run: pytest tests/ -v
 
   security-scan:

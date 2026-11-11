@@ -71,6 +71,8 @@ def run_evaluation(dataset_path: str = None) -> Dict[str, Any]:
 
     SessionLocal = setup_in_memory_db()
     copilot_service = TicketCopilotService()
+    if not copilot_service.model:
+        copilot_service.model = MagicMock()
 
     total_cases = len(cases)
     passed_cases = 0

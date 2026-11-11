@@ -1,14 +1,27 @@
+import os
 from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
+
+# Ensure GEMINI_API_KEY is defined for test suite
+os.environ.setdefault("GEMINI_API_KEY", "ci-dummy-key-for-test")
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from src.core.config import settings
 from src.core.database import Base
 from src.core.dependencies import get_db, get_redis
 from src.main import app
+from src.services.ticket_copilot import ticket_copilot_service
+
+if not settings.GEMINI_API_KEY:
+    settings.GEMINI_API_KEY = "ci-dummy-key-for-test"
+if not getattr(ticket_copilot_service, "model", None):
+    ticket_copilot_service.model = MagicMock()
 
 # Use an in-memory SQLite database for fast, always-fresh isolated testing
 SQLALCHEMY_DATABASE_URL = "sqlite://"

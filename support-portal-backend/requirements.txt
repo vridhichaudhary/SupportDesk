@@ -5,16 +5,16 @@ anyio==4.14.2
 argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
 ast_serialize==0.6.0
-black==26.5.1
-certifi==2026.7.22
+black>=26.10.1
+certifi>=2026.10.18
 cffi==2.1.0
 cfgv==3.5.0
 click==8.4.2
 distlib==0.4.3
-dnspython==2.8.0
+dnspython>=2.9.0
 email-validator==2.3.0
 fastapi==0.141.1
-filelock==3.32.2
+filelock>=4.2.1
 h11==0.16.0
 httpcore==1.0.9
 httptools==0.8.0
@@ -41,7 +41,7 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 pydantic_core==2.46.4
 Pygments==2.20.0
-PyJWT==2.13.0
+PyJWT>=2.14.0
 pytest==9.1.1
 python-discovery==1.5.1
 python-dotenv==1.2.2
@@ -60,7 +60,7 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 uvicorn==0.52.1
 uvloop==0.22.1
-virtualenv==21.7.1
+virtualenv>=21.14.9
 watchfiles==1.2.0
 websockets==17.0.1
 
