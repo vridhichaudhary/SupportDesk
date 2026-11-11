@@ -7,7 +7,6 @@ from fastapi import Depends, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from src.core.config import settings
 from src.core.database import SessionLocal
 from src.core.exceptions import AuthenticationException
 from src.core.security import decode_access_token, verify_api_key
@@ -33,9 +32,11 @@ def get_db() -> Generator[Session, None, None]:
 
 def get_redis() -> Generator[redis.Redis, None, None]:
     """
-    Dependency that yields a Redis client.
+    Dependency that yields a Redis client from the shared connection pool.
     """
-    client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    from src.core.redis import get_redis_client
+
+    client = get_redis_client()
     try:
         yield client
     finally:

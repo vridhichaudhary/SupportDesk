@@ -89,3 +89,30 @@ class BulkAssignRequest(BulkActionRequest):
 
 class BulkStatusRequest(BulkActionRequest):
     status: TicketStatus
+
+
+class TicketCitationItem(BaseModel):
+    ref_id: int
+    title: str
+    source_type: str
+    document_id: Optional[uuid.UUID] = None
+    kb_article_id: Optional[uuid.UUID] = None
+    similarity: float = 0.0
+
+
+class TicketCopilotDraftResponse(BaseModel):
+    suggestion_id: uuid.UUID
+    ticket_id: uuid.UUID
+    draft_reply: str
+    citations: List[TicketCitationItem] = []
+    confidence_score: Optional[int] = None  # Heuristic retrieval match score (uncalibrated)
+    retrieval_match_score: Optional[int] = None  # Explicit uncalibrated semantic match score
+    sources_count: int
+    model_name: str
+    latency_ms: float
+    evidence_found: bool
+
+
+class TicketCopilotActionRequest(BaseModel):
+    action: str  # accept, edit, reject
+    edited_reply: Optional[str] = None

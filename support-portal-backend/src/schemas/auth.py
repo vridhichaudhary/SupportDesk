@@ -47,6 +47,12 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: Optional[str] = None
 
 
+# ── OAuth Exchange Request ────────────────────────────────────────────────
+class OAuthExchangeRequest(BaseModel):
+    code: str = Field(..., description="Authorization code from OAuth provider")
+    state: Optional[str] = Field(None, description="Cryptographic CSRF state token")
+
+
 # ── Password Change / Reset Requests ──────────────────────────────────────
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

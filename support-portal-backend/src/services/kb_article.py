@@ -2,12 +2,15 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
+import structlog
 from sqlalchemy.orm import Session
 
 from src.core.exceptions import SupportDeskException
 from src.models import KBArticle, KBArticleStatus, KBArticleVersion, VisibilityLevel
 from src.repositories.kb_article import KBArticleRepository
 from src.repositories.kb_version import KBVersionRepository
+
+logger = structlog.get_logger()
 
 
 class KBArticleService:
@@ -68,6 +71,7 @@ class KBArticleService:
 
         # Snapshot initial version
         self._snapshot_version(article, author_id, "Initial creation")
+        self._dispatch_vectorization(article)
 
         return article
 
@@ -103,7 +107,9 @@ class KBArticleService:
             article.version += 1  # type: ignore[assignment]
             self._snapshot_version(article, editor_id, edit_reason or "Content updated")
 
-        return self.repo.update(article)
+        updated = self.repo.update(article)
+        self._dispatch_vectorization(updated)
+        return updated
 
     def transition_status(
         self,
@@ -114,20 +120,20 @@ class KBArticleService:
     ) -> KBArticle:
         article = self.get_article(article_id, org_id)
 
-        # State machine validations could go here
-        # e.g., only IN_REVIEW can become APPROVED, only APPROVED can become PUBLISHED
-
         if new_status == KBArticleStatus.PUBLISHED and article.status != KBArticleStatus.PUBLISHED:
             article.published_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
         article.status = new_status  # type: ignore[assignment]
-        return self.repo.update(article)
+        updated = self.repo.update(article)
+        self._dispatch_vectorization(updated)
+        return updated
 
     def delete_article(self, article_id: uuid.UUID, org_id: uuid.UUID) -> None:
         article = self.get_article(article_id, org_id)
         # Soft delete
         article.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         self.repo.update(article)
+        self._dispatch_vectorization(article)
 
     def restore_version(
         self, article_id: uuid.UUID, version_number: int, org_id: uuid.UUID, editor_id: uuid.UUID
@@ -147,8 +153,29 @@ class KBArticleService:
 
         self.repo.update(article)
         self._snapshot_version(article, editor_id, f"Restored from version {version_number}")
+        self._dispatch_vectorization(article)
 
         return article
+
+    def _dispatch_vectorization(self, article: KBArticle) -> None:
+        if article.status == KBArticleStatus.PUBLISHED and article.deleted_at is None:
+            try:
+                from src.workers.kb_tasks import vectorize_kb_article_task
+
+                vectorize_kb_article_task.delay(str(article.id))
+            except Exception as e:
+                logger.warning(
+                    "Failed to queue background KB vectorization task, falling back to sync",
+                    article_id=str(article.id),
+                    error=str(e),
+                )
+                from src.services.kb_vector import kb_vector_service
+
+                kb_vector_service.sync_article_vectors(self.db, article)
+        else:
+            from src.services.kb_vector import kb_vector_service
+
+            kb_vector_service.delete_article_vectors(self.db, article.id)
 
     def _snapshot_version(self, article: KBArticle, editor_id: uuid.UUID, edit_reason: str):
         version = KBArticleVersion(

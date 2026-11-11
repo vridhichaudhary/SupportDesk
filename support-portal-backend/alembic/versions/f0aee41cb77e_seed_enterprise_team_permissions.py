@@ -9,7 +9,6 @@ Create Date: 2026-08-03 12:53:26.832468
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "f0aee41cb77e"
@@ -19,8 +18,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    from sqlalchemy.orm import Session
     from sqlalchemy import text
+    from sqlalchemy.orm import Session
 
     bind = op.get_bind()
     session = Session(bind=bind)
@@ -98,8 +97,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    from sqlalchemy.orm import Session
     from sqlalchemy import text
+    from sqlalchemy.orm import Session
 
     bind = op.get_bind()
     session = Session(bind=bind)

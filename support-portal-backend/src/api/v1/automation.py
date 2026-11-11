@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_current_user, get_db
+from src.core.authorization import require_any_permission, require_permission
+from src.core.dependencies import get_db
 from src.models import User
 from src.services.automation import automation_service
 
@@ -53,10 +54,10 @@ class AutomationRuleResponse(BaseModel):
     "/rules", response_model=List[AutomationRuleResponse], summary="List all automation rules"
 )
 def list_rules(
+    actor: User = require_any_permission("manage_workflow_rules", "manage_settings"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    rules = automation_service.list_rules(db, current_user.organization_id)  # type: ignore[arg-type]
+    rules = automation_service.list_rules(db, actor.organization_id)  # type: ignore[arg-type]
     return [
         AutomationRuleResponse(
             id=r.id,  # type: ignore[arg-type]
@@ -80,12 +81,12 @@ def list_rules(
 )
 def create_rule(
     data: AutomationRuleCreate,
+    actor: User = require_permission("manage_workflow_rules"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     rule = automation_service.create_rule(
         db,
-        current_user.organization_id,  # type: ignore[arg-type]
+        actor.organization_id,  # type: ignore[arg-type]
         data.name,
         data.trigger_event,
         data.conditions_json,
@@ -110,11 +111,11 @@ def create_rule(
 def update_rule(
     rule_id: uuid.UUID,
     data: AutomationRuleUpdate,
+    actor: User = require_permission("manage_workflow_rules"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    rule = automation_service.update_rule(db, current_user.organization_id, rule_id, updates)  # type: ignore[arg-type]
+    rule = automation_service.update_rule(db, actor.organization_id, rule_id, updates)  # type: ignore[arg-type]
     return AutomationRuleResponse(
         id=rule.id,  # type: ignore[arg-type]
         name=rule.name,  # type: ignore[arg-type]
@@ -132,8 +133,8 @@ def update_rule(
 )
 def delete_rule(
     rule_id: uuid.UUID,
+    actor: User = require_permission("manage_workflow_rules"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    automation_service.delete_rule(db, current_user.organization_id, rule_id)  # type: ignore[arg-type]
+    automation_service.delete_rule(db, actor.organization_id, rule_id)  # type: ignore[arg-type]
     return None

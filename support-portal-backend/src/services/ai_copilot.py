@@ -16,7 +16,7 @@ logger = structlog.get_logger()
 
 class AICopilotService:
     def __init__(self):
-        self.model_name = "models/gemini-2.5-flash"
+        self.model_name = settings.GEMINI_MODEL
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             self.model = genai.GenerativeModel(self.model_name)

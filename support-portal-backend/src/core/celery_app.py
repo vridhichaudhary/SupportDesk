@@ -2,6 +2,7 @@ import os
 
 import sentry_sdk
 from celery import Celery
+from celery.schedules import crontab
 from sentry_sdk.integrations.celery import CeleryIntegration
 
 sentry_dsn = os.getenv("SENTRY_DSN")
@@ -28,6 +29,7 @@ celery_app = Celery(
         "src.workers.routing_tasks",
         "src.workers.analytics_tasks",
         "src.workers.webhook_tasks",
+        "src.workers.kb_tasks",
     ],
 )
 
@@ -39,6 +41,24 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=3600,  # 1 hour max processing
+    task_default_queue="default",
+    task_routes={
+        "src.workers.document_tasks.*": {"queue": "document_processing"},
+        "src.workers.kb_tasks.*": {"queue": "document_processing"},
+        "src.workers.routing_tasks.*": {"queue": "routing"},
+        "src.workers.analytics_tasks.*": {"queue": "analytics"},
+        "src.workers.webhook_tasks.*": {"queue": "webhooks"},
+    },
+    beat_schedule={
+        "check-sla-breaches-every-15-mins": {
+            "task": "src.workers.routing_tasks.check_sla_breaches_task",
+            "schedule": crontab(minute="*/15"),
+        },
+        "aggregate-daily-analytics-midnight": {
+            "task": "src.workers.analytics_tasks.aggregate_daily_analytics_task",
+            "schedule": crontab(hour=0, minute=0),
+        },
+    },
 )
 
 if is_testing:

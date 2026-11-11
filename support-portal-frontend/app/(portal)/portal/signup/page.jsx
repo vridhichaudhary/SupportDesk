@@ -60,7 +60,12 @@ export default function PortalSignupPage() {
         throw new Error("Failed to get user details");
       }
     } catch (error) {
-      const msg = error.response?.data?.error?.message || "Signup failed. Please try again.";
+      const msg =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Signup failed. Please try again.";
       setMessage("❌ " + msg);
       setLoading(false);
     }
@@ -195,11 +200,19 @@ export default function PortalSignupPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            Already have an account?{" "}
-            <Link href="/portal/login" className="font-medium text-sky-600 hover:text-sky-500">
-              Log in
-            </Link>
+          <div className="mt-6 text-center text-xs text-gray-500 space-y-2">
+            <div>
+              Already have an account?{" "}
+              <Link href="/portal/login" className="font-semibold text-sky-600 hover:text-sky-500">
+                Log in
+              </Link>
+            </div>
+            <div>
+              Support staff or administrator?{" "}
+              <Link href="/signup" className="font-semibold text-stone-700 hover:text-stone-900 underline">
+                Staff Workspace Registration
+              </Link>
+            </div>
           </div>
         </div>
       </motion.div>

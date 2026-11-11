@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_current_user, get_db
-from src.models import AssignmentHistory, RoutingDecision, Ticket, User
+from src.core.authorization import require_any_permission, require_permission
+from src.core.dependencies import get_db
+from src.models import AssignmentHistory, RoutingDecision, Ticket, User, UserRole
 
 router = APIRouter(prefix="/routing", tags=["routing"])
 
@@ -73,20 +74,23 @@ class AssignmentHistoryResponse(BaseModel):
 )
 def analyze_ticket(
     request: AnalyzeRequest,
+    actor: User = require_any_permission("assign_tickets", "view_tickets"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Runs AI classification on a ticket without persisting any assignment.
     Returns the predicted category, priority, suggested tags, SLA, and reasoning.
     """
+    if actor.role == UserRole.CUSTOMER:
+        raise HTTPException(status_code=403, detail="Not authorized to run routing analysis")
+
     from src.services.routing_engine import routing_engine
 
     ticket = (
         db.query(Ticket)
         .filter(
             Ticket.id == request.ticket_id,
-            Ticket.organization_id == current_user.organization_id,
+            Ticket.organization_id == actor.organization_id,
         )
         .first()
     )
@@ -124,8 +128,8 @@ def analyze_ticket(
 )
 def assign_ticket(
     request: AssignRequest,
+    actor: User = require_permission("assign_tickets"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Runs the complete routing pipeline (classify → rules → rank agents → assign).
@@ -137,7 +141,7 @@ def assign_ticket(
         db.query(Ticket)
         .filter(
             Ticket.id == request.ticket_id,
-            Ticket.organization_id == current_user.organization_id,
+            Ticket.organization_id == actor.organization_id,
         )
         .first()
     )
@@ -171,8 +175,8 @@ def assign_ticket(
 )
 def override_routing(
     request: OverrideRequest,
+    actor: User = require_permission("assign_tickets"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Manager manually overrides AI assignment. Logs to AssignmentHistory with is_override=True.
@@ -183,7 +187,7 @@ def override_routing(
         db.query(Ticket)
         .filter(
             Ticket.id == request.ticket_id,
-            Ticket.organization_id == current_user.organization_id,
+            Ticket.organization_id == actor.organization_id,
         )
         .first()
     )
@@ -195,7 +199,7 @@ def override_routing(
         str(request.agent_id) if request.agent_id else None,
         str(request.team_id) if request.team_id else None,
         request.reason,
-        str(current_user.id),
+        str(actor.id),
     )
     return {"message": "Override dispatched successfully", "ticket_id": str(request.ticket_id)}
 
@@ -207,8 +211,8 @@ def override_routing(
 )
 def get_routing_history(
     ticket_id: uuid.UUID,
+    actor: User = require_permission("assign_tickets"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Returns the complete assignment history for a ticket, including AI and manual entries.
@@ -217,7 +221,7 @@ def get_routing_history(
         db.query(Ticket)
         .filter(
             Ticket.id == ticket_id,
-            Ticket.organization_id == current_user.organization_id,
+            Ticket.organization_id == actor.organization_id,
         )
         .first()
     )
@@ -254,13 +258,13 @@ def get_routing_history(
 )
 def list_routing_decisions(
     limit: int = 20,
+    actor: User = require_permission("assign_tickets"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Returns recent AI routing decisions for the organization."""
     decisions = (
         db.query(RoutingDecision)
-        .filter(RoutingDecision.organization_id == current_user.organization_id)
+        .filter(RoutingDecision.organization_id == actor.organization_id)
         .order_by(RoutingDecision.created_at.desc())
         .limit(limit)
         .all()

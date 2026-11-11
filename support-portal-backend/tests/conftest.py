@@ -97,6 +97,12 @@ class MockRedis:
     def setex(self, key, time, value):
         self._data[key] = value
 
+    def set(self, key, value, ex=None, nx=False):
+        if nx and key in self._data:
+            return None
+        self._data[key] = value
+        return True
+
     def delete(self, *keys):
         for key in keys:
             self._data.pop(key, None)
@@ -120,3 +126,16 @@ def client(db_session) -> Generator:
         yield c
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def mock_celery_tasks(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from src.workers import document_tasks, kb_tasks, routing_tasks, webhook_tasks
+
+    monkeypatch.setattr(routing_tasks.route_ticket_task, "delay", MagicMock())
+    monkeypatch.setattr(routing_tasks.override_assignment_task, "delay", MagicMock())
+    monkeypatch.setattr(webhook_tasks.deliver_webhook_task, "delay", MagicMock())
+    monkeypatch.setattr(document_tasks.process_document_task, "delay", MagicMock())
+    monkeypatch.setattr(kb_tasks.vectorize_kb_article_task, "delay", MagicMock())

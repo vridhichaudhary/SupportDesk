@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from src.core.dependencies import get_current_organization_id, get_db
+from src.core.authorization import require_permission
+from src.core.dependencies import get_db
 from src.core.responses import ErrorResponse, PaginatedResponse, PaginationMeta, SuccessResponse
 from src.models import Organization as OrgModel
+from src.models import User
 from src.repositories.audit_log import audit_log_repository
 from src.schemas.audit_log import AuditLogResponse
 from src.schemas.organization import (
@@ -40,38 +42,45 @@ router = APIRouter(
     summary="Create a new Organization",
     description=(
         "Creates a brand-new tenant Organization in SupportDesk AI. "
-        "In production this endpoint will be restricted to platform admins."
+        "Requires 'manage_organization' permission. Public registration occurs via /auth/signup."
     ),
 )
 def create_organization(
     payload: OrganizationCreate,
+    actor: User = require_permission("manage_organization"),
     db: Session = Depends(get_db),
 ) -> SuccessResponse[OrganizationResponse]:
-    logger.info("Creating organization", name=payload.name)
+    logger.info("Creating organization", name=payload.name, actor_id=str(actor.id))
     org = organization_service.create_organization(db, obj_in=payload)
     return SuccessResponse(data=OrganizationResponse.model_validate(org))
 
 
-# ── List (admin / cross-tenant) ────────────────────────────────────────────
+# ── List (admin / cross-tenant isolation) ──────────────────────────────────
 @router.get(
     "",
     response_model=PaginatedResponse[OrganizationResponse],
     summary="List all Organizations (Admin only)",
-    description="Returns a paginated list of all organizations. Admin-only in production.",
+    description=(
+        "Returns a paginated list of organizations belonging to the authenticated tenant. "
+        "Requires 'manage_organization' permission."
+    ),
 )
 def list_organizations(
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    actor: User = require_permission("manage_organization"),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[OrganizationResponse]:
     total = db.execute(
-        select(func.count()).select_from(OrgModel).where(OrgModel.deleted_at.is_(None))
+        select(func.count())
+        .select_from(OrgModel)
+        .where(OrgModel.id == actor.organization_id, OrgModel.deleted_at.is_(None))
     ).scalar_one()
 
     orgs = (
         db.execute(
             select(OrgModel)
-            .where(OrgModel.deleted_at.is_(None))
+            .where(OrgModel.id == actor.organization_id, OrgModel.deleted_at.is_(None))
             .offset(offset)
             .limit(limit)
             .order_by(OrgModel.created_at.desc())
@@ -99,10 +108,10 @@ def list_organizations(
 )
 def get_organization(
     org_id: uuid.UUID,
+    actor: User = require_permission("view_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> SuccessResponse[OrganizationResponse]:
-    org = organization_service.get_or_404(db, id=org_id, organization_id=current_org_id)
+    org = organization_service.get_or_404(db, id=org_id, organization_id=actor.organization_id)
     return SuccessResponse(data=OrganizationResponse.model_validate(org))
 
 
@@ -115,11 +124,13 @@ def get_organization(
 def update_organization(
     org_id: uuid.UUID,
     payload: OrganizationUpdate,
+    actor: User = require_permission("manage_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> SuccessResponse[OrganizationResponse]:
-    logger.info("Updating organization", org_id=str(org_id))
-    org = organization_service.update(db, id=org_id, obj_in=payload, organization_id=current_org_id)
+    logger.info("Updating organization", org_id=str(org_id), actor_id=str(actor.id))
+    org = organization_service.update(
+        db, id=org_id, obj_in=payload, organization_id=actor.organization_id
+    )
     return SuccessResponse(data=OrganizationResponse.model_validate(org))
 
 
@@ -136,12 +147,12 @@ def update_organization(
 def update_organization_settings(
     org_id: uuid.UUID,
     payload: OrganizationSettings,
+    actor: User = require_permission("manage_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> SuccessResponse[OrganizationResponse]:
-    logger.info("Updating organization settings", org_id=str(org_id))
+    logger.info("Updating organization settings", org_id=str(org_id), actor_id=str(actor.id))
     org = organization_service.update_settings(
-        db, id=org_id, settings_in=payload, organization_id=current_org_id
+        db, id=org_id, settings_in=payload, organization_id=actor.organization_id
     )
     return SuccessResponse(data=OrganizationResponse.model_validate(org))
 
@@ -154,11 +165,11 @@ def update_organization_settings(
 )
 def get_organization_dashboard(
     org_id: uuid.UUID,
+    actor: User = require_permission("view_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> SuccessResponse[DashboardSummaryResponse]:
     summary = organization_service.get_dashboard_summary(
-        db, id=org_id, organization_id=current_org_id
+        db, id=org_id, organization_id=actor.organization_id
     )
     return SuccessResponse(data=DashboardSummaryResponse(**summary))
 
@@ -174,10 +185,10 @@ def get_organization_timeline(
     org_id: uuid.UUID,
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    actor: User = require_permission("view_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> PaginatedResponse[AuditLogResponse]:
-    organization_service.get_or_404(db, id=org_id, organization_id=current_org_id)
+    organization_service.get_or_404(db, id=org_id, organization_id=actor.organization_id)
 
     pagination = PaginationParams(offset=offset, limit=limit)
     result = audit_log_repository.get_multi(
@@ -211,9 +222,9 @@ def get_organization_timeline(
 )
 def delete_organization(
     org_id: uuid.UUID,
+    actor: User = require_permission("manage_organization"),
     db: Session = Depends(get_db),
-    current_org_id: uuid.UUID = Depends(get_current_organization_id),
 ) -> SuccessResponse[dict]:
-    logger.warning("Soft-deleting organization", org_id=str(org_id))
-    organization_service.delete(db, id=org_id, organization_id=current_org_id)
+    logger.warning("Soft-deleting organization", org_id=str(org_id), actor_id=str(actor.id))
+    organization_service.delete(db, id=org_id, organization_id=actor.organization_id)
     return SuccessResponse(data={"deleted": True, "organization_id": str(org_id)})

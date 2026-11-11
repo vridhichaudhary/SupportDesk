@@ -1,9 +1,11 @@
 import os
+import re
 from contextlib import asynccontextmanager
 
 import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -57,6 +59,23 @@ async def lifespan(app: FastAPI):
             traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
         )
         logger.info("Sentry initialized")
+
+    # Verify mandatory Redis dependency in production
+    if settings.ENVIRONMENT.lower() in ("production", "staging"):
+        try:
+            from src.core.redis import get_redis_client
+
+            r = get_redis_client(socket_timeout=3.0, socket_connect_timeout=3.0)
+            r.ping()
+            logger.info("Production Redis security dependency verified")
+        except Exception as exc:
+            logger.critical(
+                "Fatal startup error: Production Redis dependency unreachable",
+                error_type=type(exc).__name__,
+            )
+            raise RuntimeError(
+                f"Production requires a reachable Redis instance for security and nonce replay protection, but ping failed: {type(exc).__name__}"
+            ) from exc
 
     yield
     # Shutdown
@@ -113,6 +132,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -125,7 +145,28 @@ def create_app() -> FastAPI:
         metrics_app = make_asgi_app()
         app.mount("/metrics", metrics_app)
 
-    # Global Exception Handlers
+    # Global Exception Handlers & CORS Support
+    def _attach_cors_headers(request: Request, resp: JSONResponse) -> JSONResponse:
+        origin = request.headers.get("origin")
+        if not origin:
+            return resp
+        allowed = False
+        if settings.BACKEND_CORS_ORIGINS and origin in settings.BACKEND_CORS_ORIGINS:
+            allowed = True
+        elif settings.CORS_ORIGIN_REGEX and re.match(settings.CORS_ORIGIN_REGEX, origin):
+            allowed = True
+        elif settings.ENVIRONMENT != "production" and (
+            origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")
+        ):
+            allowed = True
+
+        if allowed:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+            resp.headers["Access-Control-Allow-Methods"] = "*"
+            resp.headers["Access-Control-Allow-Headers"] = "*"
+        return resp
+
     @app.exception_handler(SupportDeskException)
     async def custom_exception_handler(request: Request, exc: SupportDeskException):
         logger.error(
@@ -135,12 +176,28 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
             details=exc.details,
         )
-        return JSONResponse(
+        resp = JSONResponse(
             status_code=exc.status_code,
             content=ErrorResponse(
                 error=ErrorDetail(code=exc.code, message=exc.message, details=exc.details)
             ).model_dump(),
         )
+        return _attach_cors_headers(request, resp)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        logger.warning("Request validation failed", errors=exc.errors())
+        resp = JSONResponse(
+            status_code=422,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="VALIDATION_ERROR",
+                    message="Request validation failed. Please check your input parameters.",
+                    details={"errors": exc.errors()},
+                )
+            ).model_dump(),
+        )
+        return _attach_cors_headers(request, resp)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -153,15 +210,7 @@ def create_app() -> FastAPI:
                 )
             ).model_dump(),
         )
-        # NOTE: Starlette's exception-handling layer sits outside CORSMiddleware,
-        # so responses built here never get CORS headers added automatically.
-        # Without this, every unhandled 500 shows up in the browser as a CORS
-        # error, masking the real failure. Attach the headers by hand.
-        origin = request.headers.get("origin")
-        if origin and origin in settings.BACKEND_CORS_ORIGINS:
-            resp.headers["Access-Control-Allow-Origin"] = origin
-            resp.headers["Access-Control-Allow-Credentials"] = "true"
-        return resp
+        return _attach_cors_headers(request, resp)
 
     # Static Files Mount for Avatars
     os.makedirs("static/uploads/avatars", exist_ok=True)

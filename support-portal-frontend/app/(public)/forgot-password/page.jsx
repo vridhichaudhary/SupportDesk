@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { KeyRound, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
+import { KeyRound, ArrowRight, Loader2, ArrowLeft, Mail } from "lucide-react";
 import axiosInstance from "@/utils/axiosInstance";
 
 export default function ForgotPasswordPage() {
@@ -33,63 +33,88 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-950 p-6 font-sans text-stone-100">
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
-        <div className="bg-stone-900 border border-stone-800 rounded-3xl p-8 shadow-2xl relative">
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20">
-              <KeyRound className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-black text-white tracking-tight">Reset Password</h1>
-            <p className="text-stone-400 text-xs font-medium mt-1">Enter your work email to receive reset instructions</p>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="w-full max-w-md"
+    >
+      <div className="bg-white border border-stone-200/80 rounded-3xl p-8 sm:p-10 shadow-xl shadow-sky-100/50">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-sky-500/25 text-white">
+            <KeyRound className="w-6 h-6" />
           </div>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight">Reset Password</h1>
+          <p className="text-stone-500 text-xs font-medium mt-1">
+            Enter your work email to receive password reset instructions
+          </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-1">Email Address</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5">
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                <Mail className="w-4 h-4" />
+              </div>
               <input
                 type="email"
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl focus:border-indigo-500 outline-none text-sm text-white placeholder:text-stone-600 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50/70 hover:bg-white focus:bg-white border border-stone-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 rounded-xl outline-none text-sm text-stone-900 placeholder:text-stone-400 transition-all font-medium"
                 required
                 disabled={loading}
               />
             </div>
-
-            <AnimatePresence>
-              {message && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`p-3 rounded-xl text-xs font-bold border ${
-                    message.includes("✅")
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                  }`}
-                >
-                  {message}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send Reset Instructions <ArrowRight className="w-4 h-4" /></>}
-            </button>
-          </form>
-
-          <div className="mt-8 text-center pt-6 border-t border-stone-800">
-            <Link href="/login" className="text-xs font-bold text-stone-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
-            </Link>
           </div>
+
+          <AnimatePresence>
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-3 rounded-xl text-xs font-semibold border ${
+                  message.includes("✅")
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                }`}
+              >
+                {message}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-sky-600/25 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Sending Instructions...
+              </>
+            ) : (
+              <>
+                Send Reset Instructions
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center pt-6 border-t border-stone-200">
+          <Link
+            href="/login"
+            className="text-xs font-bold text-stone-600 hover:text-stone-900 flex items-center justify-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+          </Link>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

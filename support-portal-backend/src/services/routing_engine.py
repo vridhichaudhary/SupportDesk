@@ -35,6 +35,7 @@ from src.models import (
     TicketPriority,
     TicketStatus,
     User,
+    UserRole,
     WorkflowExecution,
 )
 
@@ -53,14 +54,15 @@ CATEGORY_PRIORITY_BOOST = {
     "BILLING": "MEDIUM",
 }
 
-MODEL_VERSION = "gemini-2.5-flash"
+MODEL_VERSION = settings.GEMINI_MODEL
 
 
 class RoutingEngine:
     def __init__(self):
+        self.model_version = settings.GEMINI_MODEL
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(MODEL_VERSION)
+            self.model = genai.GenerativeModel(self.model_version)
         else:
             self.model = None
 
@@ -70,10 +72,13 @@ class RoutingEngine:
     def classify_ticket(self, subject: str, body: str) -> Dict[str, Any]:
         """
         Call Gemini to classify the ticket. Returns structured JSON.
-        Falls back to defaults if model is unavailable.
+        Falls back to defaults if model is unavailable or response is invalid.
         """
         if not self.model:
-            return self._default_classification()
+            logger.info("Gemini model not configured; using fallback classification")
+            return self._default_classification(
+                reason="AI model not configured — defaulting to GENERAL/MEDIUM."
+            )
 
         prompt = f"""
 You are a support ticket classifier. Analyze the ticket below and return a JSON object only.
@@ -94,26 +99,87 @@ Return this exact JSON schema, with no extra text:
 """
         try:
             response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            # strip any markdown fences
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            return json.loads(text.strip())
-        except Exception as e:
-            logger.error("Gemini classification failed", error=str(e))
-            return self._default_classification()
+            text = (getattr(response, "text", "") or "").strip()
+            # Strip any markdown code fences
+            if "```" in text:
+                parts = text.split("```")
+                if len(parts) >= 2:
+                    text = parts[1]
+                    if text.startswith("json"):
+                        text = text[4:]
+                    text = text.strip()
 
-    def _default_classification(self) -> Dict[str, Any]:
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise ValueError(f"Expected JSON object, got {type(data).__name__}")
+
+            # Validate and normalize category
+            raw_category = str(data.get("category", "")).strip().upper()
+            valid_categories = {c.name for c in TicketCategory}
+            if raw_category in valid_categories:
+                category = raw_category
+            else:
+                logger.warning(
+                    "Invalid category from AI model; using GENERAL", raw_category=raw_category
+                )
+                category = TicketCategory.GENERAL.name
+
+            # Validate and normalize priority
+            raw_priority = str(data.get("priority", "")).strip().upper()
+            valid_priorities = {p.name for p in TicketPriority}
+            if raw_priority in valid_priorities:
+                priority = raw_priority
+            else:
+                logger.warning(
+                    "Invalid priority from AI model; using MEDIUM", raw_priority=raw_priority
+                )
+                priority = TicketPriority.MEDIUM.name
+
+            # Validate confidence
+            try:
+                confidence = int(data.get("confidence", 50))
+                confidence = max(0, min(100, confidence))
+            except (ValueError, TypeError):
+                confidence = 50
+
+            # Suggested tags
+            raw_tags = data.get("suggested_tags", [])
+            suggested_tags = [
+                str(t).strip() for t in raw_tags if isinstance(t, (str, int)) and str(t).strip()
+            ]
+
+            intent = str(data.get("intent", "")).strip() or "General customer support request."
+            sentiment = str(data.get("sentiment", "NEUTRAL")).strip().upper()
+            reasoning = str(data.get("reasoning", "")).strip() or "AI classification completed."
+
+            return {
+                "category": category,
+                "priority": priority,
+                "intent": intent,
+                "sentiment": sentiment,
+                "suggested_tags": suggested_tags,
+                "confidence": confidence,
+                "reasoning": reasoning,
+                "is_fallback": False,
+            }
+        except Exception as e:
+            logger.error("Gemini classification failed or returned invalid output", error=str(e))
+            return self._default_classification(
+                reason=f"AI classification error ({type(e).__name__}) — defaulting to GENERAL/MEDIUM."
+            )
+
+    def _default_classification(
+        self, reason: str = "AI model unavailable — defaulting to GENERAL/MEDIUM."
+    ) -> Dict[str, Any]:
         return {
-            "category": "GENERAL",
-            "priority": "MEDIUM",
+            "category": TicketCategory.GENERAL.name,
+            "priority": TicketPriority.MEDIUM.name,
             "intent": "Ticket requires manual review.",
             "sentiment": "NEUTRAL",
             "suggested_tags": [],
             "confidence": 0,
-            "reasoning": "AI model unavailable — defaulting to GENERAL/MEDIUM.",
+            "reasoning": reason,
+            "is_fallback": True,
         }
 
     # ------------------------------------------------------------------
@@ -187,6 +253,44 @@ Return this exact JSON schema, with no extra text:
                 return False
         return True
 
+    def _calculate_availability_score(self, avail: Any) -> float:
+        if not avail:
+            return 0.0
+        if avail.status == AgentStatus.AVAILABLE:
+            return 40.0
+        if avail.status == AgentStatus.BUSY:
+            return 10.0
+        return -20.0
+
+    def _calculate_skill_score(self, agent: Any, category: str) -> float:
+        category_map = {
+            "BILLING": "BILLING",
+            "TECHNICAL": "TECHNICAL",
+            "BUG_REPORT": "TECHNICAL",
+            "SALES": "SALES",
+        }
+        target_category = category_map.get(category)
+        if not (target_category and hasattr(agent, "skills") and agent.skills):
+            return 0.0
+
+        proficiency_weights = {
+            "BEGINNER": 5,
+            "INTERMEDIATE": 15,
+            "ADVANCED": 25,
+            "EXPERT": 35,
+        }
+        skill_score = 0.0
+        for agent_skill in agent.skills:
+            if (
+                agent_skill
+                and agent_skill.skill
+                and getattr(agent_skill.skill, "category", None)
+                and agent_skill.skill.category.value == target_category
+            ):
+                prof_val = getattr(agent_skill.proficiency_level, "value", "BEGINNER")
+                skill_score += proficiency_weights.get(prof_val, 5)
+        return skill_score
+
     # ------------------------------------------------------------------
     # Step 3: Agent Ranking
     # ------------------------------------------------------------------
@@ -199,7 +303,9 @@ Return this exact JSON schema, with no extra text:
         """
         query = db.query(User).filter(
             User.organization_id == org_id,
-            User.role.in_(["AGENT", "ADMIN", "OWNER"]),
+            User.role.in_(
+                [UserRole.AGENT, UserRole.ADMIN, UserRole.OWNER, "AGENT", "ADMIN", "OWNER"]
+            ),
             User.is_active,
         )
 
@@ -220,36 +326,16 @@ Return this exact JSON schema, with no extra text:
 
         ranked = []
         for agent in agents:
-            score = 0.0
-
-            # Availability
-            avail = agent.availability[0] if agent.availability else None
-            if avail:
-                if avail.status == AgentStatus.AVAILABLE:
-                    score += 40
-                elif avail.status == AgentStatus.BUSY:
-                    score += 10
+            # Availability (safely handle list or single object)
+            avail = None
+            if hasattr(agent, "availability") and agent.availability:
+                if isinstance(agent.availability, list):
+                    avail = agent.availability[0] if len(agent.availability) > 0 else None
                 else:
-                    score -= 20  # OFFLINE, AWAY, BREAK
+                    avail = agent.availability
 
-            # Skill match
-            category_map = {
-                "BILLING": "BILLING",
-                "TECHNICAL": "TECHNICAL",
-                "BUG_REPORT": "TECHNICAL",
-                "SALES": "SALES",
-            }
-            target_category = category_map.get(category, None)
-            if target_category:
-                proficiency_weights = {
-                    "BEGINNER": 5,
-                    "INTERMEDIATE": 15,
-                    "ADVANCED": 25,
-                    "EXPERT": 35,
-                }
-                for agent_skill in agent.skills:
-                    if agent_skill.skill and agent_skill.skill.category.value == target_category:
-                        score += proficiency_weights.get(agent_skill.proficiency_level.value, 5)
+            score = self._calculate_availability_score(avail)
+            score += self._calculate_skill_score(agent, category)
 
             # Active ticket load (lower is better)
             active_count = (
@@ -263,10 +349,16 @@ Return this exact JSON schema, with no extra text:
             )
             score -= active_count * 5
 
+            agent_name = (
+                agent.display_name
+                or f"{agent.first_name or ''} {agent.last_name or ''}".strip()
+                or agent.email
+            )
+
             ranked.append(
                 {
                     "agent_id": str(agent.id),
-                    "agent_name": agent.name,
+                    "agent_name": agent_name,
                     "agent_email": agent.email,
                     "score": round(score, 2),
                     "active_tickets": active_count,
@@ -314,10 +406,11 @@ Return this exact JSON schema, with no extra text:
                     team = db.query(Team).filter(Team.department_id == dept.id).first()
                     if team:
                         team_id = team.id
-            else:
-                # Fallback: pick first available team
-                first_team = db.query(Team).filter(Team.organization_id == org_id).first()
-                team_id = first_team.id if first_team else None
+
+        if not team_id:
+            # Fallback: pick first available team in organization
+            first_team = db.query(Team).filter(Team.organization_id == org_id).first()
+            team_id = first_team.id if first_team else None
 
         return team_id, dept_id
 
@@ -343,6 +436,7 @@ Return this exact JSON schema, with no extra text:
         confidence = classification.get("confidence", 0)
         reasoning = classification.get("reasoning", "")
         suggested_tags = classification.get("suggested_tags", [])
+        is_fallback = classification.get("is_fallback", False)
 
         # 2. Rules (override classification)
         rule_overrides, executed_rules = self.evaluate_rules(db, org_id, ticket, classification)  # type: ignore[arg-type]
@@ -371,6 +465,10 @@ Return this exact JSON schema, with no extra text:
             ticket, category_str, priority_str, best_agent_id, team_id, dept_id, sla_hours
         )
 
+        model_ver = (
+            "fallback" if is_fallback else (self.model_version if self.model else "fallback")
+        )
+
         # 7. RoutingDecision
         decision = RoutingDecision(
             organization_id=org_id,
@@ -385,12 +483,17 @@ Return this exact JSON schema, with no extra text:
             confidence_score=confidence,
             reasoning=reasoning,
             execution_time_ms=exec_time,
-            model_version=MODEL_VERSION if self.model else "fallback",
+            model_version=model_ver,
         )
         db.add(decision)
 
         # 8. AssignmentHistory entries
         if best_agent_id:
+            assign_reason = (
+                f"Auto-assigned by AI Routing Engine. Confidence: {confidence}%"
+                if not is_fallback
+                else "Auto-assigned via fallback routing engine."
+            )
             db.add(
                 AssignmentHistory(
                     organization_id=org_id,
@@ -399,7 +502,7 @@ Return this exact JSON schema, with no extra text:
                     assignment_type="AGENT",
                     old_value_id=None,
                     new_value_id=best_agent_id,
-                    reason=f"Auto-assigned by AI Routing Engine. Confidence: {confidence}%",
+                    reason=assign_reason,
                     is_override=False,
                 )
             )
@@ -412,7 +515,7 @@ Return this exact JSON schema, with no extra text:
                     assignment_type="TEAM",
                     old_value_id=None,
                     new_value_id=team_id,
-                    reason=f"Auto-assigned by AI Routing Engine based on category: {category_str}",
+                    reason=f"Auto-assigned by routing engine based on category: {category_str}",
                     is_override=False,
                 )
             )

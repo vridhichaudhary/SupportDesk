@@ -57,7 +57,12 @@ export default function PortalLoginPage() {
         throw new Error("Failed to get user details");
       }
     } catch (error) {
-      const msg = error.response?.data?.error?.message || "Login failed. Please check your credentials.";
+      const msg =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Login failed. Please check your credentials.";
       setMessage("❌ " + msg);
       setLoading(false);
     }
@@ -142,11 +147,19 @@ export default function PortalLoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-gray-500">
-            Don't have an account?{" "}
-            <Link href="/portal/signup" className="font-medium text-sky-600 hover:text-sky-500">
-              Sign up
-            </Link>
+          <div className="mt-8 text-center text-xs text-gray-500 space-y-2">
+            <div>
+              Don't have an account?{" "}
+              <Link href="/portal/signup" className="font-semibold text-sky-600 hover:text-sky-500">
+                Sign up
+              </Link>
+            </div>
+            <div>
+              Support staff or administrator?{" "}
+              <Link href="/login" className="font-semibold text-stone-700 hover:text-stone-900 underline">
+                Staff Sign In
+              </Link>
+            </div>
           </div>
         </div>
       </motion.div>

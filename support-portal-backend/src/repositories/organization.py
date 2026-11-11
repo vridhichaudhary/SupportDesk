@@ -36,8 +36,10 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         self,
         db: Session,
         id: uuid.UUID,
-        organization_id: uuid.UUID,  # kept for API compatibility; treated as id
+        organization_id: Optional[uuid.UUID] = None,
     ) -> Optional[Organization]:
+        if organization_id is not None and id != organization_id:
+            return None
         query = select(Organization).where(
             Organization.id == id,
             Organization.deleted_at.is_(None),

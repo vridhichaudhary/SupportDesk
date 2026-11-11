@@ -1,0 +1,111 @@
+# Render Blueprint Specification for SupportDesk
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. FastAPI Web Service (REST API)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: supportdesk-api
+    runtime: python
+    region: oregon
+    rootDir: support-portal-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EMBEDDING_MODEL
+        value: models/text-embedding-004
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: CORS_ORIGIN_REGEX
+        value: ^https:\/\/(supportdesk|support-portal-frontend)(-[a-zA-Z0-9-]+)?\.vercel\.app$
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # 2. Celery Background Worker
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: supportdesk-worker
+    runtime: python
+    region: oregon
+    rootDir: support-portal-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A src.core.celery_app worker -l info -Q default,document_processing,routing,analytics,webhooks -c 2
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EMBEDDING_MODEL
+        value: models/text-embedding-004
+      - key: SENTRY_DSN
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # 3. Celery Beat Scheduler (Exactly ONE instance)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: supportdesk-scheduler
+    runtime: python
+    region: oregon
+    rootDir: support-portal-backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A src.core.celery_app beat -l info
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: ENVIRONMENT
+        value: production
+      - key: REDIS_URL
+        sync: false
+      - key: SENTRY_DSN
+        sync: false

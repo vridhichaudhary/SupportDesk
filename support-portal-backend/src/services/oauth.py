@@ -33,16 +33,18 @@ class GoogleOAuthProvider:
     def __init__(self) -> None:
         self.client_id = os.getenv("GOOGLE_CLIENT_ID", "mock-google-client-id")
         self.client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "mock-google-client-secret")
-        self.redirect_uri = os.getenv(
-            "GOOGLE_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/google"
-        )
-        if settings.ENVIRONMENT == "production" and "localhost" in self.redirect_uri:
+
+    @property
+    def redirect_uri(self) -> str:
+        uri = os.getenv("GOOGLE_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/google")
+        if settings.ENVIRONMENT == "production" and "localhost" in uri:
             logger.warning(
                 "Google OAuth redirect_uri points at localhost in production — "
                 "set GOOGLE_REDIRECT_URI (or FRONTEND_URL) and register the exact "
                 "URL in the Google Cloud Console's Authorized redirect URIs.",
-                redirect_uri=self.redirect_uri,
+                redirect_uri=uri,
             )
+        return uri
 
     def get_authorization_url(self, state: str) -> str:
         base_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -105,16 +107,18 @@ class GitHubOAuthProvider:
     def __init__(self) -> None:
         self.client_id = os.getenv("GITHUB_CLIENT_ID", "mock-github-client-id")
         self.client_secret = os.getenv("GITHUB_CLIENT_SECRET", "mock-github-client-secret")
-        self.redirect_uri = os.getenv(
-            "GITHUB_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/github"
-        )
-        if settings.ENVIRONMENT == "production" and "localhost" in self.redirect_uri:
+
+    @property
+    def redirect_uri(self) -> str:
+        uri = os.getenv("GITHUB_REDIRECT_URI", f"{settings.FRONTEND_URL}/auth/callback/github")
+        if settings.ENVIRONMENT == "production" and "localhost" in uri:
             logger.warning(
                 "GitHub OAuth redirect_uri points at localhost in production — "
                 "set GITHUB_REDIRECT_URI (or FRONTEND_URL) and register the exact "
                 "URL as the Authorization callback URL in the GitHub OAuth App settings.",
-                redirect_uri=self.redirect_uri,
+                redirect_uri=uri,
             )
+        return uri
 
     def get_authorization_url(self, state: str) -> str:
         base_url = "https://github.com/login/oauth/authorize"

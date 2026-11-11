@@ -6,6 +6,11 @@ Covers: lifecycle, state machine, permissions, bulk operations, merge.
 import uuid
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from src.core.security import create_access_token
+from src.models import User, UserRole, UserRoleAssignment
+from src.repositories.rbac import role_repo
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Helpers
@@ -51,6 +56,42 @@ def _create_customer(client: TestClient, token: str, email: str = "customer@test
     )
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def _create_customer_token(
+    db: Session,
+    org_id: uuid.UUID,
+    email: str = "customer@test.com",
+) -> str:
+    user = User(
+        email=email,
+        password_hash="hashed_pw",
+        first_name="Customer",
+        last_name="User",
+        organization_id=org_id,
+        role=UserRole.CUSTOMER,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    system_role = role_repo.get_by_name_system(db, UserRole.CUSTOMER.value)
+    if system_role:
+        db.add(
+            UserRoleAssignment(
+                user_id=user.id,
+                organization_id=org_id,
+                role_id=system_role.id,
+            )
+        )
+        db.commit()
+
+    return create_access_token(
+        user_id=user.id,
+        organization_id=org_id,
+        role=UserRole.CUSTOMER.value,
+    )
 
 
 def _create_ticket(
@@ -287,6 +328,74 @@ class TestTicketLifecycle:
         # Internal notes should be excluded
         for item in items:
             assert item["thread_type"] != "INTERNAL_NOTE"
+
+    def test_customer_cannot_view_internal_notes_in_detail_or_thread(
+        self, client: TestClient, db_session: Session
+    ):
+        """
+        Regression Test for TASK 2:
+        - Internal notes must NEVER be exposed to customers in GET /tickets/{id} detail.
+        - Internal notes must NEVER be exposed to customers in GET /tickets/{id}/thread,
+          even if ?include_internal=true is explicitly requested.
+        - Staff (agents/owners) CAN see internal notes.
+        """
+        token, ticket = self._setup(client, "sec_notes")
+        me = client.get("/api/v1/auth/me", headers=_auth(token)).json()["data"]
+        org_id = uuid.UUID(me["organization_id"])
+
+        # Staff posts a public message and an internal note
+        client.post(
+            f"/api/v1/tickets/{ticket['id']}/reply",
+            json={"body": "Hello customer, here is an update.", "is_internal": False},
+            headers=_auth(token),
+        )
+        client.post(
+            f"/api/v1/tickets/{ticket['id']}/reply",
+            json={"body": "TOP SECRET: Internal investigation notes.", "is_internal": True},
+            headers=_auth(token),
+        )
+
+        # 1. Staff verifies internal notes are present in thread and detail
+        staff_detail = client.get(f"/api/v1/tickets/{ticket['id']}", headers=_auth(token)).json()
+        assert any(t["thread_type"] == "INTERNAL_NOTE" for t in staff_detail["threads"])
+
+        staff_thread = client.get(
+            f"/api/v1/tickets/{ticket['id']}/thread?include_internal=true",
+            headers=_auth(token),
+        ).json()
+        assert any(t["thread_type"] == "INTERNAL_NOTE" for t in staff_thread)
+
+        # 2. Authenticate as the customer who owns this ticket (email is customer@test.com)
+        cust_token = _create_customer_token(db_session, org_id, "customer@test.com")
+
+        # 3. Customer calls GET /tickets/{id} detail endpoint
+        cust_detail = client.get(
+            f"/api/v1/tickets/{ticket['id']}",
+            headers=_auth(cust_token),
+        )
+        assert cust_detail.status_code == 200
+        detail_data = cust_detail.json()
+        for thread in detail_data.get("threads", []):
+            assert thread["thread_type"] != "INTERNAL_NOTE"
+            assert "TOP SECRET" not in thread["body"]
+
+        # 4. Customer calls GET /tickets/{id}/thread?include_internal=true (tampering attempt)
+        cust_thread = client.get(
+            f"/api/v1/tickets/{ticket['id']}/thread?include_internal=true",
+            headers=_auth(cust_token),
+        )
+        assert cust_thread.status_code == 200
+        for thread in cust_thread.json():
+            assert thread["thread_type"] != "INTERNAL_NOTE"
+            assert "TOP SECRET" not in thread["body"]
+
+        # 5. Customer from another email cannot access this ticket at all -> 403
+        other_cust_token = _create_customer_token(db_session, org_id, "other_cust@test.com")
+        unauth_resp = client.get(
+            f"/api/v1/tickets/{ticket['id']}",
+            headers=_auth(other_cust_token),
+        )
+        assert unauth_resp.status_code == 403
 
 
 # ─────────────────────────────────────────────────────────────────────────────

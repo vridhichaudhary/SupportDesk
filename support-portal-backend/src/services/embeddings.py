@@ -26,14 +26,18 @@ class EmbeddingProvider(abc.ABC):
 class GeminiEmbeddingProvider(EmbeddingProvider):
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.model_name = "models/text-embedding-004"
+        self.model_name = settings.GEMINI_EMBEDDING_MODEL
         genai.configure(api_key=self.api_key)
 
     def get_embedding(
         self, text: str, task_type: str = "retrieval_document"
     ) -> Optional[List[float]]:
         try:
-            response = genai.embed_content(model=self.model_name, content=text, task_type=task_type)
+            kwargs = {"model": self.model_name, "content": text, "task_type": task_type}
+            # For 768-dim pgvector column compatibility
+            if "embedding-001" in self.model_name or "embedding-2" in self.model_name:
+                kwargs["output_dimensionality"] = 768
+            response = genai.embed_content(**kwargs)
             return response["embedding"]
         except Exception as e:
             logger.error("Gemini embedding generation failed", error=str(e), text_preview=text[:50])
@@ -43,9 +47,10 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
         self, texts: List[str], task_type: str = "retrieval_document"
     ) -> List[Optional[List[float]]]:
         try:
-            response = genai.embed_content(
-                model=self.model_name, content=texts, task_type=task_type
-            )
+            kwargs = {"model": self.model_name, "content": texts, "task_type": task_type}
+            if "embedding-001" in self.model_name or "embedding-2" in self.model_name:
+                kwargs["output_dimensionality"] = 768
+            response = genai.embed_content(**kwargs)
             return response.get("embedding", [None] * len(texts))
         except Exception as e:
             logger.error(

@@ -47,5 +47,14 @@ class ResourceConflictException(SupportDeskException):
         super().__init__(message=message, status_code=409, code="CONFLICT")
 
 
+class ServiceUnavailableException(SupportDeskException):
+    def __init__(
+        self, message: str = "Service unavailable", details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message, status_code=503, code="SERVICE_UNAVAILABLE", details=details
+        )
+
+
 # Convenient alias used throughout the codebase
 ConflictException = ResourceConflictException

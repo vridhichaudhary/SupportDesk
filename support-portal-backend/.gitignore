@@ -1,1 +1,29 @@
+# Environment files — never commit secrets
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+.env.development
+!.env.example
+!.env.sample
+
+# Databases
 *.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Virtual environments
+venv/
+.venv/
+
+# Logs
+*.log

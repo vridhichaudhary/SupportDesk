@@ -64,7 +64,11 @@ class HealthResult:
 
     @property
     def overall_status(self) -> str:
-        return "healthy" if (self.is_live and self.is_ready) else "unhealthy"
+        if not (self.is_live and self.is_ready):
+            return "unhealthy"
+        if self.celery == "unhealthy":
+            return "degraded"
+        return "healthy"
 
     def to_dict(self) -> dict:
         return {
@@ -119,8 +123,8 @@ class HealthService:
         redis_client: redis_lib.Redis,
     ) -> HealthResult:
         """
-        Readiness probe: verifies all critical external dependencies.
-        Returns 503 if ANY dependency is unavailable.
+        Readiness probe: verifies critical external dependencies.
+        Returns 503 if Database or Redis is unavailable.
 
         Use for:
           - Render health check path
@@ -131,9 +135,10 @@ class HealthService:
         redis_status = self._ping_redis(redis_client)
         celery_status = self._ping_celery()
 
-        is_ready = (
-            db_status == "healthy" and redis_status == "healthy" and celery_status == "healthy"
-        )
+        # Database and Redis are hard dependencies for serving HTTP traffic.
+        # Celery worker availability is reported, but does not block API readiness
+        # to avoid deployment deadlocks where the API service waits for the worker service.
+        is_ready = db_status == "healthy" and redis_status == "healthy"
 
         return HealthResult(
             is_live=True,

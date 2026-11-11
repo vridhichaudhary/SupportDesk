@@ -156,20 +156,44 @@ def check_sla_breaches_task():
             .all()
         )
 
+        breached_count = 0
         for ticket in breached:
-            db.add(
-                AuditLog(
-                    organization_id=ticket.organization_id,
-                    actor_id=None,
-                    action_type=ActionType.TICKET_STATUS_CHANGED,
-                    entity_type="Ticket",
-                    entity_id=ticket.id,
-                    changes_json={"event": "SLA_BREACHED", "sla_due_at": str(ticket.sla_due_at)},
+            # Idempotency check: verify if SLA breach event was already logged for this ticket
+            existing_logs = (
+                db.query(AuditLog)
+                .filter(
+                    AuditLog.entity_id == ticket.id,
+                    AuditLog.action_type == ActionType.TICKET_STATUS_CHANGED,
                 )
+                .all()
             )
+            already_breached = any(
+                isinstance(log.changes_json, dict)
+                and log.changes_json.get("event") == "SLA_BREACHED"
+                for log in existing_logs
+            )
+            if not already_breached:
+                db.add(
+                    AuditLog(
+                        organization_id=ticket.organization_id,
+                        actor_id=None,
+                        action_type=ActionType.TICKET_STATUS_CHANGED,
+                        entity_type="Ticket",
+                        entity_id=ticket.id,
+                        changes_json={
+                            "event": "SLA_BREACHED",
+                            "sla_due_at": str(ticket.sla_due_at),
+                        },
+                    )
+                )
+                breached_count += 1
 
         db.commit()
-        logger.info("SLA breach check complete", breached_count=len(breached))
+        logger.info(
+            "SLA breach check complete",
+            newly_breached_count=breached_count,
+            total_breached_active=len(breached),
+        )
     except Exception as e:
         db.rollback()
         logger.error("SLA breach check failed", error=str(e))

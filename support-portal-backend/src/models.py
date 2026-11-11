@@ -302,6 +302,13 @@ class User(Base):
         Index("ix_user_organization", "organization_id"),
     )
 
+    @property
+    def name(self) -> str:
+        if self.display_name:
+            return self.display_name
+        full = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return full or self.email
+
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -1024,6 +1031,7 @@ class AISuggestion(Base):
     suggested_reply = Column(Text, nullable=False)
     confidence_score = Column(Integer, nullable=True)  # 0-100
     status = Column(Enum(SuggestionStatus), nullable=False, default=SuggestionStatus.PENDING)
+    citations_json = Column(JSONType, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     ticket = relationship("Ticket", back_populates="ai_suggestions")

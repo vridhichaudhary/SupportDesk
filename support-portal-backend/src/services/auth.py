@@ -122,16 +122,20 @@ class AuthService:
     def signup_customer(
         self, db: Session, payload: CustomerSignupRequest
     ) -> Tuple[User, Organization, str, str]:
-        # Grab the default org (for simplicity in this prototype, we'll use the first one)
+        # Grab the default org (or provision default if database is freshly initialized)
         org = db.query(Organization).first()
         if not org:
-            raise ValidationException("No organization exists to join")
+            from src.schemas.organization import OrganizationCreate
+
+            org_in = OrganizationCreate(name="SupportDesk Organization", industry="Technology")
+            org = organization_service.create_organization(db, obj_in=org_in)
 
         # Check existing user
         existing_user = user_repository.get_by_email(db, payload.email)
         if existing_user:
-            raise ValidationException("Email is already registered")
+            raise ValidationException("Email is already registered. Please log in instead.")
 
+        validate_password_complexity(payload.password)
         hashed_pwd = hash_password(payload.password)
 
         # 1. Create User

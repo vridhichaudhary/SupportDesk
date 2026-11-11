@@ -1,8 +1,13 @@
 support-portal-backend/node_modules
-# Environment files
+# Environment files — never commit secrets
 .env
 .env.*
+.env.local
+.env.production
+.env.staging
+.env.development
 !.env.example
+!.env.sample
 
 # Node
 node_modules/

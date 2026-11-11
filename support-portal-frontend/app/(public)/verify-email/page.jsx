@@ -29,7 +29,12 @@ function VerifyEmailContent() {
         setMessage("Your email address has been verified successfully!");
       } catch (err) {
         setStatus("error");
-        setMessage(err.response?.data?.error?.message || "Invalid or expired verification token.");
+        setMessage(
+          err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          err.message ||
+          "Invalid or expired verification token."
+        );
       }
     };
 
@@ -40,23 +45,25 @@ function VerifyEmailContent() {
     <>
       {status === "verifying" && (
         <div className="py-8">
-          <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white">Verifying Email...</h2>
-          <p className="text-xs text-stone-400 mt-2">Please wait while we confirm your account</p>
+          <div className="w-14 h-14 bg-sky-50 rounded-2xl flex items-center justify-center border border-sky-100 shadow-sm mx-auto mb-4">
+            <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+          </div>
+          <h2 className="text-xl font-black text-stone-900 tracking-tight">Verifying Email...</h2>
+          <p className="text-xs text-stone-500 font-medium mt-1">Please wait while we confirm your account</p>
         </div>
       )}
 
       {status === "success" && (
         <div className="py-6 space-y-4">
-          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+          <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-black text-white">Verified!</h2>
-          <p className="text-stone-300 text-xs leading-relaxed">{message}</p>
+          <h2 className="text-2xl font-black text-stone-900 tracking-tight">Verified!</h2>
+          <p className="text-stone-600 text-xs leading-relaxed font-medium">{message}</p>
 
           <Link
             href="/login"
-            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md shadow-sky-600/25 flex items-center justify-center gap-2"
           >
             Continue to Sign In <ArrowRight className="w-4 h-4" />
           </Link>
@@ -65,15 +72,17 @@ function VerifyEmailContent() {
 
       {status === "error" && (
         <div className="py-6 space-y-4">
-          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/10">
+          <div className="w-14 h-14 bg-rose-50 border border-rose-200 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
             <XCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-black text-white">Verification Failed</h2>
-          <p className="text-stone-400 text-xs leading-relaxed">{message}</p>
+          <h2 className="text-2xl font-black text-stone-900 tracking-tight">Verification Failed</h2>
+          <p className="text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs leading-relaxed font-medium">
+            {message}
+          </p>
 
           <Link
             href="/login"
-            className="w-full py-3.5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
           >
             Back to Sign In
           </Link>
@@ -85,14 +94,17 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-950 p-6 font-sans text-stone-100">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm">
-        <div className="bg-stone-900 border border-stone-800 rounded-3xl p-8 shadow-2xl text-center">
-          <Suspense fallback={<div className="py-8 text-stone-400">Loading verification...</div>}>
-            <VerifyEmailContent />
-          </Suspense>
-        </div>
-      </motion.div>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="w-full max-w-md"
+    >
+      <div className="bg-white border border-stone-200/80 rounded-3xl p-8 sm:p-10 shadow-xl shadow-sky-100/50 text-center">
+        <Suspense fallback={<div className="py-8 text-stone-400 text-xs font-medium">Loading verification...</div>}>
+          <VerifyEmailContent />
+        </Suspense>
+      </div>
+    </motion.div>
   );
 }

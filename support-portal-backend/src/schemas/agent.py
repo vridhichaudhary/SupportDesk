@@ -166,3 +166,24 @@ class PresenceResponse(BaseModel):
 
 class TeamPresenceResponse(BaseModel):
     presence: Dict[str, PresenceResponse]
+
+
+class AgentDirectoryItem(BaseModel):
+    id: uuid.UUID
+    email: str
+    display_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    name: str
+    role: str
+    job_title: Optional[str] = None
+    avatar_url: Optional[str] = None
+    is_active: bool
+    status: str = "OFFLINE"
+    active_tickets: int = 0
+    experience: str = "1 year"
+    rating: float = 4.8
+    skills: List[str] = []
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

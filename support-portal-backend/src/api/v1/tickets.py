@@ -23,6 +23,8 @@ from src.schemas.ticket import (
     BulkAssignRequest,
     BulkStatusRequest,
     TicketAssign,
+    TicketCopilotActionRequest,
+    TicketCopilotDraftResponse,
     TicketCreate,
     TicketDetailResponse,
     TicketMergeRequest,
@@ -32,6 +34,7 @@ from src.schemas.ticket import (
     TicketUpdate,
 )
 from src.services.ticket import ticket_service
+from src.services.ticket_copilot import ticket_copilot_service
 from src.utils.pagination import PaginatedResult, PaginationParams
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
@@ -141,8 +144,8 @@ def get_ticket(
         if not customer or ticket.customer_id != customer.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
 
-    # Attach threads. Agents/admins see internal notes; customers wouldn't.
-    include_internal = True
+    # Attach threads. Agents/admins see internal notes; customers must NEVER receive them.
+    include_internal = actor.role != UserRole.CUSTOMER
     ticket.threads = thread_repository.get_for_ticket(
         db, ticket_id, include_internal=include_internal
     )
@@ -280,6 +283,56 @@ def reply_to_ticket(
     )
 
 
+@router.post(
+    "/{ticket_id:uuid}/copilot-draft",
+    response_model=TicketCopilotDraftResponse,
+    summary="Generate AI draft response for a ticket",
+)
+def generate_copilot_draft(
+    ticket_id: uuid.UUID,
+    actor: User = require_permission("view_ai_suggestions"),
+    db: Session = Depends(get_db),
+):
+    """
+    Generates an AI-suggested draft response grounded in organization KB articles
+    and documents. Returns citations and confidence score.
+    Does NOT automatically persist messages or reply to the ticket.
+    Requires `view_ai_suggestions` permission.
+    """
+    return ticket_copilot_service.generate_draft(db, ticket_id=ticket_id, actor=actor)
+
+
+@router.post(
+    "/{ticket_id:uuid}/copilot-draft/{suggestion_id:uuid}/action",
+    summary="Record agent action on AI copilot draft",
+)
+def record_copilot_draft_action(
+    ticket_id: uuid.UUID,
+    suggestion_id: uuid.UUID,
+    body: TicketCopilotActionRequest,
+    actor: User = require_permission("view_ai_suggestions"),
+    db: Session = Depends(get_db),
+):
+    """
+    Records agent decision on an AI suggestion (accept, edit, reject).
+    Maintains auditability for human-in-the-loop AI assistance.
+    Requires `view_ai_suggestions` permission.
+    """
+    suggestion = ticket_copilot_service.record_draft_action(
+        db,
+        ticket_id=ticket_id,
+        suggestion_id=suggestion_id,
+        action=body.action,
+        actor=actor,
+        edited_reply=body.edited_reply,
+    )
+    return {
+        "status": "success",
+        "suggestion_id": str(suggestion.id),
+        "new_status": suggestion.status.value,
+    }
+
+
 @router.get(
     "/{ticket_id:uuid}/thread",
     summary="Get ticket thread",
@@ -301,6 +354,7 @@ def get_thread(
         customer = db.query(Customer).filter(Customer.email == actor.email).first()
         if not customer or ticket.customer_id != customer.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this ticket")
+        include_internal = False
 
     return thread_repository.get_for_ticket(db, ticket_id, include_internal=include_internal)
 

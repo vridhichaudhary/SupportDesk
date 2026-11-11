@@ -8,8 +8,9 @@ Create Date: 2026-08-03 00:54:14.961066
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e4bead1f74b7"
@@ -91,10 +92,11 @@ def upgrade() -> None:
         op.execute("ALTER TYPE actiontype ADD VALUE IF NOT EXISTS 'ROLE_REMOVED'")
         op.execute("BEGIN")
 
-    from src.core.permissions import PERMISSION_REGISTRY, DEFAULT_ROLE_PERMISSIONS
-    from src.models import UserRole
     import uuid
     from datetime import datetime
+
+    from src.core.permissions import DEFAULT_ROLE_PERMISSIONS, PERMISSION_REGISTRY
+    from src.models import UserRole
 
     permissions_table = sa.table(
         "permissions",
@@ -162,6 +164,8 @@ def upgrade() -> None:
 
     role_permissions = []
     for role_enum, codenames in DEFAULT_ROLE_PERMISSIONS.items():
+        if role_enum.value not in role_id_map:
+            continue
         role_id = role_id_map[role_enum.value]
         for codename in codenames:
             role_permissions.append(
